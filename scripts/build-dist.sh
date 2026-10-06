@@ -2,9 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.2-bootstrap"
+LOADER_VERSION="0.0.3-hook"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
+AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 
 rm -rf out dist
 mkdir -p out/classes out/example-classes dist
@@ -16,9 +17,18 @@ if [[ ${#LOADER_SOURCES[@]} -eq 0 ]]; then
 fi
 
 javac --release 21 -encoding UTF-8 -d out/classes "${LOADER_SOURCES[@]}"
+cat > out/manifest.mf <<EOF
+Manifest-Version: 1.0
+Main-Class: ${MAIN_CLASS}
+Premain-Class: ${AGENT_CLASS}
+Can-Redefine-Classes: false
+Can-Retransform-Classes: false
+
+EOF
+
 jar --create \
     --file "dist/CodaLoader-${LOADER_VERSION}.jar" \
-    --main-class "${MAIN_CLASS}" \
+    --manifest out/manifest.mf \
     -C out/classes .
 
 mapfile -d '' EXAMPLE_SOURCES < <(find examples/hello-coda/src -name '*.java' -print0)

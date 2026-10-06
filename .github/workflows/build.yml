@@ -35,18 +35,31 @@ jobs:
           mkdir -p run/mods
           cp dist/hello-coda-0.0.1.jar run/mods/
 
-          output="$(java -jar dist/CodaLoader-0.0.2-bootstrap.jar --loader-only run)"
+          output="$(java -jar dist/CodaLoader-0.0.3-hook.jar --loader-only run)"
           printf '%s\n' "$output"
 
           grep -F "[HelloCoda] Pawprint confirmed. CodaLoader can load me." <<< "$output"
           grep -F "[CodaLoader] Ready. 1 mod(s) initialized." <<< "$output"
+
+      - name: Smoke-test Java agent and in-JVM mod loading
+        shell: bash
+        run: |
+          rm -rf agent-run
+          mkdir -p agent-run/mods
+          cp dist/hello-coda-0.0.1.jar agent-run/mods/
+
+          output="$(java -javaagent:dist/CodaLoader-0.0.3-hook.jar=agent-run -version 2>&1)"
+          printf '%s\n' "$output"
+
+          grep -F "[CodaLoader] Agent attached inside Minecraft JVM." <<< "$output"
+          grep -F "[HelloCoda] Running inside Minecraft JVM." <<< "$output"
 
       - name: Upload runnable JARs
         uses: actions/upload-artifact@v4
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-0.0.2-bootstrap.jar
+            dist/CodaLoader-0.0.3-hook.jar
             dist/hello-coda-0.0.1.jar
             dist/Launch-CodaLoader.bat
           if-no-files-found: error
@@ -74,4 +87,4 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-0.0.2-bootstrap.jar)) { throw "JAR missing" }
+          if (!(Test-Path dist/CodaLoader-0.0.3-hook.jar)) { throw "JAR missing" }

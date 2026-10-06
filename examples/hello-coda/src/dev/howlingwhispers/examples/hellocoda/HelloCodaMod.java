@@ -8,5 +8,8 @@ public final class HelloCodaMod implements CodaMod {
     public void onInitialize(CodaContext context) {
         System.out.println("[HelloCoda] Pawprint confirmed. CodaLoader can load me. 🐾");
         System.out.println("[HelloCoda] Minecraft target: " + context.minecraftVersion());
+        if (Boolean.getBoolean("codaloader.inGame")) {
+            System.out.println("[HelloCoda] Running inside Minecraft JVM.");
+        }
     }
 }

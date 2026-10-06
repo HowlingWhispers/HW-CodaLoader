@@ -77,6 +77,9 @@ public final class MinecraftBootstrap {
         Files.createDirectories(versions);
         Files.createDirectories(natives);
         Files.createDirectories(game);
+        Files.createDirectories(root.resolve("mods"));
+        Files.createDirectories(root.resolve("config"));
+        prepareCustomMusicPack();
 
         System.out.println("[CodaLoader] Bootstrap target: " + CodaTarget.MINECRAFT_DISPLAY_NAME);
         System.out.println("[CodaLoader] Runtime Java: " + java);
@@ -115,6 +118,9 @@ public final class MinecraftBootstrap {
         List<String> command = new ArrayList<>();
         command.add(currentJavaExecutable().toString());
 
+        Path agentJar = currentCodaLoaderJar();
+        command.add("-javaagent:" + agentJar + "=" + root);
+
         Map<String, Object> arguments = childObject(version, "arguments");
         List<String> jvm = expandArguments(arguments.get("jvm"), vars);
         if (jvm.isEmpty()) {
@@ -131,7 +137,8 @@ public final class MinecraftBootstrap {
         command.addAll(expandArguments(arguments.get("game"), vars));
 
         System.out.println("[CodaLoader] Runtime ready.");
-        System.out.println("[CodaLoader] Launching vanilla Minecraft in bootstrap test mode...");
+        System.out.println("[CodaLoader] Agent: " + agentJar.getFileName());
+        System.out.println("[CodaLoader] Launching Minecraft with CodaLoader hooks...");
         System.out.println("[CodaLoader] Game directory: " + game);
         System.out.println("[CodaLoader] Identity: CodaPlayer (offline bootstrap test)");
 
@@ -140,6 +147,104 @@ public final class MinecraftBootstrap {
                 .inheritIO()
                 .start();
         return process.waitFor();
+    }
+
+    private Path currentCodaLoaderJar() throws Exception {
+        URI location = MinecraftBootstrap.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+        Path path = Path.of(location).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(path) || !path.getFileName().toString().endsWith(".jar")) {
+            throw new IllegalStateException("CodaLoader must be launched from its JAR to attach the in-game agent: " + path);
+        }
+        return path;
+    }
+
+    private void prepareCustomMusicPack() throws IOException {
+        Path menuMusic = root.resolve("music").resolve("menu");
+        Files.createDirectories(menuMusic);
+
+        Path readme = menuMusic.resolve("README.txt");
+        if (!Files.exists(readme)) {
+            Files.writeString(readme,
+                    "Drop .ogg files in this folder. CodaLoader will use them as Minecraft menu music.\n",
+                    StandardCharsets.UTF_8);
+        }
+
+        List<Path> tracks;
+        try (var stream = Files.list(menuMusic)) {
+            tracks = stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".ogg"))
+                    .sorted()
+                    .toList();
+        }
+
+        if (tracks.isEmpty()) {
+            System.out.println("[CodaLoader] Custom music folder: " + menuMusic + " (no .ogg tracks yet)");
+            return;
+        }
+
+        Path pack = game.resolve("resourcepacks").resolve("CodaLoader-Music");
+        resetDirectory(pack);
+        Path sounds = pack.resolve("assets").resolve("minecraft").resolve("sounds")
+                .resolve("codaloader").resolve("menu");
+        Files.createDirectories(sounds);
+
+        String packMeta = "{\n"
+                + "  \"pack\": {\n"
+                + "    \"pack_format\": " + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ",\n"
+                + "    \"description\": \"CodaLoader custom menu music\"\n"
+                + "  }\n"
+                + "}\n";
+        Files.writeString(pack.resolve("pack.mcmeta"), packMeta, StandardCharsets.UTF_8);
+
+        StringBuilder soundJson = new StringBuilder();
+        soundJson.append("{\n  \"music.menu\": {\n    \"replace\": true,\n    \"sounds\": [\n");
+        for (int i = 0; i < tracks.size(); i++) {
+            String generated = String.format(Locale.ROOT, "track_%03d", i + 1);
+            Files.copy(tracks.get(i), sounds.resolve(generated + ".ogg"), StandardCopyOption.REPLACE_EXISTING);
+            soundJson.append("      {\"name\":\"codaloader/menu/")
+                    .append(generated)
+                    .append("\",\"stream\":true}");
+            if (i + 1 < tracks.size()) soundJson.append(',');
+            soundJson.append('\n');
+        }
+        soundJson.append("    ]\n  }\n}\n");
+
+        Path soundsJson = pack.resolve("assets").resolve("minecraft").resolve("sounds.json");
+        Files.createDirectories(soundsJson.getParent());
+        Files.writeString(soundsJson, soundJson.toString(), StandardCharsets.UTF_8);
+        enableGeneratedMusicPack();
+
+        System.out.println("[CodaLoader] Custom menu music enabled: " + tracks.size() + " track(s)");
+    }
+
+    private void enableGeneratedMusicPack() throws IOException {
+        Path options = game.resolve("options.txt");
+        List<String> lines = Files.exists(options)
+                ? new ArrayList<>(Files.readAllLines(options, StandardCharsets.UTF_8))
+                : new ArrayList<>();
+
+        String packId = "\"file/CodaLoader-Music\"";
+        boolean found = false;
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (!line.startsWith("resourcePacks:")) continue;
+            found = true;
+            if (!line.contains(packId)) {
+                int end = line.lastIndexOf(']');
+                if (end >= 0) {
+                    String before = line.substring(0, end);
+                    if (!before.endsWith("[")) before += ",";
+                    lines.set(i, before + packId + "]");
+                } else {
+                    lines.set(i, "resourcePacks:[\"vanilla\"," + packId + "]");
+                }
+            }
+        }
+        if (!found) {
+            lines.add("resourcePacks:[\"vanilla\"," + packId + "]");
+        }
+        Files.write(options, lines, StandardCharsets.UTF_8);
     }
 
     private Map<String, Object> findVersion(Map<String, Object> manifest, String id) {

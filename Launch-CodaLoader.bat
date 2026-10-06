@@ -5,8 +5,11 @@ title CodaLoader
 cd /d "%~dp0"
 
 set "CODA_JAR="
-for %%F in ("CodaLoader-*.jar") do (
-    if not defined CODA_JAR set "CODA_JAR=%%~fF"
+if exist "CodaLoader-0.0.3-hook.jar" set "CODA_JAR=%CD%\CodaLoader-0.0.3-hook.jar"
+if not defined CODA_JAR (
+    for %%F in ("CodaLoader-*.jar") do (
+        if not defined CODA_JAR set "CODA_JAR=%%~fF"
+    )
 )
 
 if not defined CODA_JAR (

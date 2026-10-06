@@ -4,32 +4,56 @@ CodaLoader is a from-scratch Minecraft mod loader and bootstrap project targetin
 
 It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 
-## Current milestone: 0.0.2-bootstrap
+## Current milestone: 0.0.3-hook
 
-The current prerelease moves beyond the standalone loader foundation and attempts the first real Minecraft launch path.
+The current prerelease moves CodaLoader into the actual Minecraft JVM.
 
-Normal launch:
+Normal launch now:
 
-1. loads CodaLoader mods from `run/mods`,
-2. resolves the exact target from Mojang's official version manifest,
-3. reuses matching files from the official `.minecraft` installation when possible,
-4. downloads any missing client, libraries, natives and assets,
-5. verifies Mojang-provided hashes/sizes,
-6. creates `run/game`,
-7. starts vanilla Minecraft.
+1. resolves and prepares Minecraft 26.4 Snapshot 3,
+2. generates the optional custom-menu-music resource pack,
+3. launches Minecraft with the CodaLoader JAR attached as a Java agent,
+4. initializes CodaLoader mods inside the Minecraft JVM,
+5. applies the first client hooks.
 
-The first bootstrap test intentionally uses a local offline identity named **CodaPlayer**. Microsoft account/session handoff comes after vanilla startup is proven reliable.
+Visible proof targets:
+
+- window title: `CodaLoader 0.0.3-hook | Minecraft Java 26.4 Snapshot 3`
+- a CodaLoader status button on the title screen
+- `hello-coda` prints that it is running inside the Minecraft JVM
+
+## Custom menu music
+
+Put Vorbis `.ogg` files here:
+
+```text
+run/
+└── music/
+    └── menu/
+        ├── track-one.ogg
+        └── track-two.ogg
+```
+
+When at least one track exists, CodaLoader generates:
+
+```text
+run/game/resourcepacks/CodaLoader-Music/
+```
+
+and enables it in the isolated game profile. The generated pack replaces the vanilla `music.menu` sound event with the tracks from the CodaLoader music folder.
 
 ## Downloads
 
-Compiled builds are published on the repository's [GitHub Releases](https://github.com/HowlingWhispers/HW-CodaLoader/releases) page.
+Compiled prereleases are published on the repository's GitHub Releases page.
 
-For Windows, place these two files together and double-click the BAT:
+For Windows, place these together:
 
 ```text
-CodaLoader-0.0.2-bootstrap.jar
+CodaLoader-0.0.3-hook.jar
 Launch-CodaLoader.bat
 ```
+
+Then double-click `Launch-CodaLoader.bat`.
 
 Java 25+ is required by Minecraft 26.4 Snapshot 3. Java 26 is supported.
 
@@ -39,7 +63,10 @@ Java 25+ is required by Minecraft 26.4 Snapshot 3. Java 26 is supported.
 run/
 ├── config/
 ├── mods/
+├── music/
+│   └── menu/
 ├── game/
+│   └── resourcepacks/
 └── runtime/
     ├── versions/
     ├── libraries/
@@ -47,21 +74,6 @@ run/
     └── natives/
 ```
 
-`runtime/` is CodaLoader's materialized Minecraft runtime. `game/` is the isolated Minecraft working directory so snapshot testing does not touch normal worlds by default.
+## Current boundary
 
-## Foundation retained
-
-CodaLoader still provides:
-
-- `coda.mod.json`
-- mod JAR discovery
-- metadata validation
-- dependency validation/order
-- dependency-cycle detection
-- isolated mod classloaders
-- `CodaMod` entrypoints
-- `CodaContext`
-
-## Important current boundary
-
-**Minecraft mod injection is not wired yet.** The 0.0.2 goal is narrower: prove that our own JAR can prepare and launch vanilla Minecraft. Once that is green on a real Windows machine, the next layer inserts CodaLoader into Minecraft's class-loading path and begins exposing CodaAPI lifecycle/registry hooks.
+The first hook is deliberately tiny. CodaLoader is now present in the Minecraft process, but this is not yet a complete registry/event API. The next layers can build proper lifecycle events, registries, commands, screens, and deeper bytecode hooks on top of this proven in-JVM foothold.
