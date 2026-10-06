@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.1-foundation"
+LOADER_VERSION="0.0.2-bootstrap"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 
@@ -22,20 +22,9 @@ jar --create \
     -C out/classes .
 
 mapfile -d '' EXAMPLE_SOURCES < <(find examples/hello-coda/src -name '*.java' -print0)
-if [[ ${#EXAMPLE_SOURCES[@]} -eq 0 ]]; then
-  echo "No Hello Coda Java sources found." >&2
-  exit 1
-fi
-
-javac --release 21 -encoding UTF-8 \
-    -cp out/classes \
-    -d out/example-classes \
-    "${EXAMPLE_SOURCES[@]}"
-
+javac --release 21 -encoding UTF-8 -cp out/classes -d out/example-classes "${EXAMPLE_SOURCES[@]}"
 cp examples/hello-coda/resources/coda.mod.json out/example-classes/
-jar --create \
-    --file "dist/hello-coda-${EXAMPLE_VERSION}.jar" \
-    -C out/example-classes .
+jar --create --file "dist/hello-coda-${EXAMPLE_VERSION}.jar" -C out/example-classes .
 
 cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 

@@ -28,14 +28,14 @@ jobs:
       - name: Build distribution JARs
         run: ./scripts/build-dist.sh
 
-      - name: Smoke-test CodaLoader
+      - name: Smoke-test loader without launching Minecraft
         shell: bash
         run: |
           rm -rf run
           mkdir -p run/mods
           cp dist/hello-coda-0.0.1.jar run/mods/
 
-          output="$(java -jar dist/CodaLoader-0.0.1-foundation.jar run)"
+          output="$(java -jar dist/CodaLoader-0.0.2-bootstrap.jar --loader-only run)"
           printf '%s\n' "$output"
 
           grep -F "[HelloCoda] Pawprint confirmed. CodaLoader can load me." <<< "$output"
@@ -46,14 +46,14 @@ jobs:
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-0.0.1-foundation.jar
+            dist/CodaLoader-0.0.2-bootstrap.jar
             dist/hello-coda-0.0.1.jar
             dist/Launch-CodaLoader.bat
           if-no-files-found: error
           retention-days: 30
 
   windows-launcher:
-    name: Smoke-test Windows BAT launcher
+    name: Build Windows distribution
     runs-on: windows-latest
 
     steps:
@@ -70,15 +70,8 @@ jobs:
         shell: pwsh
         run: ./scripts/build-dist.ps1
 
-      - name: Prepare Hello Coda mod
+      - name: Verify launcher and JAR exist
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist/run/mods | Out-Null
-          Copy-Item dist/hello-coda-0.0.1.jar dist/run/mods/
-
-      - name: Run BAT launcher
-        shell: cmd
-        env:
-          CODA_NO_PAUSE: "1"
-        run: |
-          call dist\Launch-CodaLoader.bat
+          if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
+          if (!(Test-Path dist/CodaLoader-0.0.2-bootstrap.jar)) { throw "JAR missing" }

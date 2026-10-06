@@ -9,7 +9,7 @@ import java.util.Map;
  * Tiny JSON parser so the loader foundation has zero external runtime dependencies.
  * It supports the complete JSON value model, but is intentionally not a general-purpose library.
  */
-final class MiniJson {
+public final class MiniJson {
     private final String text;
     private int pos;
 
@@ -17,7 +17,7 @@ final class MiniJson {
         this.text = text;
     }
 
-    static Object parse(String text) {
+    public static Object parse(String text) {
         MiniJson parser = new MiniJson(text);
         Object value = parser.value();
         parser.ws();
