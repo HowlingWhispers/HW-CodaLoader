@@ -14,7 +14,7 @@ if not defined CODA_JAR (
     echo [CodaLoader] I cannot find CodaLoader-*.jar beside this launcher.
     echo [CodaLoader] Put Launch-CodaLoader.bat in the same folder as the CodaLoader JAR.
     echo.
-    pause
+    call :PauseIfNeeded
     exit /b 1
 )
 
@@ -25,35 +25,26 @@ echo ============================================================
 echo [CodaLoader] Looking for Java 21 or newer...
 
 set "JAVA_CMD="
-set "JAVA_VERSION="
+set "CODA_JAVA_RESULT=%TEMP%\codaloader-java-%RANDOM%%RANDOM%.txt"
+del /q "%CODA_JAVA_RESULT%" >nul 2>nul
 
-rem 1. Normal Java exposed on PATH.
-for /f "delims=" %%J in ('where java 2^>nul') do (
-    if not defined JAVA_CMD call :CheckJava "%%J"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; function TryJava([string]$j) { if ([string]::IsNullOrWhiteSpace($j) -or -not (Test-Path -LiteralPath $j -PathType Leaf)) { return $false }; try { $line = ((& $j -version 2^>^&1 | Select-Object -First 1) -join ' '); if ($line -match 'version\s+\"?([0-9]+)') { return ([int]$Matches[1] -ge 21) } } catch {}; return $false }; $direct=@(); if ($env:JAVA_HOME) { $direct += (Join-Path $env:JAVA_HOME 'bin\java.exe') }; $cmd=Get-Command java.exe -ErrorAction SilentlyContinue; if ($cmd) { $direct += $cmd.Source }; foreach ($j in ($direct | Select-Object -Unique)) { if (TryJava $j) { [IO.File]::WriteAllText($env:CODA_JAVA_RESULT,$j); exit 0 } }; $roots=@((Join-Path $env:ProgramFiles 'Java'),(Join-Path $env:ProgramFiles 'Eclipse Adoptium'),(Join-Path $env:APPDATA '.minecraft\runtime'),(Join-Path $env:LOCALAPPDATA 'Minecraft Launcher'),(Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe'),'C:\XboxGames\Minecraft Launcher'); foreach ($r in $roots) { if ($r -and (Test-Path -LiteralPath $r)) { Write-Host ('[CodaLoader] Checking ' + $r); foreach ($f in (Get-ChildItem -LiteralPath $r -Filter java.exe -File -Recurse -ErrorAction SilentlyContinue)) { if (TryJava $f.FullName) { [IO.File]::WriteAllText($env:CODA_JAVA_RESULT,$f.FullName); exit 0 } } } }; exit 1"
+
+if exist "%CODA_JAVA_RESULT%" (
+    set /p "JAVA_CMD="<"%CODA_JAVA_RESULT%"
 )
-
-rem 2. Minecraft / Microsoft Store / Xbox launcher runtimes.
-if not defined JAVA_CMD call :ScanJavaRoot "%APPDATA%\.minecraft\runtime"
-if not defined JAVA_CMD call :ScanJavaRoot "%LOCALAPPDATA%\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe"
-if not defined JAVA_CMD call :ScanJavaRoot "%LOCALAPPDATA%\Minecraft Launcher"
-if not defined JAVA_CMD call :ScanJavaRoot "%ProgramFiles%\Minecraft Launcher"
-if not defined JAVA_CMD call :ScanJavaRoot "%ProgramFiles(x86)%\Minecraft Launcher"
-if not defined JAVA_CMD call :ScanJavaRoot "C:\XboxGames\Minecraft Launcher"
-
-rem 3. Common standalone Java/JDK installs.
-if not defined JAVA_CMD call :ScanJavaRoot "%ProgramFiles%\Eclipse Adoptium"
-if not defined JAVA_CMD call :ScanJavaRoot "%ProgramFiles%\Java"
-if not defined JAVA_CMD call :ScanJavaRoot "%ProgramFiles%\Microsoft"
-if not defined JAVA_CMD call :ScanJavaRoot "%USERPROFILE%\.jdks"
+del /q "%CODA_JAVA_RESULT%" >nul 2>nul
 
 if not defined JAVA_CMD (
     echo.
     echo [CodaLoader] I could not find Java 21 or newer.
-    echo [CodaLoader] Launch Minecraft once with the official launcher, then try again.
+    echo [CodaLoader] You said Java 26 is installed, so this means its install location
+    echo [CodaLoader] is somewhere I have not detected yet.
     echo.
-    echo [CodaLoader] If this still fails, send me this window and I will add your runtime path.
+    echo [CodaLoader] Run this in Command Prompt to locate it:
+    echo             where /r "C:\Program Files\Java" java.exe
     echo.
-    pause
+    call :PauseIfNeeded
     exit /b 1
 )
 
@@ -61,7 +52,7 @@ if not exist "run" mkdir "run"
 if not exist "run\mods" mkdir "run\mods"
 
 echo [CodaLoader] Java:     !JAVA_CMD!
-echo [CodaLoader] Version:  !JAVA_VERSION!
+"!JAVA_CMD!" -version
 echo [CodaLoader] Launcher: %~nx0
 echo [CodaLoader] JAR:      %CODA_JAR%
 echo [CodaLoader] Game dir: %CD%\run
@@ -78,44 +69,9 @@ if "!CODA_EXIT!"=="0" (
 )
 
 echo.
-pause
+call :PauseIfNeeded
 exit /b !CODA_EXIT!
 
-:ScanJavaRoot
-set "CODA_SCAN_ROOT=%~1"
-if not defined CODA_SCAN_ROOT exit /b 0
-if not exist "!CODA_SCAN_ROOT!" exit /b 0
-
-echo [CodaLoader] Checking !CODA_SCAN_ROOT!
-
-for /f "usebackq delims=" %%J in (`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$r=$env:CODA_SCAN_ROOT; Get-ChildItem -LiteralPath $r -Filter java.exe -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }"`) do (
-    if not defined JAVA_CMD call :CheckJava "%%J"
-)
-
-exit /b 0
-
-:CheckJava
-set "JAVA_CANDIDATE=%~1"
-set "CANDIDATE_VERSION="
-set "CANDIDATE_MAJOR="
-
-if not exist "!JAVA_CANDIDATE!" exit /b 0
-
-for /f "tokens=3" %%V in ('"!JAVA_CANDIDATE!" -version 2^>^&1 ^| findstr /i /c:"version"') do (
-    if not defined CANDIDATE_VERSION set "CANDIDATE_VERSION=%%~V"
-)
-
-if not defined CANDIDATE_VERSION exit /b 0
-
-for /f "tokens=1,2 delims=." %%A in ("!CANDIDATE_VERSION!") do (
-    set "CANDIDATE_MAJOR=%%A"
-    if "%%A"=="1" set "CANDIDATE_MAJOR=%%B"
-)
-
-for /f "delims=0123456789" %%X in ("!CANDIDATE_MAJOR!") do exit /b 0
-
-if !CANDIDATE_MAJOR! GEQ 21 (
-    set "JAVA_CMD=!JAVA_CANDIDATE!"
-    set "JAVA_VERSION=!CANDIDATE_VERSION!"
-)
+:PauseIfNeeded
+if not defined CODA_NO_PAUSE pause
 exit /b 0

@@ -51,3 +51,34 @@ jobs:
             dist/Launch-CodaLoader.bat
           if-no-files-found: error
           retention-days: 30
+
+  windows-launcher:
+    name: Smoke-test Windows BAT launcher
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Build Windows distribution
+        shell: pwsh
+        run: ./scripts/build-dist.ps1
+
+      - name: Prepare Hello Coda mod
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/run/mods | Out-Null
+          Copy-Item dist/hello-coda-0.0.1.jar dist/run/mods/
+
+      - name: Run BAT launcher
+        shell: cmd
+        env:
+          CODA_NO_PAUSE: "1"
+        run: |
+          call dist\Launch-CodaLoader.bat
