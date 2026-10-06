@@ -6,6 +6,9 @@ import dev.howlingwhispers.codaloader.core.MiniJson;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
+import javax.imageio.ImageIO;
 
 /**
  * Minimal vanilla Minecraft bootstrapper.
@@ -79,6 +83,7 @@ public final class MinecraftBootstrap {
         Files.createDirectories(game);
         Files.createDirectories(root.resolve("mods"));
         Files.createDirectories(root.resolve("config"));
+        prepareBrandingPack();
         prepareCustomMusicPack();
 
         System.out.println("[CodaLoader] Bootstrap target: " + CodaTarget.MINECRAFT_DISPLAY_NAME);
@@ -158,6 +163,156 @@ public final class MinecraftBootstrap {
         return path;
     }
 
+
+    private void prepareBrandingPack() throws IOException {
+        Path branding = root.resolve("branding");
+        Files.createDirectories(branding);
+
+        Path readme = branding.resolve("README.txt");
+        if (!Files.exists(readme)) {
+            Files.writeString(readme,
+                    "Howling Whispers menu branding for CodaLoader.\n"
+                            + "Required files:\n"
+                            + "  title.png\n"
+                            + "  panorama_0.png through panorama_5.png\n"
+                            + "The six panorama images may be different scenes; Minecraft rotates them as its title panorama.\n",
+                    StandardCharsets.UTF_8);
+        }
+
+        List<Path> required = new ArrayList<>();
+        required.add(branding.resolve("title.png"));
+        for (int i = 0; i < 6; i++) {
+            required.add(branding.resolve("panorama_" + i + ".png"));
+        }
+
+        List<String> missing = required.stream()
+                .filter(path -> !Files.isRegularFile(path))
+                .map(path -> path.getFileName().toString())
+                .toList();
+        if (!missing.isEmpty()) {
+            System.out.println("[CodaLoader] Branding folder ready: " + branding
+                    + " (missing " + String.join(", ", missing) + ")");
+            return;
+        }
+
+        Path pack = game.resolve("resourcepacks").resolve("HowlingWhispers-Branding");
+        resetDirectory(pack);
+
+        String packMeta = "{\n"
+                + "  \"pack\": {\n"
+                + "    \"description\": \"Howling Whispers CodaLoader menu branding\",\n"
+                + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
+                + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
+                + "  }\n"
+                + "}\n";
+        Files.writeString(pack.resolve("pack.mcmeta"), packMeta, StandardCharsets.UTF_8);
+
+        Path titleDir = pack.resolve("assets").resolve("minecraft").resolve("textures")
+                .resolve("gui").resolve("title");
+        Path backgroundDir = titleDir.resolve("background");
+        Files.createDirectories(backgroundDir);
+
+        writeLogoTexture(branding.resolve("title.png"), titleDir.resolve("minecraft.png"));
+
+        BufferedImage blankEdition = new BufferedImage(256, 64, BufferedImage.TYPE_INT_ARGB);
+        ImageIO.write(blankEdition, "png", titleDir.resolve("edition.png").toFile());
+
+        for (int i = 0; i < 6; i++) {
+            writeSquareTexture(
+                    branding.resolve("panorama_" + i + ".png"),
+                    backgroundDir.resolve("panorama_" + i + ".png"),
+                    512);
+        }
+
+        enableGeneratedPack("file/HowlingWhispers-Branding");
+        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: title + 6 rotating scenes.");
+    }
+
+    private void writeLogoTexture(Path sourceFile, Path targetFile) throws IOException {
+        BufferedImage source = readImage(sourceFile);
+
+        int minX = source.getWidth();
+        int minY = source.getHeight();
+        int maxX = -1;
+        int maxY = -1;
+
+        for (int y = 0; y < source.getHeight(); y++) {
+            for (int x = 0; x < source.getWidth(); x++) {
+                int alpha = (source.getRGB(x, y) >>> 24) & 0xff;
+                if (alpha > 16) {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+
+        if (maxX < minX || maxY < minY) {
+            throw new IOException("Branding title image has no visible pixels: " + sourceFile);
+        }
+
+        int cropWidth = maxX - minX + 1;
+        int cropHeight = maxY - minY + 1;
+        BufferedImage output = new BufferedImage(256, 44, BufferedImage.TYPE_INT_ARGB);
+
+        double scale = Math.min(248.0 / cropWidth, 40.0 / cropHeight);
+        int drawWidth = Math.max(1, (int) Math.round(cropWidth * scale));
+        int drawHeight = Math.max(1, (int) Math.round(cropHeight * scale));
+        int drawX = (output.getWidth() - drawWidth) / 2;
+        int drawY = (output.getHeight() - drawHeight) / 2;
+
+        Graphics2D graphics = output.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+            graphics.drawImage(source,
+                    drawX, drawY, drawX + drawWidth, drawY + drawHeight,
+                    minX, minY, maxX + 1, maxY + 1,
+                    null);
+        } finally {
+            graphics.dispose();
+        }
+
+        Files.createDirectories(targetFile.getParent());
+        ImageIO.write(output, "png", targetFile.toFile());
+    }
+
+    private void writeSquareTexture(Path sourceFile, Path targetFile, int size) throws IOException {
+        BufferedImage source = readImage(sourceFile);
+        int side = Math.min(source.getWidth(), source.getHeight());
+        int sourceX = (source.getWidth() - side) / 2;
+        int sourceY = (source.getHeight() - side) / 2;
+
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = output.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+            graphics.drawImage(source,
+                    0, 0, size, size,
+                    sourceX, sourceY, sourceX + side, sourceY + side,
+                    null);
+        } finally {
+            graphics.dispose();
+        }
+
+        Files.createDirectories(targetFile.getParent());
+        ImageIO.write(output, "png", targetFile.toFile());
+    }
+
+    private BufferedImage readImage(Path sourceFile) throws IOException {
+        BufferedImage image = ImageIO.read(sourceFile.toFile());
+        if (image == null) {
+            throw new IOException("Unsupported or unreadable PNG: " + sourceFile);
+        }
+        return image;
+    }
+
     private void prepareCustomMusicPack() throws IOException {
         Path menuMusic = root.resolve("music").resolve("menu");
         Files.createDirectories(menuMusic);
@@ -214,18 +369,18 @@ public final class MinecraftBootstrap {
         Path soundsJson = pack.resolve("assets").resolve("minecraft").resolve("sounds.json");
         Files.createDirectories(soundsJson.getParent());
         Files.writeString(soundsJson, soundJson.toString(), StandardCharsets.UTF_8);
-        enableGeneratedMusicPack();
+        enableGeneratedPack("file/CodaLoader-Music");
 
         System.out.println("[CodaLoader] Custom menu music enabled: " + tracks.size() + " track(s)");
     }
 
-    private void enableGeneratedMusicPack() throws IOException {
+    private void enableGeneratedPack(String resourcePackId) throws IOException {
         Path options = game.resolve("options.txt");
         List<String> lines = Files.exists(options)
                 ? new ArrayList<>(Files.readAllLines(options, StandardCharsets.UTF_8))
                 : new ArrayList<>();
 
-        String packId = "\"file/CodaLoader-Music\"";
+        String packId = "\"" + resourcePackId + "\"";
         boolean found = false;
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);

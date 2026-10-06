@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.3-hook-win64.zip
+CodaLoader-v0.0.4-branding-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,9 +57,37 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.3-hook
+## Current milestone: 0.0.4-branding
 
-CodaLoader now enters the actual Minecraft JVM as a Java agent. The current proof hooks include in-JVM mod initialization, a custom window-title hook, a title-screen CodaLoader button, and optional custom menu music.
+### Howling Whispers menu branding
+
+Place the theme source images here:
+
+```text
+run/
+└── branding/
+    ├── title.png
+    ├── panorama_0.png
+    ├── panorama_1.png
+    ├── panorama_2.png
+    ├── panorama_3.png
+    ├── panorama_4.png
+    └── panorama_5.png
+```
+
+The panorama images may be six completely different Howling Whispers scenes. CodaLoader converts them into Minecraft's rotating title panorama and replaces the large Minecraft logo with the supplied transparent `title.png`.
+
+At launch it generates:
+
+```text
+run/game/resourcepacks/HowlingWhispers-Branding/
+```
+
+The source artwork under `run/branding/` is never overwritten by the automatic updater.
+
+## Previous hook milestone
+
+CodaLoader enters the actual Minecraft JVM as a Java agent. The hook milestone proved in-JVM mod initialization, the custom window-title hook, and optional custom menu music.
 
 Put Vorbis `.ogg` files here:
 
