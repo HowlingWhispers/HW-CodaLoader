@@ -27,6 +27,15 @@ It begins with the boring-but-important loader plumbing before touching Minecraf
 Minecraft itself is **not launched or transformed yet**. That is the next layer.
 The foundation is tested independently first so failures in discovery/classloading are not confused with Minecraft bootstrap failures.
 
+
+## Downloads
+
+Compiled builds are published on the [GitHub Releases](https://github.com/HowlingWhispers/HW-CodaLoader/releases) page.
+
+The current `v0.0.1-foundation` build is a **prerelease**: its executable JAR proves CodaLoader's standalone mod-loading foundation, but it does not launch Minecraft yet.
+
+Future Minecraft-capable builds and CodaLoader mods will use Releases as the binary source of truth, with HW-Landing planned as the friendly Downloads / Mods frontend.
+
 ## Requirements
 
 - Java 21+ for the standalone foundation demo
