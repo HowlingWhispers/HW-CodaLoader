@@ -191,8 +191,9 @@ public final class MinecraftBootstrap {
 
         String packMeta = "{\n"
                 + "  \"pack\": {\n"
-                + "    \"pack_format\": " + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ",\n"
-                + "    \"description\": \"CodaLoader custom menu music\"\n"
+                + "    \"description\": \"CodaLoader custom menu music\",\n"
+                + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
+                + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
                 + "  }\n"
                 + "}\n";
         Files.writeString(pack.resolve("pack.mcmeta"), packMeta, StandardCharsets.UTF_8);

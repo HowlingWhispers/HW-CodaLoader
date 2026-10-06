@@ -15,6 +15,7 @@ import java.lang.reflect.Proxy;
  */
 final class ClientHooks {
     private static volatile boolean titleFailureReported;
+    private static volatile boolean titleSuccessReported;
     private static volatile boolean menuFailureReported;
 
     private ClientHooks() {}
@@ -38,23 +39,19 @@ final class ClientHooks {
             System.out.println("[CodaLoader] Client hook connected to net.minecraft.client.Minecraft.");
 
             Object lastTitleScreen = null;
-            int lastWidth = -1;
-            int lastHeight = -1;
 
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     applyWindowTitle(minecraft);
 
-                    Object screen = readField(minecraft, "screen");
+                    Object screen = readByTypeName(
+                            minecraft,
+                            "net.minecraft.client.gui.screens.Screen");
                     if (screen != null && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName())) {
-                        int width = readIntField(screen, "width");
-                        int height = readIntField(screen, "height");
-                        if (screen != lastTitleScreen || width != lastWidth || height != lastHeight) {
+                        if (screen != lastTitleScreen) {
                             Object target = screen;
                             schedule(minecraft, () -> injectMenuButton(target, modCount));
                             lastTitleScreen = screen;
-                            lastWidth = width;
-                            lastHeight = height;
                         }
                     }
                 } catch (Throwable ex) {
@@ -97,6 +94,10 @@ final class ClientHooks {
             if (setTitle == null) return;
             setTitle.invoke(window, "CodaLoader " + CodaTarget.LOADER_VERSION
                     + " | " + CodaTarget.MINECRAFT_DISPLAY_NAME);
+            if (!titleSuccessReported) {
+                titleSuccessReported = true;
+                System.out.println("[CodaLoader] Window title hook active.");
+            }
         } catch (Throwable ex) {
             if (!titleFailureReported) {
                 titleFailureReported = true;
@@ -142,8 +143,7 @@ final class ClientHooks {
             Method builderMethod = buttonClass.getMethod("builder", componentClass, onPressClass);
             Object builder = builderMethod.invoke(null, label, onPress);
 
-            int width = readIntField(screen, "width");
-            int x = Math.max(6, width - 206);
+            int x = 6;
             int y = 6;
 
             Method bounds = findMethod(builder.getClass(), "bounds", int.class, int.class, int.class, int.class);
@@ -187,9 +187,26 @@ final class ClientHooks {
         return field.get(target);
     }
 
-    private static int readIntField(Object target, String name) throws Exception {
-        Object value = readField(target, name);
-        return value instanceof Number number ? number.intValue() : -1;
+    private static Object readByTypeName(Object target, String typeName) throws Exception {
+        for (Class<?> current = target.getClass(); current != null; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (!field.getType().getName().equals(typeName)) continue;
+                field.setAccessible(true);
+                return field.get(target);
+            }
+        }
+
+        for (Class<?> current = target.getClass(); current != null; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (method.getParameterCount() != 0) continue;
+                if (!method.getReturnType().getName().equals(typeName)) continue;
+                method.setAccessible(true);
+                return method.invoke(target);
+            }
+        }
+
+        throw new NoSuchFieldException(
+                target.getClass().getName() + " has no field/getter of type " + typeName);
     }
 
     private static Field findField(Class<?> type, String name) {
