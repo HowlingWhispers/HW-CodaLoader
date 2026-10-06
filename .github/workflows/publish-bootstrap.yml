@@ -32,7 +32,7 @@ jobs:
           rm -rf run
           mkdir -p run/mods
           cp dist/hello-coda-0.0.1.jar run/mods/
-          java -jar dist/CodaLoader-0.0.2-bootstrap.jar --loader-only run
+          java -jar dist/CodaLoader-0.0.3-hook.jar --loader-only run
 
       - name: Publish or refresh prerelease
         env:
@@ -62,8 +62,8 @@ jobs:
           EOF
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG"               dist/CodaLoader-0.0.2-bootstrap.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --clobber
+            gh release upload "$TAG"               dist/CodaLoader-0.0.3-hook.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --clobber
             gh release edit "$TAG" --notes-file release-notes.md --prerelease
           else
-            gh release create "$TAG"               dist/CodaLoader-0.0.2-bootstrap.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.2 Bootstrap"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG"               dist/CodaLoader-0.0.3-hook.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.3 Hook"               --notes-file release-notes.md               --prerelease
           fi
