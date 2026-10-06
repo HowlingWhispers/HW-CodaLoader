@@ -157,7 +157,7 @@ public final class UpdateManager {
         new ProcessBuilder(
                 "cmd.exe",
                 "/c",
-                "start "" "" + script.toAbsolutePath() + """)
+                "start \"\" \"" + script.toAbsolutePath() + "\"")
                 .directory(installRoot.toFile())
                 .start();
     }
