@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "id": "hello_coda",
+  "name": "Hello Coda",
+  "version": "0.0.1",
+  "entrypoint": "dev.howlingwhispers.examples.hellocoda.HelloCodaMod",
+  "minecraft": "26.4-snapshot-3",
+  "depends": []
+}
