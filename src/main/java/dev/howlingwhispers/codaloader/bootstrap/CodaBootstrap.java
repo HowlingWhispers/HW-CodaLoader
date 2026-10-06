@@ -7,7 +7,7 @@ import java.nio.file.Path;
 /**
  * CodaLoader entrypoint.
  *
- * Normal launch bootstraps Minecraft after loading Coda mods.
+ * Normal launch checks for a public release update, then bootstraps Minecraft.
  * --loader-only keeps the small loader smoke-test path used by CI.
  */
 public final class CodaBootstrap {
@@ -19,6 +19,11 @@ public final class CodaBootstrap {
             try (CodaLoader loader = new CodaLoader(root)) {
                 loader.loadAndInitialize();
             }
+            return;
+        }
+
+        if (UpdateManager.checkAndStage(root)) {
+            System.exit(UpdateManager.UPDATE_EXIT_CODE);
             return;
         }
 

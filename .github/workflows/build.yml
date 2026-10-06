@@ -25,7 +25,7 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Build distribution JARs
+      - name: Build distribution
         run: ./scripts/build-dist.sh
 
       - name: Smoke-test loader without launching Minecraft
@@ -33,9 +33,9 @@ jobs:
         run: |
           rm -rf run
           mkdir -p run/mods
-          cp dist/hello-coda-0.0.1.jar run/mods/
+          cp dist/hello-coda.jar run/mods/
 
-          output="$(java -jar dist/CodaLoader-0.0.3-hook.jar --loader-only run)"
+          output="$(java -jar dist/CodaLoader.jar --loader-only run)"
           printf '%s\n' "$output"
 
           grep -F "[HelloCoda] Pawprint confirmed. CodaLoader can load me." <<< "$output"
@@ -46,21 +46,32 @@ jobs:
         run: |
           rm -rf agent-run
           mkdir -p agent-run/mods
-          cp dist/hello-coda-0.0.1.jar agent-run/mods/
+          cp dist/hello-coda.jar agent-run/mods/
 
-          output="$(java -javaagent:dist/CodaLoader-0.0.3-hook.jar=agent-run -version 2>&1)"
+          output="$(java -javaagent:dist/CodaLoader.jar=agent-run -version 2>&1)"
           printf '%s\n' "$output"
 
           grep -F "[CodaLoader] Agent attached inside Minecraft JVM." <<< "$output"
           grep -F "[HelloCoda] Running inside Minecraft JVM." <<< "$output"
 
-      - name: Upload runnable JARs
+      - name: Verify ZIP layout and update manifest
+        shell: bash
+        run: |
+          unzip -l dist/CodaLoader-v0.0.3-hook-win64.zip
+          unzip -l dist/CodaLoader-v0.0.3-hook-win64.zip | grep -F "CodaLoader.jar"
+          unzip -l dist/CodaLoader-v0.0.3-hook-win64.zip | grep -F "Launch-CodaLoader.bat"
+          unzip -l dist/CodaLoader-v0.0.3-hook-win64.zip | grep -F "run/mods/hello-coda.jar"
+          grep -F '"version": "0.0.3-hook"' dist/update-manifest.json
+
+      - name: Upload distribution
         uses: actions/upload-artifact@v4
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-0.0.3-hook.jar
-            dist/hello-coda-0.0.1.jar
+            dist/CodaLoader-v0.0.3-hook-win64.zip
+            dist/update-manifest.json
+            dist/CodaLoader.jar
+            dist/hello-coda.jar
             dist/Launch-CodaLoader.bat
           if-no-files-found: error
           retention-days: 30
@@ -83,8 +94,10 @@ jobs:
         shell: pwsh
         run: ./scripts/build-dist.ps1
 
-      - name: Verify launcher and JAR exist
+      - name: Verify packaged files
         shell: pwsh
         run: |
+          if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-0.0.3-hook.jar)) { throw "JAR missing" }
+          if (!(Test-Path dist/CodaLoader-v0.0.3-hook-win64.zip)) { throw "ZIP missing" }
+          if (!(Test-Path dist/update-manifest.json)) { throw "Update manifest missing" }

@@ -1,4 +1,4 @@
-name: Publish hook prerelease
+name: Publish CodaLoader bundle
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.3 hook
+    name: Publish v0.0.3 hook bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -31,8 +31,8 @@ jobs:
         run: |
           rm -rf run
           mkdir -p run/mods
-          cp dist/hello-coda-0.0.1.jar run/mods/
-          java -jar dist/CodaLoader-0.0.3-hook.jar --loader-only run
+          cp dist/hello-coda.jar run/mods/
+          java -jar dist/CodaLoader.jar --loader-only run
 
       - name: Publish or refresh prerelease
         env:
@@ -40,30 +40,29 @@ jobs:
         shell: bash
         run: |
           TAG="v0.0.3-hook"
+          ZIP="dist/CodaLoader-v0.0.3-hook-win64.zip"
+
           cat > release-notes.md <<'EOF'
           # CodaLoader v0.0.3 Hook
 
-          First CodaLoader build that attaches itself inside the Minecraft JVM.
+          Download **CodaLoader-v0.0.3-hook-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
-          - Resolves Minecraft Java 26.4 Snapshot 3 from Mojang's official version manifest
-          - Reuses files from the official .minecraft installation when possible
-          - Downloads missing client, libraries, natives and assets from Mojang/CDN sources
-          - Verifies published SHA-1 hashes and sizes when metadata provides them
-          - Creates an isolated run/game directory
-          - Attaches the CodaLoader JAR as a Java agent inside Minecraft
-          - Initializes CodaLoader mods inside the Minecraft JVM
-          - Changes the Minecraft window title to show CodaLoader
-          - Adds a CodaLoader status button to the title screen
-          - Creates run/music/menu for custom .ogg menu music
-          - Generates and enables a resource pack that replaces vanilla menu music when tracks exist
-          - Still uses the offline CodaPlayer identity for this hook test
+          The files inside the ZIP keep stable names:
+          - CodaLoader.jar
+          - Launch-CodaLoader.bat
+          - run/mods/hello-coda.jar
 
-          This prerelease proves the first in-game hook path.
+          CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
+
+          User worlds, configs, custom music, and other mods are not part of the managed update set.
           EOF
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG"               dist/CodaLoader-0.0.3-hook.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease
+            for OLD in CodaLoader-0.0.3-hook.jar hello-coda-0.0.1.jar Launch-CodaLoader.bat; do
+              gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
+            done
+            gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.3 Hook"
           else
-            gh release create "$TAG"               dist/CodaLoader-0.0.3-hook.jar               dist/hello-coda-0.0.1.jar               dist/Launch-CodaLoader.bat               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.3 Hook"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.3 Hook"               --notes-file release-notes.md               --prerelease
           fi

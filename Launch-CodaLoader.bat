@@ -4,24 +4,22 @@ title CodaLoader
 
 cd /d "%~dp0"
 
-set "CODA_JAR="
-if exist "CodaLoader-0.0.3-hook.jar" set "CODA_JAR=%CD%\CodaLoader-0.0.3-hook.jar"
-if not defined CODA_JAR (
-    for %%F in ("CodaLoader-*.jar") do (
-        if not defined CODA_JAR set "CODA_JAR=%%~fF"
-    )
-)
-
-if not defined CODA_JAR (
+if not exist "CodaLoader.jar" (
     echo.
-    echo [CodaLoader] CodaLoader JAR not found beside this BAT file.
+    echo [CodaLoader] CodaLoader.jar was not found beside this BAT file.
+    echo Extract the complete CodaLoader ZIP before launching.
     echo.
     pause
     exit /b 1
 )
 
-java -jar "%CODA_JAR%"
+java -jar "CodaLoader.jar"
 set "CODA_EXIT=%ERRORLEVEL%"
+
+if "%CODA_EXIT%"=="42" (
+    echo [CodaLoader] Handing control to the updater...
+    exit /b 0
+)
 
 if not "%CODA_EXIT%"=="0" (
     echo.
