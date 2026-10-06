@@ -48,7 +48,8 @@ jobs:
           TAG="v0.0.1-foundation"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "$TAG already exists. Leaving the published foundation release unchanged."
+            echo "$TAG already exists. Refreshing downloadable launcher asset."
+            gh release upload "$TAG" dist/Launch-CodaLoader.bat --clobber
             exit 0
           fi
 
@@ -64,10 +65,11 @@ jobs:
           - dependency validation and ordering
           - isolated mod classloaders
           - Hello Coda proof mod
+          - double-clickable Windows launcher BAT
 
           Target: Minecraft Java 26.4 Snapshot 3.
 
           Important: this foundation release does not launch Minecraft yet. It proves the standalone loader and mod format before the Minecraft bootstrap layer is added.
           EOF
 
-          gh release create "$TAG"             dist/CodaLoader-0.0.1-foundation.jar             dist/hello-coda-0.0.1.jar             --target "$GITHUB_SHA"             --title "CodaLoader v0.0.1 Foundation"             --notes-file release-notes.md             --prerelease
+          gh release create "$TAG"             dist/CodaLoader-0.0.1-foundation.jar             dist/hello-coda-0.0.1.jar             dist/Launch-CodaLoader.bat             --target "$GITHUB_SHA"             --title "CodaLoader v0.0.1 Foundation"             --notes-file release-notes.md             --prerelease

@@ -48,5 +48,6 @@ jobs:
           path: |
             dist/CodaLoader-0.0.1-foundation.jar
             dist/hello-coda-0.0.1.jar
+            dist/Launch-CodaLoader.bat
           if-no-files-found: error
           retention-days: 30

@@ -37,6 +37,9 @@ jar --create \
     --file "dist/hello-coda-${EXAMPLE_VERSION}.jar" \
     -C out/example-classes .
 
+cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
+
 echo "Built:"
 echo "  dist/CodaLoader-${LOADER_VERSION}.jar"
 echo "  dist/hello-coda-${EXAMPLE_VERSION}.jar"
+echo "  dist/Launch-CodaLoader.bat"

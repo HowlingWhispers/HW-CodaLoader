@@ -49,4 +49,4 @@ jobs:
             exit 0
           fi
 
-          gh release create "$GITHUB_REF_NAME"             dist/CodaLoader-0.0.1-foundation.jar             dist/hello-coda-0.0.1.jar             --title "CodaLoader $GITHUB_REF_NAME"             --generate-notes
+          gh release create "$GITHUB_REF_NAME"             dist/CodaLoader-0.0.1-foundation.jar             dist/hello-coda-0.0.1.jar             dist/Launch-CodaLoader.bat             --title "CodaLoader $GITHUB_REF_NAME"             --generate-notes

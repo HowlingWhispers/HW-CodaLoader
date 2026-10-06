@@ -31,6 +31,9 @@ Copy-Item examples/hello-coda/resources/coda.mod.json out/example-classes/
 & jar --create --file "dist/hello-coda-$ExampleVersion.jar" -C out/example-classes .
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+Copy-Item Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
+
 Write-Host "Built:"
 Write-Host "  dist/CodaLoader-$LoaderVersion.jar"
 Write-Host "  dist/hello-coda-$ExampleVersion.jar"
+Write-Host "  dist/Launch-CodaLoader.bat"

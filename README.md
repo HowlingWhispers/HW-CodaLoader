@@ -34,6 +34,8 @@ Compiled builds are published on the [GitHub Releases](https://github.com/Howlin
 
 The current `v0.0.1-foundation` build is a **prerelease**: its executable JAR proves CodaLoader's standalone mod-loading foundation, but it does not launch Minecraft yet.
 
+For Windows, download `Launch-CodaLoader.bat` and the CodaLoader JAR into the same folder, then double-click the BAT file. It creates `run\mods` automatically, finds the versioned CodaLoader JAR beside itself, and launches it through Java.
+
 Future Minecraft-capable builds and CodaLoader mods will use Releases as the binary source of truth, with HW-Landing planned as the friendly Downloads / Mods frontend.
 
 ## Requirements
