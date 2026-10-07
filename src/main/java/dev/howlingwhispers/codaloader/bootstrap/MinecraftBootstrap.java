@@ -52,16 +52,18 @@ public final class MinecraftBootstrap {
     private final Path natives;
     private final Path game;
     private final Path officialMinecraft;
+    private final Path basePack;
     private final HttpClient http;
 
-    public MinecraftBootstrap(Path root) {
+    public MinecraftBootstrap(Path root, Path basePack) {
         this.root = root.toAbsolutePath().normalize();
+        this.basePack = basePack.toAbsolutePath().normalize();
         this.runtime = this.root.resolve("runtime");
         this.libraries = runtime.resolve("libraries");
         this.assets = runtime.resolve("assets");
         this.versions = runtime.resolve("versions");
         this.natives = runtime.resolve("natives").resolve(CodaTarget.MINECRAFT_VERSION);
-        this.game = this.root.resolve("game");
+        this.game = this.root;
         this.officialMinecraft = findOfficialMinecraftDirectory();
         this.http = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -199,6 +201,7 @@ public final class MinecraftBootstrap {
 
     private void prepareBrandingPack() throws IOException {
         Path branding = root.resolve("branding");
+        Path baseBranding = basePack.resolve("branding");
         Files.createDirectories(branding);
 
         Path readme = branding.resolve("README.txt");
@@ -216,19 +219,16 @@ public final class MinecraftBootstrap {
                     StandardCharsets.UTF_8);
         }
 
-        List<Path> required = new ArrayList<>();
-        required.add(branding.resolve("title.png"));
-        for (int i = 0; i < 4; i++) {
-            required.add(branding.resolve("panorama_" + i + ".png"));
-        }
+        List<String> requiredNames = new ArrayList<>();
+        requiredNames.add("title.png");
+        for (int i = 0; i < 4; i++) requiredNames.add("panorama_" + i + ".png");
 
-        List<String> missing = required.stream()
-                .filter(path -> !Files.isRegularFile(path))
-                .map(path -> path.getFileName().toString())
+        List<String> missing = requiredNames.stream()
+                .filter(name -> brandingAsset(branding, baseBranding, name) == null)
                 .toList();
         if (!missing.isEmpty()) {
-            System.out.println("[CodaLoader] Branding folder ready: " + branding
-                    + " (missing " + String.join(", ", missing) + ")");
+            System.out.println("[CodaLoader] Branding unavailable; missing "
+                    + String.join(", ", missing) + " from user overrides and CML base pack.");
             return;
         }
 
@@ -249,36 +249,44 @@ public final class MinecraftBootstrap {
         Path backgroundDir = titleDir.resolve("background");
         Files.createDirectories(backgroundDir);
 
-        writeLogoTexture(branding.resolve("title.png"), titleDir.resolve("minecraft.png"));
+        writeLogoTexture(brandingAsset(branding, baseBranding, "title.png"),
+                titleDir.resolve("minecraft.png"));
 
         BufferedImage blankEdition = new BufferedImage(256, 64, BufferedImage.TYPE_INT_ARGB);
         ImageIO.write(blankEdition, "png", titleDir.resolve("edition.png").toFile());
 
         for (int i = 0; i < 4; i++) {
             writeSquareTexture(
-                    branding.resolve("panorama_" + i + ".png"),
+                    brandingAsset(branding, baseBranding, "panorama_" + i + ".png"),
                     backgroundDir.resolve("panorama_" + i + ".png"),
                     512);
         }
 
-        Path customSky = branding.resolve("sky.png");
-        if (Files.isRegularFile(customSky)) {
+        Path customSky = brandingAsset(branding, baseBranding, "sky.png");
+        if (customSky != null) {
             writeSquareTexture(customSky, backgroundDir.resolve("panorama_4.png"), 512);
         } else {
             writeGeneratedSkyTexture(backgroundDir.resolve("panorama_4.png"), 512);
         }
 
-        Path customFloor = branding.resolve("floor.png");
-        if (Files.isRegularFile(customFloor)) {
+        Path customFloor = brandingAsset(branding, baseBranding, "floor.png");
+        if (customFloor != null) {
             writeSquareTexture(customFloor, backgroundDir.resolve("panorama_5.png"), 512);
         } else {
             writeGeneratedFloorTexture(backgroundDir.resolve("panorama_5.png"), 512);
         }
 
-        writeSplashTexts(branding, pack);
+        writeSplashTexts(branding, baseBranding, pack);
 
         enableGeneratedPack("file/HowlingWhispers-Branding");
         System.out.println("[CodaLoader] Howling Whispers menu branding enabled: 4 side scenes + sky + floor + Coda splashes.");
+    }
+
+    private Path brandingAsset(Path customRoot, Path baseRoot, String name) {
+        Path custom = customRoot.resolve(name);
+        if (Files.isRegularFile(custom)) return custom;
+        Path base = baseRoot.resolve(name);
+        return Files.isRegularFile(base) ? base : null;
     }
 
     private void writeGeneratedSkyTexture(Path targetFile, int size) throws IOException {
@@ -359,13 +367,17 @@ public final class MinecraftBootstrap {
         ImageIO.write(output, "png", targetFile.toFile());
     }
 
-    private void writeSplashTexts(Path branding, Path pack) throws IOException {
+    private void writeSplashTexts(Path branding, Path baseBranding, Path pack) throws IOException {
         Path custom = branding.resolve("splashes.txt");
+        Path base = baseBranding.resolve("splashes.txt");
         String splashes;
 
         if (Files.isRegularFile(custom)) {
             splashes = Files.readString(custom, StandardCharsets.UTF_8);
             System.out.println("[CodaLoader] Using custom Howling Whispers splash messages.");
+        } else if (Files.isRegularFile(base)) {
+            splashes = Files.readString(base, StandardCharsets.UTF_8);
+            System.out.println("[CodaLoader] Using CML base-pack splash messages.");
         } else {
             splashes = String.join("\n", List.of(
                     "Howling Whispers!",
@@ -499,11 +511,12 @@ public final class MinecraftBootstrap {
 
     private void prepareCustomMusicPack() throws IOException {
         Path musicRoot = root.resolve("music");
-        Path bundledMusic = musicRoot.resolve("default");
+        Path legacyDefault = musicRoot.resolve("default");
+        Path baseDefault = basePack.resolve("music").resolve("default");
         Path menuMusic = musicRoot.resolve("menu");
-        Files.createDirectories(bundledMusic);
+        Files.createDirectories(legacyDefault);
         Files.createDirectories(menuMusic);
-        ensureBundledDefaultMusic(bundledMusic);
+        Files.createDirectories(baseDefault);
 
         Path readme = menuMusic.resolve("README.txt");
         if (!Files.exists(readme)) {
@@ -512,15 +525,16 @@ public final class MinecraftBootstrap {
                     StandardCharsets.UTF_8);
         }
 
-        List<Path> bundledTracks = oggTracks(bundledMusic);
+        List<Path> baseTracks = oggTracks(baseDefault);
+        List<Path> legacyTracks = oggTracks(legacyDefault);
         List<Path> userTracks = oggTracks(menuMusic);
-        List<Path> tracks = new ArrayList<>(bundledTracks.size() + userTracks.size());
-        tracks.addAll(bundledTracks);
+        List<Path> tracks = new ArrayList<>(baseTracks.size() + legacyTracks.size() + userTracks.size());
+        tracks.addAll(baseTracks);
+        tracks.addAll(legacyTracks);
         tracks.addAll(userTracks);
 
         if (tracks.isEmpty()) {
-            System.out.println("[CodaLoader] Menu music folders ready: " + bundledMusic + " and " + menuMusic
-                    + " (no .ogg tracks yet)");
+            System.out.println("[CodaLoader] Menu music unavailable: no CML base-pack or user .ogg tracks.");
             return;
         }
 
@@ -558,22 +572,9 @@ public final class MinecraftBootstrap {
         enableGeneratedPack("file/CodaLoader-Music");
 
         System.out.println("[CodaLoader] Menu music enabled: "
-                + bundledTracks.size() + " bundled + " + userTracks.size() + " user track(s)");
-    }
-
-    private void ensureBundledDefaultMusic(Path bundledMusic) throws IOException {
-        Path target = bundledMusic.resolve("HowlingWhispers-Menu.ogg");
-        if (Files.isRegularFile(target)) return;
-
-        try (InputStream in = MinecraftBootstrap.class.getResourceAsStream(
-                "/codaloader/music/HowlingWhispers-Menu.ogg")) {
-            if (in == null) {
-                System.out.println("[CodaLoader] Bundled default menu track is not present in this build yet.");
-                return;
-            }
-            Files.copy(in, target);
-            System.out.println("[CodaLoader] Installed bundled default menu track: " + target.getFileName());
-        }
+                + baseTracks.size() + " base-pack + "
+                + legacyTracks.size() + " legacy-default + "
+                + userTracks.size() + " user track(s)");
     }
 
     private List<Path> oggTracks(Path directory) throws IOException {

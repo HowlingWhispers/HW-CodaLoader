@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.15-grounded-panorama-win64.zip
+CodaLoader-v0.0.16-launcher-managed-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,17 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.15-grounded-panorama
+## Current milestone: 0.0.16-launcher-managed
+
+### Launcher-managed install root
+
+CodaLauncher can now start CodaLoader with:
+
+```text
+java -jar CodaLoader.jar --root "%APPDATA%\.howlingshispers\minecraft" --base-pack "%APPDATA%\.howlingshispers\cml-base"
+```
+
+The supplied root is the actual Minecraft game directory. CodaLoader keeps runtime downloads below it and reads mandatory official presentation assets from the separate CML base-pack directory. User files under the Minecraft root remain overrides/additions.
 
 ### Grounded title panorama
 
@@ -76,9 +86,9 @@ java -jar CodaLoader.jar --version-json
 
 The JSON form reports the CodaLoader version, exact Minecraft target, display name, and minimum Java level.
 
-### Bundled default music extraction
+### Mandatory base-pack music
 
-If `codaloader/music/HowlingWhispers-Menu.ogg` is present inside the loader JAR, CodaLoader copies it to `run/music/default/HowlingWhispers-Menu.ogg` on first use only. Existing files are never overwritten, and user-added music remains under `run/music/menu/`.
+CodaLauncher installs the official Howling Whispers menu track under the managed CML base pack. CodaLoader reads that base music automatically, while user-added tracks under `music/menu/` remain additive and are never overwritten.
 
 ### Discord icon contrast fix
 

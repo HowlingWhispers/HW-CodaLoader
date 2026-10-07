@@ -28,7 +28,11 @@ public final class CodaBootstrap {
         }
 
         boolean loaderOnly = args.length > 0 && "--loader-only".equals(args[0]);
-        Path root = loaderOnly && args.length > 1 ? Path.of(args[1]) : Path.of("run");
+        Path root = loaderOnly && args.length > 1
+                ? Path.of(args[1])
+                : argumentPath(args, "--root", Path.of("run"));
+        Path basePack = argumentPath(args, "--base-pack",
+                root.toAbsolutePath().normalize().resolveSibling("cml-base"));
 
         if (loaderOnly) {
             try (CodaLoader loader = new CodaLoader(root)) {
@@ -37,15 +41,26 @@ public final class CodaBootstrap {
             return;
         }
 
-        if (UpdateManager.checkAndStage(root)) {
+        boolean launcherManaged = "CodaLauncher".equals(System.getenv("CODA_LAUNCHED_BY"));
+        if (!launcherManaged && UpdateManager.checkAndStage(root)) {
             System.exit(UpdateManager.UPDATE_EXIT_CODE);
             return;
         }
+        if (launcherManaged) {
+            System.out.println("[CodaLoader] Launcher-managed install: self-update handoff skipped.");
+        }
 
-        MinecraftBootstrap minecraft = new MinecraftBootstrap(root);
+        MinecraftBootstrap minecraft = new MinecraftBootstrap(root, basePack);
         int exit = minecraft.launch();
         if (exit != 0) {
             throw new IllegalStateException("Minecraft exited with code " + exit);
         }
+    }
+
+    private static Path argumentPath(String[] args, String name, Path fallback) {
+        for (int i = 0; i + 1 < args.length; i++) {
+            if (name.equals(args[i])) return Path.of(args[i + 1]);
+        }
+        return fallback;
     }
 }

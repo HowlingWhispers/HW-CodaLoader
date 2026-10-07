@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.15-grounded-panorama"
+$LoaderVersion = "0.0.16-launcher-managed"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 $BundleName = "CodaLoader-v$LoaderVersion-win64.zip"
