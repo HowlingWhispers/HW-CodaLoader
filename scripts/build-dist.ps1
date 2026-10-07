@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.12-social-icons"
+$LoaderVersion = "0.0.13-discord-icon"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 $BundleName = "CodaLoader-v$LoaderVersion-win64.zip"

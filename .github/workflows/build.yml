@@ -57,11 +57,11 @@ jobs:
       - name: Verify ZIP layout and update manifest
         shell: bash
         run: |
-          unzip -l dist/CodaLoader-v0.0.12-social-icons-win64.zip
-          unzip -l dist/CodaLoader-v0.0.12-social-icons-win64.zip | grep -F "CodaLoader.jar"
-          unzip -l dist/CodaLoader-v0.0.12-social-icons-win64.zip | grep -F "Launch-CodaLoader.bat"
-          unzip -l dist/CodaLoader-v0.0.12-social-icons-win64.zip | grep -F "run/mods/hello-coda.jar"
-          grep -F '"version": "0.0.12-social-icons"' dist/update-manifest.json
+          unzip -l dist/CodaLoader-v0.0.13-discord-icon-win64.zip
+          unzip -l dist/CodaLoader-v0.0.13-discord-icon-win64.zip | grep -F "CodaLoader.jar"
+          unzip -l dist/CodaLoader-v0.0.13-discord-icon-win64.zip | grep -F "Launch-CodaLoader.bat"
+          unzip -l dist/CodaLoader-v0.0.13-discord-icon-win64.zip | grep -F "run/mods/hello-coda.jar"
+          grep -F '"version": "0.0.13-discord-icon"' dist/update-manifest.json
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/discord.png"
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/youtube.png"
 
@@ -70,7 +70,7 @@ jobs:
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-v0.0.12-social-icons-win64.zip
+            dist/CodaLoader-v0.0.13-discord-icon-win64.zip
             dist/update-manifest.json
             dist/CodaLoader.jar
             dist/hello-coda.jar
@@ -101,5 +101,5 @@ jobs:
         run: |
           if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-v0.0.12-social-icons-win64.zip)) { throw "ZIP missing" }
+          if (!(Test-Path dist/CodaLoader-v0.0.13-discord-icon-win64.zip)) { throw "ZIP missing" }
           if (!(Test-Path dist/update-manifest.json)) { throw "Update manifest missing" }

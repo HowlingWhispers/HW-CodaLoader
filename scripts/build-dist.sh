@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.12-social-icons"
+LOADER_VERSION="0.0.13-discord-icon"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.12 social icons bundle
+    name: Publish v0.0.13 discord icon bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.12-social-icons"
-          ZIP="dist/CodaLoader-v0.0.12-social-icons-win64.zip"
+          TAG="v0.0.13-discord-icon"
+          ZIP="dist/CodaLoader-v0.0.13-discord-icon-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.12 Social Icons
+          # CodaLoader v0.0.13 Discord Icon
 
-          Download **CodaLoader-v0.0.12-social-icons-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.13-discord-icon-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,12 +54,10 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.12:
-          - Replaces the D/YT text placeholders with branded Discord and YouTube image-button sprites
-          - Ships the tiny social icons as normal JAR resources and materializes them into a CodaLoader-UI resource pack
-          - Opens the Howling Whispers YouTube channel from the YouTube icon
-          - Keeps Discord as a visual placeholder until the community destination is configured
-          - Falls back to the old text buttons if Snapshot 3 rejects the image-button path
+          New in 0.0.13:
+          - Replaces the low-contrast Discord sprite with a high-contrast 20x20 Discord tile
+          - Uses a blurple rounded background with a white Discord glyph so it remains visible inside Minecraft's small social button
+          - Leaves the working YouTube image button and social-button code unchanged
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -69,7 +67,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.12 Social Icons"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.13 Discord Icon"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.12 Social Icons"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.13 Discord Icon"               --notes-file release-notes.md               --prerelease
           fi

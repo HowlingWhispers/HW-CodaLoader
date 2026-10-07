@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.12-social-icons-win64.zip
+CodaLoader-v0.0.13-discord-icon-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,11 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.12-social-icons
+## Current milestone: 0.0.13-discord-icon
+
+### Discord icon contrast fix
+
+The Discord social control now uses a high-contrast blurple tile with a white Discord glyph so the mark stays visible at Minecraft's 20x20 title-screen button size. The YouTube button is unchanged.
 
 ### Branded social controls
 
