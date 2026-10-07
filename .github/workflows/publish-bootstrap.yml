@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.4 branding bundle
+    name: Publish v0.0.5 menu bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.4-branding"
-          ZIP="dist/CodaLoader-v0.0.4-branding-win64.zip"
+          TAG="v0.0.5-menu"
+          ZIP="dist/CodaLoader-v0.0.5-menu-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.4 Branding
+          # CodaLoader v0.0.5 Menu
 
-          Download **CodaLoader-v0.0.4-branding-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.5-menu-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,11 +54,12 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.4:
-          - Howling Whispers title branding from run/branding/title.png
-          - Six Minecraft panorama slots from run/branding/panorama_0.png through panorama_5.png
-          - CodaLoader generates and enables the HowlingWhispers-Branding resource pack
-          - The six panorama scenes do not need to be seamless
+          New in 0.0.5:
+          - Keeps the working Howling Whispers title and six-scene rotating panorama branding
+          - Replaces the brittle exact Screen field lookup with live client-object graph discovery
+          - Recognizes Screen values hidden behind broader field types, Optional, and AtomicReference holders
+          - Retries title-screen injection until the CML button is actually attached
+          - Main-menu proof button now uses the CML shorthand
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -68,7 +69,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.4 Branding"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.5 Menu"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.4 Branding"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.5 Menu"               --notes-file release-notes.md               --prerelease
           fi

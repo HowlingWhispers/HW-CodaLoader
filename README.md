@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.4-branding-win64.zip
+CodaLoader-v0.0.5-menu-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,13 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.4-branding
+## Current milestone: 0.0.5-menu
+
+### CML main-menu hook
+
+The client hook no longer assumes Minecraft exposes its current screen as a field literally declared as `Screen`. It searches the live client object graph for the active title screen, including common holder shapes such as `Optional` and `AtomicReference`.
+
+The CML button is retried until it is successfully attached to a title-screen instance. This makes the hook tolerant of the title screen appearing before or after CodaLoader's background hook thread reaches it.
 
 ### Howling Whispers menu branding
 
