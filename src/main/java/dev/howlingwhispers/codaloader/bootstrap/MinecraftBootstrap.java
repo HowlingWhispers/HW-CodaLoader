@@ -408,6 +408,7 @@ public final class MinecraftBootstrap {
         Path menuMusic = musicRoot.resolve("menu");
         Files.createDirectories(bundledMusic);
         Files.createDirectories(menuMusic);
+        ensureBundledDefaultMusic(bundledMusic);
 
         Path readme = menuMusic.resolve("README.txt");
         if (!Files.exists(readme)) {
@@ -463,6 +464,21 @@ public final class MinecraftBootstrap {
 
         System.out.println("[CodaLoader] Menu music enabled: "
                 + bundledTracks.size() + " bundled + " + userTracks.size() + " user track(s)");
+    }
+
+    private void ensureBundledDefaultMusic(Path bundledMusic) throws IOException {
+        Path target = bundledMusic.resolve("HowlingWhispers-Menu.ogg");
+        if (Files.isRegularFile(target)) return;
+
+        try (InputStream in = MinecraftBootstrap.class.getResourceAsStream(
+                "/codaloader/music/HowlingWhispers-Menu.ogg")) {
+            if (in == null) {
+                System.out.println("[CodaLoader] Bundled default menu track is not present in this build yet.");
+                return;
+            }
+            Files.copy(in, target);
+            System.out.println("[CodaLoader] Installed bundled default menu track: " + target.getFileName());
+        }
     }
 
     private List<Path> oggTracks(Path directory) throws IOException {

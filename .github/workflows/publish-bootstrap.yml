@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.13 discord icon bundle
+    name: Publish v0.0.14 launcher bridge bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.13-discord-icon"
-          ZIP="dist/CodaLoader-v0.0.13-discord-icon-win64.zip"
+          TAG="v0.0.14-launcher-bridge"
+          ZIP="dist/CodaLoader-v0.0.14-launcher-bridge-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.13 Discord Icon
+          # CodaLoader v0.0.14 Launcher Bridge
 
-          Download **CodaLoader-v0.0.13-discord-icon-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.14-launcher-bridge-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,10 +54,12 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.13:
-          - Replaces the low-contrast Discord sprite with a high-contrast 20x20 Discord tile
-          - Uses a blurple rounded background with a white Discord glyph so it remains visible inside Minecraft's small social button
-          - Leaves the working YouTube image button and social-button code unchanged
+          New in 0.0.14:
+          - Adds --version and --version-json machine-readable launcher queries
+          - Lets CodaLauncher inspect the installed CodaLoader/Minecraft target without booting the game
+          - Adds first-use extraction support for a bundled Howling Whispers default menu track
+          - Keeps user-added menu music separate and never overwrites an existing default track
+          - Retains the fixed Discord/YouTube title controls and updater handoff
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -67,7 +69,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.13 Discord Icon"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.14 Launcher Bridge"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.13 Discord Icon"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.14 Launcher Bridge"               --notes-file release-notes.md               --prerelease
           fi

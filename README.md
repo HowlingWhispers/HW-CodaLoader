@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.13-discord-icon-win64.zip
+CodaLoader-v0.0.14-launcher-bridge-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,22 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.13-discord-icon
+## Current milestone: 0.0.14-launcher-bridge
+
+### CodaLauncher bridge
+
+CodaLoader now exposes machine-readable version information without starting Minecraft:
+
+```text
+java -jar CodaLoader.jar --version
+java -jar CodaLoader.jar --version-json
+```
+
+The JSON form reports the CodaLoader version, exact Minecraft target, display name, and minimum Java level.
+
+### Bundled default music extraction
+
+If `codaloader/music/HowlingWhispers-Menu.ogg` is present inside the loader JAR, CodaLoader copies it to `run/music/default/HowlingWhispers-Menu.ogg` on first use only. Existing files are never overwritten, and user-added music remains under `run/music/menu/`.
 
 ### Discord icon contrast fix
 
