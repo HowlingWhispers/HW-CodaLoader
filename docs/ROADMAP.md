@@ -29,6 +29,33 @@
 - [ ] first safe registry hook
 - [ ] crash diagnostics showing which Coda mod failed
 
+
+## Future: CML identity, ownership verification, and Discord linking
+
+- [ ] add a one-time Microsoft/Minecraft ownership-verification flow
+- [ ] use Microsoft/Minecraft only to prove the player owns Minecraft Java, not as CML's primary social identity
+- [ ] create a CML/Howling Whispers account with its own immutable internal player UUID
+- [ ] issue CML-managed sessions after ownership has been verified
+- [ ] add `/link discord` as an in-game command, intended to be run after the player reaches singleplayer
+- [ ] generate a short-lived Discord pairing code/link from `/link discord`
+- [ ] complete Discord OAuth on the Howling Whispers service and bind the Discord user ID to the CML account
+- [ ] use the immutable Discord user ID internally while displaying the player's current Discord username/display name
+- [ ] add an online CML profile/avatar editor independent of the vanilla Minecraft skin system
+- [ ] allow CML profiles to describe custom appearance data such as species, colors, ears, tail, cosmetics, and badges
+- [ ] sync CML profile/avatar data for singleplayer and future CML-aware multiplayer servers
+- [ ] expose linked-account/profile status through future `/cml` commands
+- [ ] keep ownership credentials/tokens private and never store raw Microsoft passwords
+- [ ] keep vanilla online-mode compatibility explicit: normal Mojang-authenticated servers still require the official Minecraft session identity unless the server is CML-aware
+
+Planned identity model:
+
+```text
+Microsoft / Minecraft  -> ownership proof
+CML account            -> Howling Whispers player identity
+Discord account        -> linked social identity
+CML profile            -> avatar / appearance / cosmetics
+```
+
 ## Ground rules
 
 CodaLoader does not sit on Fabric, Forge, NeoForge, or Quilt. We may study public techniques and Minecraft behavior, but the loader/runtime contracts and API are ours.
