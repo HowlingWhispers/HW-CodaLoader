@@ -78,7 +78,7 @@ jobs:
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/youtube.png"
 
       - name: Upload distribution
-        uses: actions/upload_artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
