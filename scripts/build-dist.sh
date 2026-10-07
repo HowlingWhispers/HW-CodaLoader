@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.5-menu"
+LOADER_VERSION="0.0.6-menu-probe"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"

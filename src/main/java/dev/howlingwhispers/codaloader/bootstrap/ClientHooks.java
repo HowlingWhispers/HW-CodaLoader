@@ -9,9 +9,11 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.lang.reflect.Array;
 
 /**
  * Tiny reflection-only client hook proof.
@@ -24,6 +26,8 @@ final class ClientHooks {
     private static volatile boolean titleSuccessReported;
     private static volatile boolean menuFailureReported;
     private static volatile boolean screenDiscoveryReported;
+    private static volatile boolean schedulerReported;
+    private static volatile boolean screenSearchReported;
     private static volatile Object injectedTitleScreen;
 
     private ClientHooks() {}
@@ -51,13 +55,20 @@ final class ClientHooks {
                     false,
                     loader);
 
+            int screenSearchMisses = 0;
+
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     applyWindowTitle(minecraft);
 
                     Object screen = findActiveScreen(minecraft, screenClass);
-                    if (screen != null
-                            && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName())) {
+                    if (screen == null) {
+                        screenSearchMisses++;
+                        if (!screenSearchReported && screenSearchMisses >= 8) {
+                            screenSearchReported = true;
+                            System.out.println("[CodaLoader] Title-screen search is still probing Snapshot 3 client state...");
+                        }
+                    } else if ("net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName())) {
                         if (!screenDiscoveryReported) {
                             screenDiscoveryReported = true;
                             System.out.println("[CodaLoader] Minecraft title screen located.");
@@ -191,11 +202,29 @@ final class ClientHooks {
     private static void schedule(Object minecraft, Runnable task) {
         try {
             Method execute = findMethod(minecraft.getClass(), "execute", Runnable.class);
+            if (execute == null) {
+                execute = findRunnableScheduler(minecraft.getClass());
+            }
+
             if (execute != null) {
                 execute.invoke(minecraft, task);
+                if (!schedulerReported) {
+                    schedulerReported = true;
+                    System.out.println("[CodaLoader] Client render-thread scheduler located: "
+                            + execute.getDeclaringClass().getName() + "." + execute.getName());
+                }
                 return;
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable ex) {
+            if (!menuFailureReported) {
+                menuFailureReported = true;
+                System.err.println("[CodaLoader] Render-thread scheduling warning: " + ex);
+            }
+        }
+
+        if (!schedulerReported) {
+            schedulerReported = true;
+            System.err.println("[CodaLoader] No Minecraft Runnable scheduler found; using hook thread fallback.");
         }
         task.run();
     }
@@ -216,9 +245,23 @@ final class ClientHooks {
         seen.add(minecraft);
         queue.add(new SearchNode(minecraft, 0));
 
-        while (!queue.isEmpty()) {
+        int visited = 0;
+        while (!queue.isEmpty() && visited < 4096) {
             SearchNode node = queue.removeFirst();
             Object owner = node.value();
+            visited++;
+
+            Object holderScreen = unwrapScreenCandidate(owner, screenClass);
+            if (holderScreen != null) return holderScreen;
+
+            enqueueContainerChildren(owner, node.depth(), queue, seen);
+
+            if (node.depth() >= 5 || !shouldReflectInto(owner.getClass())) {
+                continue;
+            }
+
+            Object methodScreen = findScreenFromAccessors(owner, screenClass);
+            if (methodScreen != null) return methodScreen;
 
             for (Class<?> current = owner.getClass(); current != null; current = current.getSuperclass()) {
                 for (Field field : current.getDeclaredFields()) {
@@ -235,10 +278,7 @@ final class ClientHooks {
                     Object screen = unwrapScreenCandidate(value, screenClass);
                     if (screen != null) return screen;
 
-                    if (node.depth() >= 3 || value == null || !shouldDescendInto(value.getClass())) continue;
-                    if (seen.add(value)) {
-                        queue.addLast(new SearchNode(value, node.depth() + 1));
-                    }
+                    enqueueSearchValue(value, node.depth() + 1, queue, seen);
                 }
             }
         }
@@ -276,6 +316,29 @@ final class ClientHooks {
         return null;
     }
 
+    private static Object findScreenFromAccessors(Object target, Class<?> screenClass) {
+        for (Class<?> current = target.getClass(); current != null; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (Modifier.isStatic(method.getModifiers()) || method.getParameterCount() != 0) continue;
+
+                Class<?> returnType = method.getReturnType();
+                boolean candidate = screenClass.isAssignableFrom(returnType)
+                        || Optional.class.isAssignableFrom(returnType)
+                        || AtomicReference.class.isAssignableFrom(returnType);
+                if (!candidate) continue;
+
+                try {
+                    method.setAccessible(true);
+                    Object value = method.invoke(target);
+                    Object screen = unwrapScreenCandidate(value, screenClass);
+                    if (screen != null) return screen;
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
     private static Object unwrapScreenCandidate(Object value, Class<?> screenClass) {
         if (value == null) return null;
         if (screenClass.isInstance(value)) return value;
@@ -290,13 +353,151 @@ final class ClientHooks {
             return screenClass.isInstance(nested) ? nested : null;
         }
 
+        if (value instanceof Iterable<?> iterable) {
+            for (Object nested : iterable) {
+                if (screenClass.isInstance(nested)) return nested;
+            }
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            for (Object nested : map.values()) {
+                if (screenClass.isInstance(nested)) return nested;
+            }
+        }
+
+        Class<?> type = value.getClass();
+        if (type.isArray() && !type.getComponentType().isPrimitive()) {
+            int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                Object nested = Array.get(value, i);
+                if (screenClass.isInstance(nested)) return nested;
+            }
+        }
+
         return null;
     }
 
-    private static boolean shouldDescendInto(Class<?> type) {
+    private static void enqueueContainerChildren(
+            Object value,
+            int depth,
+            ArrayDeque<SearchNode> queue,
+            Set<Object> seen) {
+        if (depth >= 5 || value == null) return;
+
+        if (value instanceof Optional<?> optional) {
+            enqueueSearchValue(optional.orElse(null), depth + 1, queue, seen);
+            return;
+        }
+
+        if (value instanceof AtomicReference<?> reference) {
+            enqueueSearchValue(reference.get(), depth + 1, queue, seen);
+            return;
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            int count = 0;
+            for (Object nested : map.values()) {
+                enqueueSearchValue(nested, depth + 1, queue, seen);
+                if (++count >= 256) break;
+            }
+            return;
+        }
+
+        if (value instanceof Iterable<?> iterable) {
+            int count = 0;
+            for (Object nested : iterable) {
+                enqueueSearchValue(nested, depth + 1, queue, seen);
+                if (++count >= 256) break;
+            }
+            return;
+        }
+
+        Class<?> type = value.getClass();
+        if (type.isArray() && !type.getComponentType().isPrimitive()) {
+            int length = Math.min(Array.getLength(value), 256);
+            for (int i = 0; i < length; i++) {
+                enqueueSearchValue(Array.get(value, i), depth + 1, queue, seen);
+            }
+        }
+    }
+
+    private static void enqueueSearchValue(
+            Object value,
+            int depth,
+            ArrayDeque<SearchNode> queue,
+            Set<Object> seen) {
+        if (value == null || depth > 5 || isLeafValue(value.getClass())) return;
+        if (seen.add(value)) {
+            queue.addLast(new SearchNode(value, depth));
+        }
+    }
+
+    private static boolean shouldReflectInto(Class<?> type) {
         String name = type.getName();
         return name.startsWith("net.minecraft.client.")
-                || name.startsWith("com.mojang.blaze3d.");
+                || name.startsWith("net.minecraft.realms.")
+                || name.startsWith("com.mojang.blaze3d.")
+                || name.startsWith("com.mojang.realmsclient.");
+    }
+
+    private static boolean isLeafValue(Class<?> type) {
+        return type.isPrimitive()
+                || type.isEnum()
+                || Number.class.isAssignableFrom(type)
+                || CharSequence.class.isAssignableFrom(type)
+                || Boolean.class == type
+                || Character.class == type
+                || Class.class == type;
+    }
+
+    private static Method findRunnableScheduler(Class<?> type) {
+        String[] preferredNames = {"execute", "schedule", "tell", "submit"};
+
+        for (String preferred : preferredNames) {
+            Method method = findSingleRunnableMethod(type, preferred);
+            if (method != null) return method;
+        }
+
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (Modifier.isStatic(method.getModifiers()) || method.getParameterCount() != 1) continue;
+                Class<?> parameter = method.getParameterTypes()[0];
+                if (!parameter.isAssignableFrom(Runnable.class) && !Runnable.class.isAssignableFrom(parameter)) {
+                    continue;
+                }
+                if (method.getReturnType() != void.class) continue;
+                try {
+                    method.setAccessible(true);
+                    return method;
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Method findSingleRunnableMethod(Class<?> type, String name) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (!name.equals(method.getName())
+                        || Modifier.isStatic(method.getModifiers())
+                        || method.getParameterCount() != 1) {
+                    continue;
+                }
+
+                Class<?> parameter = method.getParameterTypes()[0];
+                if (!parameter.isAssignableFrom(Runnable.class) && !Runnable.class.isAssignableFrom(parameter)) {
+                    continue;
+                }
+
+                try {
+                    method.setAccessible(true);
+                    return method;
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        return null;
     }
 
     private record SearchNode(Object value, int depth) {}

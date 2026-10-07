@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.5-menu-win64.zip
+CodaLoader-v0.0.6-menu-probe-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,13 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.5-menu
+## Current milestone: 0.0.6-menu-probe
+
+### Snapshot 3 title-screen probe
+
+CML now walks nested Minecraft client state, including common holder and collection shapes, instead of assuming the active GUI screen is stored directly on `Minecraft`. It also discovers the render-thread Runnable scheduler by method signature when the readable method name is unavailable.
+
+Successful runtime diagnostics include `Minecraft title screen located`, `Client render-thread scheduler located`, and `Added CML button to Minecraft title screen`.
 
 ### CML main-menu hook
 
