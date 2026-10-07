@@ -30,6 +30,14 @@
 - [ ] crash diagnostics showing which Coda mod failed
 
 
+## Near term: CML title shell and shipped music
+
+- [x] compact persistent CML status control on the title screen
+- [x] Discord and YouTube placeholder controls around the vanilla title icon row
+- [x] separate project-shipped menu music from user-added menu music
+- [ ] ship the selected Howling Whispers standard menu track in `run/music/default/`
+- [ ] replace placeholder social controls with real, configurable destinations
+
 ## Future: CML identity, ownership verification, and Discord linking
 
 - [ ] add a one-time Microsoft/Minecraft ownership-verification flow

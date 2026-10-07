@@ -371,7 +371,10 @@ public final class MinecraftBootstrap {
     }
 
     private void prepareCustomMusicPack() throws IOException {
-        Path menuMusic = root.resolve("music").resolve("menu");
+        Path musicRoot = root.resolve("music");
+        Path bundledMusic = musicRoot.resolve("default");
+        Path menuMusic = musicRoot.resolve("menu");
+        Files.createDirectories(bundledMusic);
         Files.createDirectories(menuMusic);
 
         Path readme = menuMusic.resolve("README.txt");
@@ -381,17 +384,15 @@ public final class MinecraftBootstrap {
                     StandardCharsets.UTF_8);
         }
 
-        List<Path> tracks;
-        try (var stream = Files.list(menuMusic)) {
-            tracks = stream
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".ogg"))
-                    .sorted()
-                    .toList();
-        }
+        List<Path> bundledTracks = oggTracks(bundledMusic);
+        List<Path> userTracks = oggTracks(menuMusic);
+        List<Path> tracks = new ArrayList<>(bundledTracks.size() + userTracks.size());
+        tracks.addAll(bundledTracks);
+        tracks.addAll(userTracks);
 
         if (tracks.isEmpty()) {
-            System.out.println("[CodaLoader] Custom music folder: " + menuMusic + " (no .ogg tracks yet)");
+            System.out.println("[CodaLoader] Menu music folders ready: " + bundledMusic + " and " + menuMusic
+                    + " (no .ogg tracks yet)");
             return;
         }
 
@@ -428,7 +429,18 @@ public final class MinecraftBootstrap {
         Files.writeString(soundsJson, soundJson.toString(), StandardCharsets.UTF_8);
         enableGeneratedPack("file/CodaLoader-Music");
 
-        System.out.println("[CodaLoader] Custom menu music enabled: " + tracks.size() + " track(s)");
+        System.out.println("[CodaLoader] Menu music enabled: "
+                + bundledTracks.size() + " bundled + " + userTracks.size() + " user track(s)");
+    }
+
+    private List<Path> oggTracks(Path directory) throws IOException {
+        try (var stream = Files.list(directory)) {
+            return stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".ogg"))
+                    .sorted()
+                    .toList();
+        }
     }
 
     private void enableGeneratedPack(String resourcePackId) throws IOException {

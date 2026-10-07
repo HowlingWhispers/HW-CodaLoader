@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.8-splashes-win64.zip
+CodaLoader-v0.0.9-ui-polish-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,22 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.8-splashes
+## Current milestone: 0.0.9-ui-polish
+
+### Title-screen layout polish
+
+CML now uses a compact bottom-left status button instead of the large top-left proof bar. Two 20x20 placeholder controls are added around Minecraft's existing three small title buttons: Discord on the left and YouTube on the right. Their real links/actions will be wired later.
+
+### Shipped and user menu music
+
+CodaLoader now reads menu music from two locations:
+
+```text
+run/music/default/   # CodaLoader project-shipped tracks
+run/music/menu/      # user-added tracks
+```
+
+Both sets are combined into the generated menu-music resource pack. Project-owned defaults can therefore ship separately from user music rather than being embedded in Java.
 
 ### Coda-flavored title splashes
 

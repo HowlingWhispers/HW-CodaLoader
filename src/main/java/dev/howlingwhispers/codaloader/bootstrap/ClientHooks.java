@@ -29,7 +29,7 @@ final class ClientHooks {
     private static volatile boolean schedulerReported;
     private static volatile boolean screenSearchReported;
     private static volatile Object injectedTitleScreen;
-    private static volatile Object injectedButton;
+    private static volatile Object[] injectedMenuWidgets = new Object[0];
 
     private ClientHooks() {}
 
@@ -75,17 +75,17 @@ final class ClientHooks {
                             System.out.println("[CodaLoader] Minecraft title screen located.");
                         }
 
-                        boolean needsButton = screen != injectedTitleScreen
-                                || injectedButton == null
-                                || !screenContainsObject(screen, injectedButton);
+                        boolean needsWidgets = screen != injectedTitleScreen
+                                || injectedMenuWidgets.length != 3
+                                || !allWidgetsPresent(screen, injectedMenuWidgets);
 
-                        if (needsButton) {
+                        if (needsWidgets) {
                             Object target = screen;
                             schedule(minecraft, () -> {
-                                Object button = injectMenuButton(target, modCount);
-                                if (button != null) {
+                                Object[] widgets = injectMenuWidgets(target, modCount);
+                                if (widgets.length == 3) {
                                     injectedTitleScreen = target;
-                                    injectedButton = button;
+                                    injectedMenuWidgets = widgets;
                                 }
                             });
                         }
@@ -142,7 +142,7 @@ final class ClientHooks {
         }
     }
 
-    private static Object injectMenuButton(Object screen, int modCount) {
+    private static Object[] injectMenuWidgets(Object screen, int modCount) {
         try {
             ClassLoader loader = screen.getClass().getClassLoader();
             Class<?> componentClass = Class.forName("net.minecraft.network.chat.Component", true, loader);
@@ -150,60 +150,140 @@ final class ClientHooks {
             Class<?> onPressClass = Class.forName("net.minecraft.client.gui.components.Button$OnPress", true, loader);
 
             Method literal = componentClass.getMethod("literal", String.class);
-            String modWord = modCount == 1 ? "mod" : "mods";
-            Object label = literal.invoke(null,
-                    "CML " + CodaTarget.LOADER_VERSION + " | " + modCount + " " + modWord);
-
-            Object onPress = Proxy.newProxyInstance(
-                    onPressClass.getClassLoader(),
-                    new Class<?>[]{onPressClass},
-                    (proxy, method, args) -> {
-                        switch (method.getName()) {
-                            case "onPress" -> {
-                                Object clicked = args != null && args.length > 0 ? args[0] : null;
-                                Object alive = literal.invoke(null, "CML hooks active | " + modCount + " " + modWord);
-                                if (clicked != null) {
-                                    Method setMessage = findMethod(clicked.getClass(), "setMessage", componentClass);
-                                    if (setMessage != null) setMessage.invoke(clicked, alive);
-                                }
-                                System.out.println("[CodaLoader] Main-menu button clicked. Hooks are alive.");
-                                return null;
-                            }
-                            case "toString" -> { return "CodaLoaderOnPress"; }
-                            case "hashCode" -> { return System.identityHashCode(proxy); }
-                            case "equals" -> { return proxy == (args == null ? null : args[0]); }
-                            default -> { return null; }
-                        }
-                    });
-
             Method builderMethod = buttonClass.getMethod("builder", componentClass, onPressClass);
-            Object builder = builderMethod.invoke(null, label, onPress);
-
-            int x = 6;
-            int y = 6;
-
-            Method bounds = findMethod(builder.getClass(), "bounds", int.class, int.class, int.class, int.class);
-            if (bounds == null) throw new NoSuchMethodException("Button.Builder.bounds");
-            builder = bounds.invoke(builder, x, y, 200, 20);
-
-            Method build = findMethod(builder.getClass(), "build");
-            if (build == null) throw new NoSuchMethodException("Button.Builder.build");
-            Object button = build.invoke(builder);
-
             Method add = findAddRenderableWidget(screen.getClass(), buttonClass);
             if (add == null) throw new NoSuchMethodException("Screen.addRenderableWidget");
-            add.invoke(screen, button);
 
-            System.out.println("[CodaLoader] Added CML button to Minecraft title screen.");
-            return button;
+            int screenWidth = readIntMember(screen, "width", 320);
+            int screenHeight = readIntMember(screen, "height", 240);
+            int centerX = screenWidth / 2;
+            int iconY = screenHeight / 4 + 120;
+
+            String modWord = modCount == 1 ? "mod" : "mods";
+            Object cml = createButton(
+                    buttonClass, onPressClass, builderMethod, literal,
+                    "CML | " + modCount + " " + modWord,
+                    4, Math.max(4, screenHeight - 18), 150, 16,
+                    "CMLStatus",
+                    clicked -> System.out.println("[CodaLoader] CML status button clicked: "
+                            + CodaTarget.LOADER_VERSION + " | " + modCount + " " + modWord));
+
+            Object discord = createButton(
+                    buttonClass, onPressClass, builderMethod, literal,
+                    "D",
+                    centerX - 58, iconY, 20, 20,
+                    "CMLDiscordPlaceholder",
+                    clicked -> {
+                        setButtonText(clicked, componentClass, literal, "...");
+                        System.out.println("[CodaLoader] Discord placeholder clicked. Linking UI is planned.");
+                    });
+
+            Object youtube = createButton(
+                    buttonClass, onPressClass, builderMethod, literal,
+                    "YT",
+                    centerX + 38, iconY, 20, 20,
+                    "CMLYouTubePlaceholder",
+                    clicked -> {
+                        setButtonText(clicked, componentClass, literal, "...");
+                        System.out.println("[CodaLoader] YouTube placeholder clicked. Channel link is planned.");
+                    });
+
+            add.invoke(screen, cml);
+            add.invoke(screen, discord);
+            add.invoke(screen, youtube);
+
+            System.out.println("[CodaLoader] Added compact CML status + Discord/YouTube placeholders.");
+            return new Object[]{cml, discord, youtube};
         } catch (Throwable ex) {
             if (!menuFailureReported) {
                 menuFailureReported = true;
-                System.err.println("[CodaLoader] Could not add title-screen button:");
+                System.err.println("[CodaLoader] Could not add title-screen CML widgets:");
                 ex.printStackTrace(System.err);
             }
-            return null;
+            return new Object[0];
         }
+    }
+
+    private static Object createButton(
+            Class<?> buttonClass,
+            Class<?> onPressClass,
+            Method builderMethod,
+            Method literal,
+            String text,
+            int x,
+            int y,
+            int width,
+            int height,
+            String proxyName,
+            ButtonAction action) throws Exception {
+
+        Object label = literal.invoke(null, text);
+        Object onPress = Proxy.newProxyInstance(
+                onPressClass.getClassLoader(),
+                new Class<?>[]{onPressClass},
+                (proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "onPress" -> {
+                            Object clicked = args != null && args.length > 0 ? args[0] : null;
+                            action.run(clicked);
+                            return null;
+                        }
+                        case "toString" -> { return proxyName; }
+                        case "hashCode" -> { return System.identityHashCode(proxy); }
+                        case "equals" -> { return proxy == (args == null ? null : args[0]); }
+                        default -> { return null; }
+                    }
+                });
+
+        Object builder = builderMethod.invoke(null, label, onPress);
+        Method bounds = findMethod(builder.getClass(), "bounds", int.class, int.class, int.class, int.class);
+        if (bounds == null) throw new NoSuchMethodException("Button.Builder.bounds");
+        builder = bounds.invoke(builder, x, y, width, height);
+
+        Method build = findMethod(builder.getClass(), "build");
+        if (build == null) throw new NoSuchMethodException("Button.Builder.build");
+        return build.invoke(builder);
+    }
+
+    private static void setButtonText(
+            Object button,
+            Class<?> componentClass,
+            Method literal,
+            String text) throws Exception {
+        if (button == null) return;
+        Method setMessage = findMethod(button.getClass(), "setMessage", componentClass);
+        if (setMessage != null) {
+            setMessage.invoke(button, literal.invoke(null, text));
+        }
+    }
+
+    private static int readIntMember(Object target, String name, int fallback) {
+        try {
+            Field field = findField(target.getClass(), name);
+            if (field != null && field.getType() == int.class) {
+                field.setAccessible(true);
+                return field.getInt(target);
+            }
+
+            Method getter = findMethod(target.getClass(), name);
+            if (getter != null && getter.getReturnType() == int.class) {
+                return (int) getter.invoke(target);
+            }
+        } catch (Throwable ignored) {
+        }
+        return fallback;
+    }
+
+    private static boolean allWidgetsPresent(Object screen, Object[] widgets) {
+        for (Object widget : widgets) {
+            if (widget == null || !screenContainsObject(screen, widget)) return false;
+        }
+        return true;
+    }
+
+    @FunctionalInterface
+    private interface ButtonAction {
+        void run(Object clicked) throws Throwable;
     }
 
     private static boolean screenContainsObject(Object screen, Object needle) {
