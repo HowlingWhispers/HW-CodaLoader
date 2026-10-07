@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.16 launcher managed bundle
+    name: Publish v0.0.17 menu scenes bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.16-launcher-managed"
-          ZIP="dist/CodaLoader-v0.0.16-launcher-managed-win64.zip"
+          TAG="v0.0.17-menu-scenes"
+          ZIP="dist/CodaLoader-v0.0.17-menu-scenes-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.16 Launcher Managed
+          # CodaLoader v0.0.17 Menu Scenes
 
-          Download **CodaLoader-v0.0.16-launcher-managed-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.17-menu-scenes-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,12 +54,13 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.16:
-          - Adds --root and --base-pack for CodaLauncher-managed installs
-          - Treats the supplied root itself as the Minecraft game directory
-          - Reads official branding/music defaults from the launcher-managed CML base pack
-          - Keeps user branding and menu music as higher-priority overrides/additions
-          - Skips CodaLoader self-update handoff when launched by CodaLauncher
+          New in 0.0.17:
+          - Keeps the existing grounded four-wall panorama as the classic menu scene
+          - Adds an experimental Banner Sweep scene derived from menu_banner.png or the existing four panorama images
+          - Randomly selects a menu scene at game startup
+          - Selects a different scene when returning to Minecraft's title screen and requests a resource reload
+          - Keeps generated sky/floor faces so character art never appears overhead or underfoot
+          - Keeps --root and --base-pack launcher-managed behavior from 0.0.16
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -69,7 +70,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.16 Launcher Managed"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.17 Menu Scenes"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.16 Launcher Managed"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.17 Menu Scenes"               --notes-file release-notes.md               --prerelease
           fi

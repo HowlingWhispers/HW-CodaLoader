@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.16-launcher-managed-win64.zip
+CodaLoader-v0.0.17-menu-scenes-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,26 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.16-launcher-managed
+## Current milestone: 0.0.17-menu-scenes
+
+### Random CML menu scenes
+
+CML now prepares two title-background scene modes while preserving the existing menu artwork:
+
+- **classic-panorama** uses the existing four horizontal panorama images plus the generated/custom sky and floor.
+- **banner-sweep** uses an optional very wide `menu_banner.png`. If no banner is supplied yet, CML derives a test banner from the existing four panorama images.
+
+One scene is chosen randomly at game startup. After leaving the title screen, CML chooses a different available scene when the player later returns and asks Minecraft to reload the branding resources.
+
+The Banner Sweep cubemap is laid out forward and then mirrored, so Minecraft's normal panorama motion produces an experimental left-to-right-then-back visual sweep without requiring animated art.
+
+Optional branding source:
+
+```text
+branding/menu_banner.png
+```
+
+The classic panorama remains available and is not replaced.
 
 ### Launcher-managed install root
 
@@ -165,6 +184,7 @@ run/
     ├── panorama_1.png
     ├── panorama_2.png
     ├── panorama_3.png
+    ├── menu_banner.png (optional wide Banner Sweep scene)
     ├── sky.png        (optional)
     ├── floor.png      (optional)
     └── splashes.txt   (optional)
