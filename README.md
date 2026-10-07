@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.14-launcher-bridge-win64.zip
+CodaLoader-v0.0.15-grounded-panorama-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,13 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.14-launcher-bridge
+## Current milestone: 0.0.15-grounded-panorama
+
+### Grounded title panorama
+
+Minecraft's title background is a cubemap, not a slideshow. CodaLoader now uses `panorama_0.png` through `panorama_3.png` only for the four horizontal scene faces. The up/down faces are generated as a twilight sky and dark tiled floor so Coda no longer appears above and below the camera.
+
+Optional `run/branding/sky.png` and `run/branding/floor.png` files override the generated top/bottom textures.
 
 ### CodaLauncher bridge
 
@@ -149,12 +155,12 @@ run/
     ├── panorama_1.png
     ├── panorama_2.png
     ├── panorama_3.png
-    ├── panorama_4.png
-    ├── panorama_5.png
+    ├── sky.png        (optional)
+    ├── floor.png      (optional)
     └── splashes.txt   (optional)
 ```
 
-The panorama images may be six completely different Howling Whispers scenes. CodaLoader converts them into Minecraft's rotating title panorama and replaces the large Minecraft logo with the supplied transparent `title.png`.
+`panorama_0.png` through `panorama_3.png` are the four horizontal Howling Whispers scenes. CodaLoader supplies the cubemap sky and floor automatically unless `sky.png` or `floor.png` overrides are present. The large Minecraft logo is replaced with the supplied transparent `title.png`.
 
 At launch it generates:
 

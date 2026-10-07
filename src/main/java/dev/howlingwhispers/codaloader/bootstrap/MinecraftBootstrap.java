@@ -6,6 +6,7 @@ import dev.howlingwhispers.codaloader.core.MiniJson;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -206,16 +207,18 @@ public final class MinecraftBootstrap {
                     "Howling Whispers menu branding for CodaLoader.\n"
                             + "Required files:\n"
                             + "  title.png\n"
-                            + "  panorama_0.png through panorama_5.png\n"
+                            + "  panorama_0.png through panorama_3.png (four horizontal Coda scenes)\n"
                             + "Optional:\n"
+                            + "  sky.png (custom cubemap ceiling; otherwise CodaLoader generates one)\n"
+                            + "  floor.png (custom cubemap floor; otherwise CodaLoader generates one)\n"
                             + "  splashes.txt (one custom yellow title message per line)\n"
-                            + "The six panorama images may be different scenes; Minecraft rotates them as its title panorama.\n",
+                            + "panorama_4 and panorama_5 are generated as sky/floor so character scenes never appear overhead or underfoot.\n",
                     StandardCharsets.UTF_8);
         }
 
         List<Path> required = new ArrayList<>();
         required.add(branding.resolve("title.png"));
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 4; i++) {
             required.add(branding.resolve("panorama_" + i + ".png"));
         }
 
@@ -251,17 +254,109 @@ public final class MinecraftBootstrap {
         BufferedImage blankEdition = new BufferedImage(256, 64, BufferedImage.TYPE_INT_ARGB);
         ImageIO.write(blankEdition, "png", titleDir.resolve("edition.png").toFile());
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 4; i++) {
             writeSquareTexture(
                     branding.resolve("panorama_" + i + ".png"),
                     backgroundDir.resolve("panorama_" + i + ".png"),
                     512);
         }
 
+        Path customSky = branding.resolve("sky.png");
+        if (Files.isRegularFile(customSky)) {
+            writeSquareTexture(customSky, backgroundDir.resolve("panorama_4.png"), 512);
+        } else {
+            writeGeneratedSkyTexture(backgroundDir.resolve("panorama_4.png"), 512);
+        }
+
+        Path customFloor = branding.resolve("floor.png");
+        if (Files.isRegularFile(customFloor)) {
+            writeSquareTexture(customFloor, backgroundDir.resolve("panorama_5.png"), 512);
+        } else {
+            writeGeneratedFloorTexture(backgroundDir.resolve("panorama_5.png"), 512);
+        }
+
         writeSplashTexts(branding, pack);
 
         enableGeneratedPack("file/HowlingWhispers-Branding");
-        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: title + 6 rotating scenes + Coda splashes.");
+        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: 4 side scenes + sky + floor + Coda splashes.");
+    }
+
+    private void writeGeneratedSkyTexture(Path targetFile, int size) throws IOException {
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+
+        for (int y = 0; y < size; y++) {
+            double t = y / (double) Math.max(1, size - 1);
+            int r = (int) Math.round(8 + 10 * t);
+            int g = (int) Math.round(20 + 23 * t);
+            int b = (int) Math.round(31 + 35 * t);
+            int rgb = new Color(r, g, b).getRGB();
+            for (int x = 0; x < size; x++) {
+                output.setRGB(x, y, rgb);
+            }
+        }
+
+        Graphics2D graphics = output.createGraphics();
+        try {
+            for (int i = 0; i < 46; i++) {
+                int x = Math.floorMod(i * 97 + 31, size);
+                int y = Math.floorMod(i * 53 + 19, size);
+                int glow = 145 + Math.floorMod(i * 17, 90);
+                graphics.setColor(new Color(150, 220, 255, glow));
+                int dot = i % 7 == 0 ? 2 : 1;
+                graphics.fillRect(x, y, dot, dot);
+            }
+
+            int moon = Math.max(38, size / 8);
+            int moonX = size / 2 - moon / 2;
+            int moonY = size / 2 - moon / 2;
+            graphics.setColor(new Color(150, 225, 245));
+            graphics.fillOval(moonX, moonY, moon, moon);
+            graphics.setColor(new Color(58, 91, 109));
+            graphics.fillOval(moonX + moon / 3, moonY - moon / 12, moon, moon);
+        } finally {
+            graphics.dispose();
+        }
+
+        Files.createDirectories(targetFile.getParent());
+        ImageIO.write(output, "png", targetFile.toFile());
+    }
+
+    private void writeGeneratedFloorTexture(Path targetFile, int size) throws IOException {
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = output.createGraphics();
+        try {
+            graphics.setColor(new Color(18, 27, 31));
+            graphics.fillRect(0, 0, size, size);
+
+            int tile = Math.max(48, size / 8);
+            for (int y = 0; y < size; y += tile) {
+                for (int x = 0; x < size; x += tile) {
+                    boolean alt = ((x / tile) + (y / tile)) % 2 == 0;
+                    graphics.setColor(alt
+                            ? new Color(31, 43, 47)
+                            : new Color(25, 36, 40));
+                    graphics.fillRect(x + 2, y + 2, tile - 4, tile - 4);
+                }
+            }
+
+            graphics.setColor(new Color(37, 91, 104));
+            for (int p = 0; p <= size; p += tile) {
+                graphics.fillRect(p, 0, 2, size);
+                graphics.fillRect(0, p, size, 2);
+            }
+
+            int center = size / 2;
+            int glow = Math.max(64, size / 5);
+            graphics.setColor(new Color(42, 118, 135));
+            graphics.drawOval(center - glow / 2, center - glow / 2, glow, glow);
+            graphics.setColor(new Color(72, 167, 188));
+            graphics.drawOval(center - glow / 3, center - glow / 3, glow * 2 / 3, glow * 2 / 3);
+        } finally {
+            graphics.dispose();
+        }
+
+        Files.createDirectories(targetFile.getParent());
+        ImageIO.write(output, "png", targetFile.toFile());
     }
 
     private void writeSplashTexts(Path branding, Path pack) throws IOException {
