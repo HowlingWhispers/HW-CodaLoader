@@ -45,5 +45,6 @@ public final class CodaAgent {
         }
 
         ClientHooks.start(modCount);
+        ServerCommandHooks.start();
     }
 }

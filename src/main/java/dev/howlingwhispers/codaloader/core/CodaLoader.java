@@ -27,6 +27,7 @@ public final class CodaLoader implements AutoCloseable {
     public List<ModMetadata> loadAndInitialize() throws Exception {
         Files.createDirectories(modsDirectory);
         Files.createDirectories(configDirectory);
+        BundledMods.install(modsDirectory, configDirectory);
 
         System.out.println("[CodaLoader] " + CodaTarget.LOADER_VERSION);
         System.out.println("[CodaLoader] Target Minecraft: " + CodaTarget.MINECRAFT_VERSION);

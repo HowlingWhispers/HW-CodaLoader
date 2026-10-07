@@ -28,11 +28,14 @@ jobs:
       - name: Build distribution
         run: ./scripts/build-dist.sh
 
+      - name: Test HW Essentials and command bridge
+        run: bash scripts/test-essentials.sh
+
       - name: Verify launcher version bridge
         shell: bash
         run: |
           version="$(java -jar dist/CodaLoader.jar --version)"
-          test "$version" = "0.0.17-menu-scenes"
+          test "$version" = "0.0.18-essentials"
           java -jar dist/CodaLoader.jar --version-json | grep -F '"minecraft":"26.4-snapshot-3"'
 
       - name: Smoke-test loader without launching Minecraft
@@ -46,7 +49,7 @@ jobs:
           printf '%s\n' "$output"
 
           grep -F "[HelloCoda] Pawprint confirmed. CodaLoader can load me." <<< "$output"
-          grep -F "[CodaLoader] Ready. 1 mod(s) initialized." <<< "$output"
+          grep -F "[CodaLoader] Ready. 2 mod(s) initialized." <<< "$output"
 
       - name: Smoke-test Java agent and in-JVM mod loading
         shell: bash
@@ -64,11 +67,13 @@ jobs:
       - name: Verify ZIP layout and update manifest
         shell: bash
         run: |
-          unzip -l dist/CodaLoader-v0.0.17-menu-scenes-win64.zip
-          unzip -l dist/CodaLoader-v0.0.17-menu-scenes-win64.zip | grep -F "CodaLoader.jar"
-          unzip -l dist/CodaLoader-v0.0.17-menu-scenes-win64.zip | grep -F "Launch-CodaLoader.bat"
-          unzip -l dist/CodaLoader-v0.0.17-menu-scenes-win64.zip | grep -F "run/mods/hello-coda.jar"
-          grep -F '"version": "0.0.17-menu-scenes"' dist/update-manifest.json
+          unzip -l dist/CodaLoader-v0.0.18-essentials-win64.zip
+          unzip -l dist/CodaLoader-v0.0.18-essentials-win64.zip | grep -F "CodaLoader.jar"
+          unzip -l dist/CodaLoader-v0.0.18-essentials-win64.zip | grep -F "Launch-CodaLoader.bat"
+          unzip -l dist/CodaLoader-v0.0.18-essentials-win64.zip | grep -F "run/mods/hello-coda.jar"
+          grep -F '"version": "0.0.18-essentials"' dist/update-manifest.json
+          jar tf dist/CodaLoader.jar | grep -F "codaloader/mods/hw-essentials.jar"
+          jar tf dist/hw-essentials.jar | grep -F "coda.mod.json"
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/discord.png"
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/youtube.png"
 
@@ -77,10 +82,11 @@ jobs:
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-v0.0.17-menu-scenes-win64.zip
+            dist/CodaLoader-v0.0.18-essentials-win64.zip
             dist/update-manifest.json
             dist/CodaLoader.jar
             dist/hello-coda.jar
+            dist/hw-essentials.jar
             dist/Launch-CodaLoader.bat
           if-no-files-found: error
           retention-days: 30
@@ -108,5 +114,5 @@ jobs:
         run: |
           if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-v0.0.17-menu-scenes-win64.zip)) { throw "ZIP missing" }
+          if (!(Test-Path dist/CodaLoader-v0.0.18-essentials-win64.zip)) { throw "ZIP missing" }
           if (!(Test-Path dist/update-manifest.json)) { throw "Update manifest missing" }

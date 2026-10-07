@@ -25,7 +25,7 @@
 ## 0.0.3 First CodaAPI hooks
 
 - [ ] lifecycle events
-- [ ] command registration
+- [x] player-command API and integrated-server command bridge; live Snapshot 3 playtest pending
 - [ ] first safe registry hook
 - [ ] crash diagnostics showing which Coda mod failed
 

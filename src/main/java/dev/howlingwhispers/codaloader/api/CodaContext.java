@@ -15,4 +15,8 @@ public record CodaContext(
     public CodaContext {
         loadedModIds = List.copyOf(loadedModIds);
     }
+
+    public void registerCommand(String name, String description, CodaCommand command) {
+        CodaCommands.register(modId, name, description, command);
+    }
 }

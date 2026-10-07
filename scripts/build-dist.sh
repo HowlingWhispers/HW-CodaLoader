@@ -2,14 +2,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.17-menu-scenes"
+LOADER_VERSION="0.0.18-essentials"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 BUNDLE_NAME="CodaLoader-v${LOADER_VERSION}-win64.zip"
 
 rm -rf out dist
-mkdir -p out/classes out/example-classes dist/package/run/mods
+mkdir -p out/classes out/example-classes out/essentials-classes dist/package/run/mods
 
 mapfile -d '' LOADER_SOURCES < <(find src/main/java -name '*.java' -print0)
 if [[ ${#LOADER_SOURCES[@]} -eq 0 ]]; then
@@ -21,6 +21,13 @@ javac --release 21 -encoding UTF-8 -d out/classes "${LOADER_SOURCES[@]}"
 if [[ -d src/main/resources ]]; then
   cp -R src/main/resources/. out/classes/
 fi
+mapfile -d '' ESSENTIALS_SOURCES < <(find mods/hw-essentials/src -name '*.java' -print0)
+javac --release 21 -encoding UTF-8 -cp out/classes -d out/essentials-classes "${ESSENTIALS_SOURCES[@]}"
+cp mods/hw-essentials/resources/coda.mod.json out/essentials-classes/
+jar --create --file dist/hw-essentials.jar -C out/essentials-classes .
+mkdir -p out/classes/codaloader/mods
+cp dist/hw-essentials.jar out/classes/codaloader/mods/
+
 cat > out/manifest.mf <<EOF
 Manifest-Version: 1.0
 Main-Class: ${MAIN_CLASS}
@@ -44,6 +51,7 @@ cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 cp dist/CodaLoader.jar dist/package/CodaLoader.jar
 cp dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
 cp dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
+cp dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 cat > dist/package/README-FIRST.txt <<EOF
 CodaLoader ${LOADER_VERSION}

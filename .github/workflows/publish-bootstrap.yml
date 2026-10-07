@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.17 menu scenes bundle
+    name: Publish v0.0.18 HW Essentials bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -27,6 +27,9 @@ jobs:
       - name: Build distribution
         run: ./scripts/build-dist.sh
 
+      - name: Test HW Essentials and command bridge
+        run: bash scripts/test-essentials.sh
+
       - name: Smoke-test loader
         run: |
           rm -rf run
@@ -34,43 +37,33 @@ jobs:
           cp dist/hello-coda.jar run/mods/
           java -jar dist/CodaLoader.jar --loader-only run
 
-      - name: Publish or refresh prerelease
+      - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.17-menu-scenes"
-          ZIP="dist/CodaLoader-v0.0.17-menu-scenes-win64.zip"
-
-          cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.17 Menu Scenes
-
-          Download **CodaLoader-v0.0.17-menu-scenes-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
-
-          The files inside the ZIP keep stable names:
-          - CodaLoader.jar
-          - Launch-CodaLoader.bat
-          - run/mods/hello-coda.jar
-
-          CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
-
-          New in 0.0.17:
-          - Keeps the existing grounded four-wall panorama as the classic menu scene
-          - Adds an experimental Banner Sweep scene derived from menu_banner.png or the existing four panorama images
-          - Randomly selects a menu scene at game startup
-          - Selects a different scene when returning to Minecraft's title screen and requests a resource reload
-          - Keeps generated sky/floor faces so character art never appears overhead or underfoot
-          - Keeps --root and --base-pack launcher-managed behavior from 0.0.16
-
-          User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
-          EOF
-
+          TAG="v0.0.18-essentials"
+          ZIP="dist/CodaLoader-v0.0.18-essentials-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            for OLD in CodaLoader-0.0.3-hook.jar hello-coda-0.0.1.jar Launch-CodaLoader.bat; do
-              gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
-            done
-            gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.17 Menu Scenes"
-          else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.17 Menu Scenes"               --notes-file release-notes.md               --prerelease
+            echo "Release already exists; bump the version for a new build." >&2
+            exit 1
           fi
+          cat > release-notes.md <<'EOF'
+          # CodaLoader 0.0.18 + HW Essentials 0.1.0
+
+          Pinned to Minecraft Java 26.4 Snapshot 3.
+
+          - CML-native HW Essentials mod with /sethome, /home, /homes, /delhome and /hwessentials.
+          - Separate named homes per player and world; facing saved; ten configurable slots.
+          - Same-dimension singleplayer travel with server-thread landing checks.
+          - Small Coda command API and integrated-server bridge; command trees refreshed for connected players.
+          - Official mod JAR embedded in CodaLoader and installed automatically into the active profile.
+          - Homes, settings and manually changed conflicting mod files are preserved.
+
+          Download the Windows bundle for the complete loader, or hw-essentials.jar for the standalone mod (requires CodaLoader 0.0.18).
+
+          CI covers compilation, loading, persistence, command parsing with real Brigadier and adapter fixtures. Live Snapshot 3 registration and teleportation still require an in-game playtest.
+          EOF
+          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
+            --target "$GITHUB_SHA" --title "CodaLoader 0.0.18 + HW Essentials 0.1.0" \
+            --notes-file release-notes.md --prerelease

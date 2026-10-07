@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.17-menu-scenes-win64.zip
+CodaLoader-v0.0.18-essentials-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,17 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.17-menu-scenes
+## HW Essentials 0.1.0
+
+The CML-native homes mod for **Minecraft Java 26.4 Snapshot 3** is now bundled with CodaLoader 0.0.18. It is installed automatically into the active game profile, including CodaLauncher-managed profiles.
+
+Commands: `/sethome [name]`, `/home [name]`, `/homes`, `/delhome <name>` and `/hwessentials`.
+
+Homes belong to the current player and world, preserve facing, and use atomic saves. The first version supports same-dimension travel in singleplayer, with conservative checks for collisions, fluid, missing support and world bounds. No cheats toggle is required for these personal utility commands.
+
+See [HW Essentials](mods/hw-essentials/README.md) for storage, configuration and the live-game verification boundary. Its code stays in a separate mod JAR; the loader exposes a small server-thread command API.
+
+## Current milestone: 0.0.18-essentials
 
 ### Random CML menu scenes
 

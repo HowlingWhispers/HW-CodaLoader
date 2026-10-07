@@ -1,13 +1,13 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.17-menu-scenes"
+$LoaderVersion = "0.0.18-essentials"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 $BundleName = "CodaLoader-v$LoaderVersion-win64.zip"
 
 Remove-Item -Recurse -Force out, dist -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/package/run/mods | Out-Null
+New-Item -ItemType Directory -Force out/classes, out/example-classes, out/essentials-classes, dist/package/run/mods | Out-Null
 
 $loaderSources = @(Get-ChildItem -Recurse src/main/java -Filter *.java | ForEach-Object { $_.FullName })
 & javac --release 21 -encoding UTF-8 -d out/classes @loaderSources
@@ -15,6 +15,15 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if (Test-Path src/main/resources) {
     Copy-Item -Recurse -Force src/main/resources/* out/classes/
 }
+
+$essentialsSources = @(Get-ChildItem -Recurse mods/hw-essentials/src -Filter *.java | ForEach-Object { $_.FullName })
+& javac --release 21 -encoding UTF-8 -cp out/classes -d out/essentials-classes @essentialsSources
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Copy-Item mods/hw-essentials/resources/coda.mod.json out/essentials-classes/
+& jar --create --file dist/hw-essentials.jar -C out/essentials-classes .
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+New-Item -ItemType Directory -Force out/classes/codaloader/mods | Out-Null
+Copy-Item dist/hw-essentials.jar out/classes/codaloader/mods/
 
 $manifest = @(
     "Manifest-Version: 1.0",
@@ -41,6 +50,7 @@ Copy-Item Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 Copy-Item dist/CodaLoader.jar dist/package/CodaLoader.jar
 Copy-Item dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
 Copy-Item dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
+Copy-Item dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 @"
 CodaLoader $LoaderVersion
