@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -30,6 +31,10 @@ final class ClientHooks {
     private static volatile boolean screenSearchReported;
     private static volatile Object injectedTitleScreen;
     private static volatile Object[] injectedMenuWidgets = new Object[0];
+    private static volatile boolean titleScreenActive;
+    private static volatile boolean firstTitleSceneSeen;
+    private static volatile boolean sceneReloadFailureReported;
+    private static int nullScreenPolls;
 
     private ClientHooks() {}
 
@@ -63,16 +68,36 @@ final class ClientHooks {
                     applyWindowTitle(minecraft);
 
                     Object screen = findActiveScreen(minecraft, screenClass);
+                    boolean isTitleScreen = screen != null
+                            && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
+
                     if (screen == null) {
+                        nullScreenPolls++;
+                        if (nullScreenPolls >= 3) titleScreenActive = false;
+
                         screenSearchMisses++;
                         if (!screenSearchReported && screenSearchMisses >= 8) {
                             screenSearchReported = true;
                             System.out.println("[CodaLoader] Title-screen search is still probing Snapshot 3 client state...");
                         }
-                    } else if ("net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName())) {
+                    } else if (!isTitleScreen) {
+                        nullScreenPolls = 0;
+                        titleScreenActive = false;
+                    } else {
+                        nullScreenPolls = 0;
+
                         if (!screenDiscoveryReported) {
                             screenDiscoveryReported = true;
                             System.out.println("[CodaLoader] Minecraft title screen located.");
+                        }
+
+                        if (!titleScreenActive) {
+                            titleScreenActive = true;
+                            if (firstTitleSceneSeen) {
+                                schedule(minecraft, () -> switchMenuScene(minecraft));
+                            } else {
+                                firstTitleSceneSeen = true;
+                            }
                         }
 
                         boolean needsWidgets = screen != injectedTitleScreen
@@ -102,6 +127,53 @@ final class ClientHooks {
         } catch (Throwable ex) {
             System.err.println("[CodaLoader] Client hook failed:");
             ex.printStackTrace(System.err);
+        }
+    }
+
+    private static void switchMenuScene(Object minecraft) {
+        try {
+            String configuredRoot = System.getProperty("codaloader.root", "run");
+            Path root = Path.of(configuredRoot).toAbsolutePath().normalize();
+            String selected = MenuSceneManager.activateRandom(root, true);
+            if (selected == null) {
+                System.out.println("[CodaLoader] No alternate menu scene is available.");
+                return;
+            }
+
+            System.out.println("[CodaLoader] Menu visit selected scene: " + selected);
+
+            Method reload = findMethod(minecraft.getClass(), "reloadResourcePacks");
+            if (reload == null) {
+                for (Class<?> current = minecraft.getClass();
+                     current != null && reload == null;
+                     current = current.getSuperclass()) {
+                    for (Method method : current.getDeclaredMethods()) {
+                        String name = method.getName().toLowerCase();
+                        if (method.getParameterCount() == 0
+                                && name.contains("reload")
+                                && name.contains("resource")) {
+                            method.setAccessible(true);
+                            reload = method;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (reload == null) {
+                throw new NoSuchMethodException("Minecraft.reloadResourcePacks()");
+            }
+
+            Object result = reload.invoke(minecraft);
+            System.out.println("[CodaLoader] Requested resource reload for menu scene: "
+                    + selected
+                    + (result == null ? "" : " (" + result.getClass().getSimpleName() + ")"));
+        } catch (Throwable ex) {
+            if (!sceneReloadFailureReported) {
+                sceneReloadFailureReported = true;
+                System.err.println("[CodaLoader] Menu scene switch warning:");
+                ex.printStackTrace(System.err);
+            }
         }
     }
 
