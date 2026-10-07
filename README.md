@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.10-updater-handoff-win64.zip
+CodaLoader-v0.0.11-menu-label-clear-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,11 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.10-updater-handoff
+## Current milestone: 0.0.11-menu-label-clear
+
+### Bottom-left label spacing
+
+Minecraft draws its own version label after normal title-screen widgets, so the vanilla text can appear over a CML button occupying the same pixels. CML now leaves that bottom strip alone and places its compact status badge directly above it.
 
 ### Clean Windows update handoff
 

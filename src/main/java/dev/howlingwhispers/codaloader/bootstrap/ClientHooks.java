@@ -163,7 +163,7 @@ final class ClientHooks {
             Object cml = createButton(
                     buttonClass, onPressClass, builderMethod, literal,
                     "CML | " + modCount + " " + modWord,
-                    4, Math.max(4, screenHeight - 18), 150, 16,
+                    4, Math.max(4, screenHeight - 36), 138, 16,
                     "CMLStatus",
                     clicked -> System.out.println("[CodaLoader] CML status button clicked: "
                             + CodaTarget.LOADER_VERSION + " | " + modCount + " " + modWord));
@@ -192,7 +192,7 @@ final class ClientHooks {
             add.invoke(screen, discord);
             add.invoke(screen, youtube);
 
-            System.out.println("[CodaLoader] Added compact CML status + Discord/YouTube placeholders.");
+            System.out.println("[CodaLoader] Added compact CML status above vanilla version label + Discord/YouTube placeholders.");
             return new Object[]{cml, discord, youtube};
         } catch (Throwable ex) {
             if (!menuFailureReported) {
