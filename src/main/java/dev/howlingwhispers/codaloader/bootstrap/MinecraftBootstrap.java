@@ -212,10 +212,12 @@ public final class MinecraftBootstrap {
                             + "  title.png\n"
                             + "  panorama_0.png through panorama_3.png (four horizontal Coda scenes)\n"
                             + "Optional:\n"
+                            + "  menu_banner.png (very wide scene used by the Banner Sweep menu scene)\n"
                             + "  sky.png (custom cubemap ceiling; otherwise CodaLoader generates one)\n"
                             + "  floor.png (custom cubemap floor; otherwise CodaLoader generates one)\n"
                             + "  splashes.txt (one custom yellow title message per line)\n"
-                            + "panorama_4 and panorama_5 are generated as sky/floor so character scenes never appear overhead or underfoot.\n",
+                            + "When menu_banner.png is absent, CodaLoader builds an experimental wide banner from panorama_0..3.\n"
+                            + "The current panorama scene remains available and CML can swap scenes on later title-menu visits.\n",
                     StandardCharsets.UTF_8);
         }
 
@@ -246,8 +248,7 @@ public final class MinecraftBootstrap {
 
         Path titleDir = pack.resolve("assets").resolve("minecraft").resolve("textures")
                 .resolve("gui").resolve("title");
-        Path backgroundDir = titleDir.resolve("background");
-        Files.createDirectories(backgroundDir);
+        Files.createDirectories(titleDir);
 
         writeLogoTexture(brandingAsset(branding, baseBranding, "title.png"),
                 titleDir.resolve("minecraft.png"));
@@ -255,31 +256,138 @@ public final class MinecraftBootstrap {
         BufferedImage blankEdition = new BufferedImage(256, 64, BufferedImage.TYPE_INT_ARGB);
         ImageIO.write(blankEdition, "png", titleDir.resolve("edition.png").toFile());
 
+        Path scenesRoot = MenuSceneManager.scenesRoot(root);
+        resetDirectory(scenesRoot);
+        prepareClassicPanoramaScene(scenesRoot.resolve("classic-panorama"), branding, baseBranding);
+        prepareBannerSweepScene(scenesRoot.resolve("banner-sweep"), branding, baseBranding);
+
+        writeSplashTexts(branding, baseBranding, pack);
+
+        String selected = MenuSceneManager.activateRandom(root, false);
+        enableGeneratedPack("file/HowlingWhispers-Branding");
+        System.out.println("[CodaLoader] Howling Whispers menu branding enabled with 2 scene modes."
+                + " Active scene: " + selected);
+    }
+
+    private void prepareClassicPanoramaScene(
+            Path scene,
+            Path branding,
+            Path baseBranding) throws IOException {
+        resetDirectory(scene);
+
         for (int i = 0; i < 4; i++) {
             writeSquareTexture(
                     brandingAsset(branding, baseBranding, "panorama_" + i + ".png"),
-                    backgroundDir.resolve("panorama_" + i + ".png"),
+                    scene.resolve("panorama_" + i + ".png"),
                     512);
         }
 
+        writeSceneSkyFloor(scene, branding, baseBranding);
+    }
+
+    private void prepareBannerSweepScene(
+            Path scene,
+            Path branding,
+            Path baseBranding) throws IOException {
+        resetDirectory(scene);
+
+        Path bannerFile = brandingAsset(branding, baseBranding, "menu_banner.png");
+        BufferedImage banner;
+        if (bannerFile != null) {
+            banner = readImage(bannerFile);
+            System.out.println("[CodaLoader] Banner Sweep scene uses menu_banner.png.");
+        } else {
+            banner = buildDerivedMenuBanner(branding, baseBranding);
+            System.out.println("[CodaLoader] Banner Sweep scene derived from panorama_0..3.");
+        }
+
+        int half = Math.max(1, banner.getWidth() / 2);
+        writeBannerFace(banner, 0, half, false, scene.resolve("panorama_0.png"), 512);
+        writeBannerFace(banner, half, banner.getWidth(), false, scene.resolve("panorama_1.png"), 512);
+        writeBannerFace(banner, half, banner.getWidth(), true, scene.resolve("panorama_2.png"), 512);
+        writeBannerFace(banner, 0, half, true, scene.resolve("panorama_3.png"), 512);
+
+        writeSceneSkyFloor(scene, branding, baseBranding);
+    }
+
+    private BufferedImage buildDerivedMenuBanner(Path branding, Path baseBranding) throws IOException {
+        int tile = 512;
+        BufferedImage output = new BufferedImage(tile * 4, tile, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = output.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+
+            for (int i = 0; i < 4; i++) {
+                BufferedImage source = readImage(
+                        brandingAsset(branding, baseBranding, "panorama_" + i + ".png"));
+                int side = Math.min(source.getWidth(), source.getHeight());
+                int sourceX = (source.getWidth() - side) / 2;
+                int sourceY = (source.getHeight() - side) / 2;
+                graphics.drawImage(source,
+                        i * tile, 0, (i + 1) * tile, tile,
+                        sourceX, sourceY, sourceX + side, sourceY + side,
+                        null);
+            }
+        } finally {
+            graphics.dispose();
+        }
+        return output;
+    }
+
+    private void writeBannerFace(
+            BufferedImage source,
+            int sourceX0,
+            int sourceX1,
+            boolean mirror,
+            Path target,
+            int size) throws IOException {
+        BufferedImage output = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = output.createGraphics();
+        try {
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING,
+                    RenderingHints.VALUE_RENDER_QUALITY);
+
+            if (mirror) {
+                graphics.drawImage(source,
+                        size, 0, 0, size,
+                        sourceX0, 0, sourceX1, source.getHeight(),
+                        null);
+            } else {
+                graphics.drawImage(source,
+                        0, 0, size, size,
+                        sourceX0, 0, sourceX1, source.getHeight(),
+                        null);
+            }
+        } finally {
+            graphics.dispose();
+        }
+
+        Files.createDirectories(target.getParent());
+        ImageIO.write(output, "png", target.toFile());
+    }
+
+    private void writeSceneSkyFloor(
+            Path scene,
+            Path branding,
+            Path baseBranding) throws IOException {
         Path customSky = brandingAsset(branding, baseBranding, "sky.png");
         if (customSky != null) {
-            writeSquareTexture(customSky, backgroundDir.resolve("panorama_4.png"), 512);
+            writeSquareTexture(customSky, scene.resolve("panorama_4.png"), 512);
         } else {
-            writeGeneratedSkyTexture(backgroundDir.resolve("panorama_4.png"), 512);
+            writeGeneratedSkyTexture(scene.resolve("panorama_4.png"), 512);
         }
 
         Path customFloor = brandingAsset(branding, baseBranding, "floor.png");
         if (customFloor != null) {
-            writeSquareTexture(customFloor, backgroundDir.resolve("panorama_5.png"), 512);
+            writeSquareTexture(customFloor, scene.resolve("panorama_5.png"), 512);
         } else {
-            writeGeneratedFloorTexture(backgroundDir.resolve("panorama_5.png"), 512);
+            writeGeneratedFloorTexture(scene.resolve("panorama_5.png"), 512);
         }
-
-        writeSplashTexts(branding, baseBranding, pack);
-
-        enableGeneratedPack("file/HowlingWhispers-Branding");
-        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: 4 side scenes + sky + floor + Coda splashes.");
     }
 
     private Path brandingAsset(Path customRoot, Path baseRoot, String name) {
