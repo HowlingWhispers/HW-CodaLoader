@@ -1,13 +1,18 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.18-essentials"
+$LoaderVersion = "0.0.19"
+$EssentialsVersion = "0.1.0"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 $BundleName = "CodaLoader-v$LoaderVersion-win64.zip"
 
+# HW Essentials is now a separate repo (HW-Mods). Fetch from GitHub Releases.
+$EssentialsJarUrl = "https://github.com/HowlingWhispers/HW-Mods/releases/download/v$EssentialsVersion/hw-essentials-$EssentialsVersion.jar"
+$EssentialsSha256Url = "$EssentialsJarUrl.sha256"
+
 Remove-Item -Recurse -Force out, dist -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force out/classes, out/example-classes, out/essentials-classes, dist/package/run/mods | Out-Null
+New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/package/run/mods | Out-Null
 
 $loaderSources = @(Get-ChildItem -Recurse src/main/java -Filter *.java | ForEach-Object { $_.FullName })
 & javac --release 21 -encoding UTF-8 -d out/classes @loaderSources
@@ -16,12 +21,34 @@ if (Test-Path src/main/resources) {
     Copy-Item -Recurse -Force src/main/resources/* out/classes/
 }
 
-$essentialsSources = @(Get-ChildItem -Recurse mods/hw-essentials/src -Filter *.java | ForEach-Object { $_.FullName })
-& javac --release 21 -encoding UTF-8 -cp out/classes -d out/essentials-classes @essentialsSources
+# Fetch HW Essentials mod JAR from HW-Mods release
+Write-Host "Fetching HW Essentials $EssentialsVersion from HW-Mods release..."
+New-Item -ItemType Directory -Force dist | Out-Null
+Invoke-WebRequest -Uri $EssentialsJarUrl -OutFile "dist/hw-essentials.jar" -UseBasicParsing
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Copy-Item mods/hw-essentials/resources/coda.mod.json out/essentials-classes/
-& jar --create --file dist/hw-essentials.jar -C out/essentials-classes .
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Verify SHA-256 if checksum file is available
+try {
+    $Sha256Response = Invoke-WebRequest -Uri $EssentialsSha256Url -UseBasicParsing -ErrorAction Stop
+    $ExpectedSha = ($Sha256Response.Content -split '\s+')[0]
+    $ActualSha = (Get-FileHash dist/hw-essentials.jar -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($ExpectedSha -ne $ActualSha) {
+        Write-Error "HW Essentials SHA-256 mismatch!"
+        Write-Error "Expected: $ExpectedSha"
+        Write-Error "Actual:   $ActualSha"
+        exit 1
+    }
+    Write-Host "HW Essentials SHA-256 verified: $ActualSha"
+} catch {
+    Write-Host "No SHA-256 checksum file found; skipping verification"
+}
+
+# Verify mod JAR structure
+$jarContents = & jar tf dist/hw-essentials.jar
+if ($jarContents -notmatch "coda\.mod\.json") { Write-Error "Invalid mod JAR: missing coda.mod.json"; exit 1 }
+if ($jarContents -notmatch "HwEssentialsMod\.class") { Write-Error "Invalid mod JAR: missing HwEssentialsMod.class"; exit 1 }
+
+# Embed mod in CodaLoader for automatic profile installation
 New-Item -ItemType Directory -Force out/classes/codaloader/mods | Out-Null
 Copy-Item dist/hw-essentials.jar out/classes/codaloader/mods/
 
@@ -69,6 +96,7 @@ Compress-Archive -Path dist/package/* -DestinationPath "dist/$BundleName" -Force
 $JarSha = (Get-FileHash dist/package/CodaLoader.jar -Algorithm SHA256).Hash.ToLowerInvariant()
 $BatSha = (Get-FileHash dist/package/Launch-CodaLoader.bat -Algorithm SHA256).Hash.ToLowerInvariant()
 $HelloSha = (Get-FileHash dist/package/run/mods/hello-coda.jar -Algorithm SHA256).Hash.ToLowerInvariant()
+$EssentialsSha = (Get-FileHash dist/package/run/mods/hw-essentials.jar -Algorithm SHA256).Hash.ToLowerInvariant()
 $BundleSha = (Get-FileHash "dist/$BundleName" -Algorithm SHA256).Hash.ToLowerInvariant()
 
 @"
@@ -80,7 +108,8 @@ $BundleSha = (Get-FileHash "dist/$BundleName" -Algorithm SHA256).Hash.ToLowerInv
   "files": {
     "CodaLoader.jar": "$JarSha",
     "Launch-CodaLoader.bat": "$BatSha",
-    "run/mods/hello-coda.jar": "$HelloSha"
+    "run/mods/hello-coda.jar": "$HelloSha",
+    "run/mods/hw-essentials.jar": "$EssentialsSha"
   }
 }
 "@ | Set-Content -Encoding UTF8 dist/update-manifest.json
@@ -89,5 +118,6 @@ Write-Host "Built:"
 Write-Host "  dist/CodaLoader.jar"
 Write-Host "  dist/hello-coda.jar"
 Write-Host "  dist/Launch-CodaLoader.bat"
+Write-Host "  dist/hw-essentials.jar (from HW-Mods v$EssentialsVersion)"
 Write-Host "  dist/$BundleName"
 Write-Host "  dist/update-manifest.json"

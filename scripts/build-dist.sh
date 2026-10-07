@@ -2,14 +2,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.18-essentials"
+LOADER_VERSION="0.0.19"
 EXAMPLE_VERSION="0.0.1"
+ESSENTIALS_VERSION="0.1.0"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 BUNDLE_NAME="CodaLoader-v${LOADER_VERSION}-win64.zip"
 
+# HW Essentials is now a separate repo (HW-Mods). Fetch from GitHub Releases.
+ESSENTIALS_JAR_URL="${HW_ESSENTIALS_JAR_URL:-https://github.com/HowlingWhispers/HW-Mods/releases/download/v${ESSENTIALS_VERSION}/hw-essentials-${ESSENTIALS_VERSION}.jar}"
+ESSENTIALS_SHA256_URL="${HW_ESSENTIALS_SHA256_URL:-${ESSENTIALS_JAR_URL}.sha256}"
+
 rm -rf out dist
-mkdir -p out/classes out/example-classes out/essentials-classes dist/package/run/mods
+mkdir -p out/classes out/example-classes dist/package/run/mods
 
 mapfile -d '' LOADER_SOURCES < <(find src/main/java -name '*.java' -print0)
 if [[ ${#LOADER_SOURCES[@]} -eq 0 ]]; then
@@ -21,10 +26,39 @@ javac --release 21 -encoding UTF-8 -d out/classes "${LOADER_SOURCES[@]}"
 if [[ -d src/main/resources ]]; then
   cp -R src/main/resources/. out/classes/
 fi
-mapfile -d '' ESSENTIALS_SOURCES < <(find mods/hw-essentials/src -name '*.java' -print0)
-javac --release 21 -encoding UTF-8 -cp out/classes -d out/essentials-classes "${ESSENTIALS_SOURCES[@]}"
-cp mods/hw-essentials/resources/coda.mod.json out/essentials-classes/
-jar --create --file dist/hw-essentials.jar -C out/essentials-classes .
+
+# Fetch HW Essentials mod JAR from HW-Mods release (or use local file via HW_ESSENTIALS_LOCAL_JAR)
+mkdir -p dist
+if [[ -n "${HW_ESSENTIALS_LOCAL_JAR:-}" && -f "${HW_ESSENTIALS_LOCAL_JAR}" ]]; then
+  echo "Using local HW Essentials JAR: ${HW_ESSENTIALS_LOCAL_JAR}"
+  cp "${HW_ESSENTIALS_LOCAL_JAR}" dist/hw-essentials.jar
+  if [[ -n "${HW_ESSENTIALS_LOCAL_SHA256:-}" && -f "${HW_ESSENTIALS_LOCAL_SHA256}" ]]; then
+    cp "${HW_ESSENTIALS_LOCAL_SHA256}" dist/hw-essentials.jar.sha256
+  fi
+else
+  echo "Fetching HW Essentials ${ESSENTIALS_VERSION} from HW-Mods release..."
+  curl --fail --location --retry 3 -o "dist/hw-essentials.jar" "$ESSENTIALS_JAR_URL"
+  # Verify SHA-256 if checksum file is available
+  if curl --fail --location --retry 3 -s -o "dist/hw-essentials.jar.sha256" "$ESSENTIALS_SHA256_URL" 2>/dev/null; then
+    EXPECTED_SHA="$(cat dist/hw-essentials.jar.sha256 | awk '{print $1}')"
+    ACTUAL_SHA="$(sha256sum dist/hw-essentials.jar | awk '{print $1}')"
+    if [[ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
+      echo "HW Essentials SHA-256 mismatch!" >&2
+      echo "Expected: $EXPECTED_SHA" >&2
+      echo "Actual:   $ACTUAL_SHA" >&2
+      exit 1
+    fi
+    echo "HW Essentials SHA-256 verified: $ACTUAL_SHA"
+  else
+    echo "No SHA-256 checksum file found; skipping verification"
+  fi
+fi
+
+# Verify mod JAR structure
+jar tf dist/hw-essentials.jar | grep -qF "coda.mod.json" || { echo "Invalid mod JAR: missing coda.mod.json" >&2; exit 1; }
+jar tf dist/hw-essentials.jar | grep -qF "HwEssentialsMod.class" || { echo "Invalid mod JAR: missing HwEssentialsMod.class" >&2; exit 1; }
+
+# Embed mod in CodaLoader for automatic profile installation
 mkdir -p out/classes/codaloader/mods
 cp dist/hw-essentials.jar out/classes/codaloader/mods/
 
@@ -73,6 +107,7 @@ EOF
 JAR_SHA="$(sha256sum dist/package/CodaLoader.jar | awk '{print $1}')"
 BAT_SHA="$(sha256sum dist/package/Launch-CodaLoader.bat | awk '{print $1}')"
 HELLO_SHA="$(sha256sum dist/package/run/mods/hello-coda.jar | awk '{print $1}')"
+ESSENTIALS_SHA="$(sha256sum dist/package/run/mods/hw-essentials.jar | awk '{print $1}')"
 BUNDLE_SHA="$(sha256sum "dist/${BUNDLE_NAME}" | awk '{print $1}')"
 
 cat > dist/update-manifest.json <<EOF
@@ -84,7 +119,8 @@ cat > dist/update-manifest.json <<EOF
   "files": {
     "CodaLoader.jar": "${JAR_SHA}",
     "Launch-CodaLoader.bat": "${BAT_SHA}",
-    "run/mods/hello-coda.jar": "${HELLO_SHA}"
+    "run/mods/hello-coda.jar": "${HELLO_SHA}",
+    "run/mods/hw-essentials.jar": "${ESSENTIALS_SHA}"
   }
 }
 EOF
@@ -93,5 +129,6 @@ echo "Built:"
 echo "  dist/CodaLoader.jar"
 echo "  dist/hello-coda.jar"
 echo "  dist/Launch-CodaLoader.bat"
+echo "  dist/hw-essentials.jar (from HW-Mods v${ESSENTIALS_VERSION})"
 echo "  dist/${BUNDLE_NAME}"
 echo "  dist/update-manifest.json"

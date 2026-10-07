@@ -17,7 +17,7 @@ public final class CommandBridgeTest {
     public static void main(String[] args) throws Exception {
         Path world = Files.createTempDirectory("cml-command-bridge-");
         Path config = world.resolve("config"); Files.createDirectories(config);
-        new HwEssentialsMod().onInitialize(new CodaContext("0.0.18-essentials", "26.4-snapshot-3", world, config, "hw_essentials", List.of("hw_essentials")));
+        new HwEssentialsMod().onInitialize(new CodaContext("0.0.19", "26.4-snapshot-3", world, config, "hw_essentials", List.of("hw_essentials")));
         Server server = new Server(world);
         Source source = new Source(server);
         ServerCommandHooks.register(server);

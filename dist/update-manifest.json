@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "version": "0.0.19",
+  "bundle": "CodaLoader-v0.0.19-win64.zip",
+  "sha256": "635ea9e54deac4306cb4f7ea74d8f777b0de4e755de9998b93804d5e81269673",
+  "files": {
+    "CodaLoader.jar": "20bd0332af73dfb71eea1f55501744ee9f7306e791fb6df7d1b92012c5a76fba",
+    "Launch-CodaLoader.bat": "c96b0abd08771603b134bc5f01f0173a4a1e1a19b03bb2a87e4c1fa88fefff52",
+    "run/mods/hello-coda.jar": "e4c86408e0a61dc7533ca95bf2123cff14890d5bda67a03c2cd63d32362d1888",
+    "run/mods/hw-essentials.jar": "38192c5102c80f5aa4e40d338048e4beff73f8610c3a08a27728ef722698d64b"
+  }
+}
