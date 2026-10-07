@@ -27,36 +27,28 @@ if [[ -d src/main/resources ]]; then
   cp -R src/main/resources/. out/classes/
 fi
 
-# Fetch HW Essentials mod JAR from HW-Mods release (or use local file via HW_ESSENTIALS_LOCAL_JAR)
-mkdir -p dist
-if [[ -n "${HW_ESSENTIALS_LOCAL_JAR:-}" && -f "${HW_ESSENTIALS_LOCAL_JAR}" ]]; then
-  echo "Using local HW Essentials JAR: ${HW_ESSENTIALS_LOCAL_JAR}"
-  cp "${HW_ESSENTIALS_LOCAL_JAR}" dist/hw-essentials.jar
-  if [[ -n "${HW_ESSENTIALS_LOCAL_SHA256:-}" && -f "${HW_ESSENTIALS_LOCAL_SHA256}" ]]; then
-    cp "${HW_ESSENTIALS_LOCAL_SHA256}" dist/hw-essentials.jar.sha256
-  fi
+# Both the release and local development paths require a verified mod JAR.
+if [[ -n "${HW_ESSENTIALS_LOCAL_JAR:-}" ]]; then
+  [[ -f "$HW_ESSENTIALS_LOCAL_JAR" && -f "${HW_ESSENTIALS_LOCAL_SHA256:-}" ]] || {
+    echo "Local HW Essentials requires both a JAR and checksum file." >&2; exit 1;
+  }
+  cp "$HW_ESSENTIALS_LOCAL_JAR" dist/hw-essentials.jar
+  cp "$HW_ESSENTIALS_LOCAL_SHA256" dist/hw-essentials.jar.sha256
 else
   echo "Fetching HW Essentials ${ESSENTIALS_VERSION} from HW-Mods release..."
-  curl --fail --location --retry 3 -o "dist/hw-essentials.jar" "$ESSENTIALS_JAR_URL"
-  # Verify SHA-256 if checksum file is available
-  if curl --fail --location --retry 3 -s -o "dist/hw-essentials.jar.sha256" "$ESSENTIALS_SHA256_URL" 2>/dev/null; then
-    EXPECTED_SHA="$(cat dist/hw-essentials.jar.sha256 | awk '{print $1}')"
-    ACTUAL_SHA="$(sha256sum dist/hw-essentials.jar | awk '{print $1}')"
-    if [[ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
-      echo "HW Essentials SHA-256 mismatch!" >&2
-      echo "Expected: $EXPECTED_SHA" >&2
-      echo "Actual:   $ACTUAL_SHA" >&2
-      exit 1
-    fi
-    echo "HW Essentials SHA-256 verified: $ACTUAL_SHA"
-  else
-    echo "No SHA-256 checksum file found; skipping verification"
-  fi
+  curl --fail --location --retry 3 -o dist/hw-essentials.jar "$ESSENTIALS_JAR_URL"
+  curl --fail --location --retry 3 -o dist/hw-essentials.jar.sha256 "$ESSENTIALS_SHA256_URL"
 fi
-
-# Verify mod JAR structure
-jar tf dist/hw-essentials.jar | grep -qF "coda.mod.json" || { echo "Invalid mod JAR: missing coda.mod.json" >&2; exit 1; }
-jar tf dist/hw-essentials.jar | grep -qF "HwEssentialsMod.class" || { echo "Invalid mod JAR: missing HwEssentialsMod.class" >&2; exit 1; }
+EXPECTED_SHA="$(awk 'NR==1 {print $1}' dist/hw-essentials.jar.sha256 | tr '[:upper:]' '[:lower:]')"
+ACTUAL_SHA="$(sha256sum dist/hw-essentials.jar | awk '{print $1}')"
+if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{64}$ || "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
+  echo "HW Essentials checksum is invalid or does not match the downloaded JAR." >&2
+  exit 1
+fi
+echo "HW Essentials SHA-256 verified: $ACTUAL_SHA"
+jar tf dist/hw-essentials.jar > out/essentials-contents.txt
+grep -Fx "coda.mod.json" out/essentials-contents.txt >/dev/null || { echo "Invalid mod JAR: missing coda.mod.json" >&2; exit 1; }
+grep -Fx "dev/howlingwhispers/essentials/HwEssentialsMod.class" out/essentials-contents.txt >/dev/null || { echo "Invalid mod JAR: missing entrypoint" >&2; exit 1; }
 
 # Embed mod in CodaLoader for automatic profile installation
 mkdir -p out/classes/codaloader/mods

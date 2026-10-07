@@ -21,32 +21,30 @@ if (Test-Path src/main/resources) {
     Copy-Item -Recurse -Force src/main/resources/* out/classes/
 }
 
-# Fetch HW Essentials mod JAR from HW-Mods release
-Write-Host "Fetching HW Essentials $EssentialsVersion from HW-Mods release..."
-New-Item -ItemType Directory -Force dist | Out-Null
-Invoke-WebRequest -Uri $EssentialsJarUrl -OutFile "dist/hw-essentials.jar" -UseBasicParsing
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-# Verify SHA-256 if checksum file is available
-try {
-    $Sha256Response = Invoke-WebRequest -Uri $EssentialsSha256Url -UseBasicParsing -ErrorAction Stop
-    $ExpectedSha = ($Sha256Response.Content -split '\s+')[0]
-    $ActualSha = (Get-FileHash dist/hw-essentials.jar -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($ExpectedSha -ne $ActualSha) {
-        Write-Error "HW Essentials SHA-256 mismatch!"
-        Write-Error "Expected: $ExpectedSha"
-        Write-Error "Actual:   $ActualSha"
-        exit 1
+# Require verification for both the published dependency and local development overrides.
+if ($env:HW_ESSENTIALS_LOCAL_JAR) {
+    if (!(Test-Path $env:HW_ESSENTIALS_LOCAL_JAR) -or !$env:HW_ESSENTIALS_LOCAL_SHA256 -or !(Test-Path $env:HW_ESSENTIALS_LOCAL_SHA256)) {
+        throw "Local HW Essentials requires both a JAR and checksum file."
     }
-    Write-Host "HW Essentials SHA-256 verified: $ActualSha"
-} catch {
-    Write-Host "No SHA-256 checksum file found; skipping verification"
+    Copy-Item $env:HW_ESSENTIALS_LOCAL_JAR dist/hw-essentials.jar
+    Copy-Item $env:HW_ESSENTIALS_LOCAL_SHA256 dist/hw-essentials.jar.sha256
+} else {
+    Write-Host "Fetching HW Essentials $EssentialsVersion from HW-Mods release..."
+    Invoke-WebRequest -Uri $EssentialsJarUrl -OutFile dist/hw-essentials.jar
+    Invoke-WebRequest -Uri $EssentialsSha256Url -OutFile dist/hw-essentials.jar.sha256
 }
+$ExpectedSha = ((Get-Content -Raw dist/hw-essentials.jar.sha256).Trim() -split '\s+')[0].ToLowerInvariant()
+$ActualSha = (Get-FileHash dist/hw-essentials.jar -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($ExpectedSha -notmatch '^[0-9a-f]{64}$' -or $ExpectedSha -ne $ActualSha) {
+    throw "HW Essentials checksum is invalid or does not match the downloaded JAR."
+}
+Write-Host "HW Essentials SHA-256 verified: $ActualSha"
 
-# Verify mod JAR structure
-$jarContents = & jar tf dist/hw-essentials.jar
-if ($jarContents -notmatch "coda\.mod\.json") { Write-Error "Invalid mod JAR: missing coda.mod.json"; exit 1 }
-if ($jarContents -notmatch "HwEssentialsMod\.class") { Write-Error "Invalid mod JAR: missing HwEssentialsMod.class"; exit 1 }
+# -notmatch on an array returns nonmatching entries, rather than testing the whole list.
+$jarContents = @(& jar tf dist/hw-essentials.jar)
+if ($LASTEXITCODE -ne 0) { throw "HW Essentials is not a readable JAR." }
+if ($jarContents -notcontains "coda.mod.json") { throw "Invalid mod JAR: missing coda.mod.json" }
+if ($jarContents -notcontains "dev/howlingwhispers/essentials/HwEssentialsMod.class") { throw "Invalid mod JAR: missing entrypoint" }
 
 # Embed mod in CodaLoader for automatic profile installation
 New-Item -ItemType Directory -Force out/classes/codaloader/mods | Out-Null
