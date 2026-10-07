@@ -156,8 +156,9 @@ public final class UpdateManager {
 
         new ProcessBuilder(
                 "cmd.exe",
+                "/d",
                 "/c",
-                "start \"\" \"" + script.toAbsolutePath() + "\"")
+                "start \"CodaLoader Update\" /min cmd.exe /d /c call \"" + script.toAbsolutePath() + "\"")
                 .directory(installRoot.toFile())
                 .start();
     }
@@ -183,7 +184,7 @@ public final class UpdateManager {
                 + "copy /Y \"%CODA_STAGE%\\CodaLoader.jar\" \"%CODA_ROOT%\\CodaLoader.jar\" >NUL || goto failed\r\n"
                 + "copy /Y \"%CODA_STAGE%\\Launch-CodaLoader.bat\" \"%CODA_ROOT%\\Launch-CodaLoader.bat\" >NUL || goto failed\r\n"
                 + "copy /Y \"%CODA_STAGE%\\run\\mods\\hello-coda.jar\" \"%CODA_ROOT%\\run\\mods\\hello-coda.jar\" >NUL || goto failed\r\n"
-                + "start \"\" \"%CODA_ROOT%\\Launch-CodaLoader.bat\"\r\n"
+                + "start \"CodaLoader\" cmd.exe /d /c call \"%CODA_ROOT%\\Launch-CodaLoader.bat\"\r\n"
                 + "exit /b 0\r\n"
                 + ":failed\r\n"
                 + "echo.\r\n"

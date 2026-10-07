@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.9-ui-polish-win64.zip
+CodaLoader-v0.0.10-updater-handoff-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,13 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.9-ui-polish
+## Current milestone: 0.0.10-updater-handoff
+
+### Clean Windows update handoff
+
+Automatic updates now launch both the temporary updater and the restarted CodaLoader BAT through an explicit `cmd.exe /d /c call` handoff. This prevents Windows from leaving the helper command processor open as an empty shell after the update finishes.
+
+The temporary updater is minimized while it waits for the old CodaLoader JVM to exit and replaces the managed files.
 
 ### Title-screen layout polish
 

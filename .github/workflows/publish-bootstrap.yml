@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.9 ui polish bundle
+    name: Publish v0.0.10 updater handoff bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.9-ui-polish"
-          ZIP="dist/CodaLoader-v0.0.9-ui-polish-win64.zip"
+          TAG="v0.0.10-updater-handoff"
+          ZIP="dist/CodaLoader-v0.0.10-updater-handoff-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.9 UI Polish
+          # CodaLoader v0.0.10 Updater Handoff
 
-          Download **CodaLoader-v0.0.9-ui-polish-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.10-updater-handoff-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,12 +54,12 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.9:
-          - Moves the CML status control to a compact bottom-left badge
-          - Adds Discord and YouTube placeholder buttons on either side of Minecraft's three small title buttons
-          - Keeps all three CML widgets persistent across Snapshot 3 menu rebuilds
-          - Adds a dedicated run/music/default folder for project-shipped menu tracks
-          - Keeps run/music/menu for user-added OGG tracks and combines both pools
+          New in 0.0.10:
+          - Fixes Windows BAT relaunch handoff so helper command shells explicitly exit
+          - Runs both updater and post-update launcher BATs through cmd.exe /d /c call
+          - Keeps the updater console minimized while files are replaced
+          - Prevents the empty leftover command window seen after automatic updates
+          - Retains the 0.0.9 title-screen UI and split default/user music folders
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -69,7 +69,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.9 UI Polish"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.10 Updater Handoff"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.9 UI Polish"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.10 Updater Handoff"               --notes-file release-notes.md               --prerelease
           fi

@@ -57,18 +57,18 @@ jobs:
       - name: Verify ZIP layout and update manifest
         shell: bash
         run: |
-          unzip -l dist/CodaLoader-v0.0.9-ui-polish-win64.zip
-          unzip -l dist/CodaLoader-v0.0.9-ui-polish-win64.zip | grep -F "CodaLoader.jar"
-          unzip -l dist/CodaLoader-v0.0.9-ui-polish-win64.zip | grep -F "Launch-CodaLoader.bat"
-          unzip -l dist/CodaLoader-v0.0.9-ui-polish-win64.zip | grep -F "run/mods/hello-coda.jar"
-          grep -F '"version": "0.0.9-ui-polish"' dist/update-manifest.json
+          unzip -l dist/CodaLoader-v0.0.10-updater-handoff-win64.zip
+          unzip -l dist/CodaLoader-v0.0.10-updater-handoff-win64.zip | grep -F "CodaLoader.jar"
+          unzip -l dist/CodaLoader-v0.0.10-updater-handoff-win64.zip | grep -F "Launch-CodaLoader.bat"
+          unzip -l dist/CodaLoader-v0.0.10-updater-handoff-win64.zip | grep -F "run/mods/hello-coda.jar"
+          grep -F '"version": "0.0.10-updater-handoff"' dist/update-manifest.json
 
       - name: Upload distribution
         uses: actions/upload-artifact@v4
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-v0.0.9-ui-polish-win64.zip
+            dist/CodaLoader-v0.0.10-updater-handoff-win64.zip
             dist/update-manifest.json
             dist/CodaLoader.jar
             dist/hello-coda.jar
@@ -99,5 +99,5 @@ jobs:
         run: |
           if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-v0.0.9-ui-polish-win64.zip)) { throw "ZIP missing" }
+          if (!(Test-Path dist/CodaLoader-v0.0.10-updater-handoff-win64.zip)) { throw "ZIP missing" }
           if (!(Test-Path dist/update-manifest.json)) { throw "Update manifest missing" }
