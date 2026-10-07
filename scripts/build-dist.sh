@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.11-menu-label-clear"
+LOADER_VERSION="0.0.12-social-icons"
 EXAMPLE_VERSION="0.0.1"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
@@ -18,6 +18,9 @@ if [[ ${#LOADER_SOURCES[@]} -eq 0 ]]; then
 fi
 
 javac --release 21 -encoding UTF-8 -d out/classes "${LOADER_SOURCES[@]}"
+if [[ -d src/main/resources ]]; then
+  cp -R src/main/resources/. out/classes/
+fi
 cat > out/manifest.mf <<EOF
 Manifest-Version: 1.0
 Main-Class: ${MAIN_CLASS}

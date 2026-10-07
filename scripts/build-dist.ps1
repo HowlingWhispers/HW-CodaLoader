@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.11-menu-label-clear"
+$LoaderVersion = "0.0.12-social-icons"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 $BundleName = "CodaLoader-v$LoaderVersion-win64.zip"
@@ -12,6 +12,9 @@ New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/packa
 $loaderSources = @(Get-ChildItem -Recurse src/main/java -Filter *.java | ForEach-Object { $_.FullName })
 & javac --release 21 -encoding UTF-8 -d out/classes @loaderSources
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if (Test-Path src/main/resources) {
+    Copy-Item -Recurse -Force src/main/resources/* out/classes/
+}
 
 $manifest = @(
     "Manifest-Version: 1.0",

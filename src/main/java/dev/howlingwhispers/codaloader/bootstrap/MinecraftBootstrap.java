@@ -83,6 +83,7 @@ public final class MinecraftBootstrap {
         Files.createDirectories(game);
         Files.createDirectories(root.resolve("mods"));
         Files.createDirectories(root.resolve("config"));
+        prepareCodaUiPack();
         prepareBrandingPack();
         prepareCustomMusicPack();
 
@@ -163,6 +164,37 @@ public final class MinecraftBootstrap {
         return path;
     }
 
+
+    private void prepareCodaUiPack() throws IOException {
+        Path pack = game.resolve("resourcepacks").resolve("CodaLoader-UI");
+        resetDirectory(pack);
+
+        String packMeta = "{\n"
+                + "  \"pack\": {\n"
+                + "    \"description\": \"CodaLoader built-in UI sprites\",\n"
+                + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
+                + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
+                + "  }\n"
+                + "}\n";
+        Files.writeString(pack.resolve("pack.mcmeta"), packMeta, StandardCharsets.UTF_8);
+
+        Path social = pack.resolve("assets").resolve("codaloader").resolve("textures")
+                .resolve("gui").resolve("sprites").resolve("social");
+        Files.createDirectories(social);
+        copyBundledResource("/codaloader/ui/discord.png", social.resolve("discord.png"));
+        copyBundledResource("/codaloader/ui/youtube.png", social.resolve("youtube.png"));
+
+        enableGeneratedPack("file/CodaLoader-UI");
+        System.out.println("[CodaLoader] CodaLoader UI sprite pack enabled: Discord + YouTube.");
+    }
+
+    private void copyBundledResource(String resource, Path target) throws IOException {
+        try (InputStream in = MinecraftBootstrap.class.getResourceAsStream(resource)) {
+            if (in == null) throw new IOException("Bundled resource missing: " + resource);
+            Files.createDirectories(target.getParent());
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
 
     private void prepareBrandingPack() throws IOException {
         Path branding = root.resolve("branding");

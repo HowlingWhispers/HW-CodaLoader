@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.11-menu-label-clear-win64.zip
+CodaLoader-v0.0.12-social-icons-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,13 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.11-menu-label-clear
+## Current milestone: 0.0.12-social-icons
+
+### Branded social controls
+
+The title screen now prefers real Discord and YouTube image-button sprites instead of the temporary `D` and `YT` labels. The icons ship as small resources inside CodaLoader.jar, then CodaLoader materializes them into an always-on `CodaLoader-UI` resource pack for Minecraft.
+
+The YouTube control opens the Howling Whispers channel. Discord remains a visual placeholder until its destination is configured. If Snapshot 3 changes the image-button API, CML falls back to text controls rather than breaking the title screen.
 
 ### Bottom-left label spacing
 

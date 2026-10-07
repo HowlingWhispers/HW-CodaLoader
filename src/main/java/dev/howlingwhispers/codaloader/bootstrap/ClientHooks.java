@@ -168,31 +168,43 @@ final class ClientHooks {
                     clicked -> System.out.println("[CodaLoader] CML status button clicked: "
                             + CodaTarget.LOADER_VERSION + " | " + modCount + " " + modWord));
 
-            Object discord = createButton(
-                    buttonClass, onPressClass, builderMethod, literal,
-                    "D",
-                    centerX - 58, iconY, 20, 20,
-                    "CMLDiscordPlaceholder",
-                    clicked -> {
-                        setButtonText(clicked, componentClass, literal, "...");
-                        System.out.println("[CodaLoader] Discord placeholder clicked. Linking UI is planned.");
-                    });
+            Object discord;
+            Object youtube;
+            try {
+                discord = createSocialImageButton(
+                        loader, componentClass, onPressClass, literal,
+                        centerX - 58, iconY,
+                        "codaloader:social/discord",
+                        "CMLDiscord",
+                        clicked -> System.out.println("[CodaLoader] Discord button clicked. Community link is not configured yet."));
 
-            Object youtube = createButton(
-                    buttonClass, onPressClass, builderMethod, literal,
-                    "YT",
-                    centerX + 38, iconY, 20, 20,
-                    "CMLYouTubePlaceholder",
-                    clicked -> {
-                        setButtonText(clicked, componentClass, literal, "...");
-                        System.out.println("[CodaLoader] YouTube placeholder clicked. Channel link is planned.");
-                    });
+                youtube = createSocialImageButton(
+                        loader, componentClass, onPressClass, literal,
+                        centerX + 38, iconY,
+                        "codaloader:social/youtube",
+                        "CMLYouTube",
+                        clicked -> openExternal("https://www.youtube.com/@HowlingWhispersOfficial"));
+            } catch (Throwable iconError) {
+                System.err.println("[CodaLoader] Social image buttons unavailable; using text fallbacks: " + iconError);
+                discord = createButton(
+                        buttonClass, onPressClass, builderMethod, literal,
+                        "D",
+                        centerX - 58, iconY, 20, 20,
+                        "CMLDiscordFallback",
+                        clicked -> System.out.println("[CodaLoader] Discord button clicked. Community link is not configured yet."));
+                youtube = createButton(
+                        buttonClass, onPressClass, builderMethod, literal,
+                        "YT",
+                        centerX + 38, iconY, 20, 20,
+                        "CMLYouTubeFallback",
+                        clicked -> openExternal("https://www.youtube.com/@HowlingWhispersOfficial"));
+            }
 
             add.invoke(screen, cml);
             add.invoke(screen, discord);
             add.invoke(screen, youtube);
 
-            System.out.println("[CodaLoader] Added compact CML status above vanilla version label + Discord/YouTube placeholders.");
+            System.out.println("[CodaLoader] Added compact CML status + Discord/YouTube social controls.");
             return new Object[]{cml, discord, youtube};
         } catch (Throwable ex) {
             if (!menuFailureReported) {
@@ -201,6 +213,111 @@ final class ClientHooks {
                 ex.printStackTrace(System.err);
             }
             return new Object[0];
+        }
+    }
+
+    private static Object createSocialImageButton(
+            ClassLoader loader,
+            Class<?> componentClass,
+            Class<?> onPressClass,
+            Method literal,
+            int x,
+            int y,
+            String spriteId,
+            String proxyName,
+            ButtonAction action) throws Exception {
+
+        Class<?> imageButtonClass = Class.forName(
+                "net.minecraft.client.gui.components.ImageButton", true, loader);
+        Class<?> widgetSpritesClass = Class.forName(
+                "net.minecraft.client.gui.components.WidgetSprites", true, loader);
+
+        Class<?> identifierClass;
+        try {
+            identifierClass = Class.forName("net.minecraft.resources.Identifier", true, loader);
+        } catch (ClassNotFoundException newerNameMissing) {
+            identifierClass = Class.forName("net.minecraft.resources.ResourceLocation", true, loader);
+        }
+
+        Object identifier = createResourceIdentifier(identifierClass, spriteId);
+        Object sprites;
+        try {
+            var ctor = widgetSpritesClass.getConstructor(identifierClass);
+            sprites = ctor.newInstance(identifier);
+        } catch (NoSuchMethodException oneSpriteMissing) {
+            var ctor = widgetSpritesClass.getConstructor(identifierClass, identifierClass);
+            sprites = ctor.newInstance(identifier, identifier);
+        }
+
+        Object onPress = Proxy.newProxyInstance(
+                onPressClass.getClassLoader(),
+                new Class<?>[]{onPressClass},
+                (proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "onPress" -> {
+                            action.run(args != null && args.length > 0 ? args[0] : null);
+                            return null;
+                        }
+                        case "toString" -> { return proxyName; }
+                        case "hashCode" -> { return System.identityHashCode(proxy); }
+                        case "equals" -> { return proxy == (args == null ? null : args[0]); }
+                        default -> { return null; }
+                    }
+                });
+
+        for (var ctor : imageButtonClass.getConstructors()) {
+            Class<?>[] p = ctor.getParameterTypes();
+            if (p.length < 6 || p.length > 7) continue;
+            if (p[0] != int.class || p[1] != int.class || p[2] != int.class || p[3] != int.class) continue;
+            if (!p[4].isAssignableFrom(widgetSpritesClass) && !widgetSpritesClass.isAssignableFrom(p[4])) continue;
+            if (!p[5].isAssignableFrom(onPressClass) && !onPressClass.isAssignableFrom(p[5])) continue;
+
+            if (p.length == 6) {
+                return ctor.newInstance(x, y, 20, 20, sprites, onPress);
+            }
+
+            Object message = literal.invoke(null, proxyName);
+            return ctor.newInstance(x, y, 20, 20, sprites, onPress, message);
+        }
+
+        throw new NoSuchMethodException("ImageButton(int,int,int,int,WidgetSprites,OnPress[,Component])");
+    }
+
+    private static Object createResourceIdentifier(Class<?> identifierClass, String id) throws Exception {
+        Method parse = findMethod(identifierClass, "parse", String.class);
+        if (parse != null && Modifier.isStatic(parse.getModifiers())) {
+            return parse.invoke(null, id);
+        }
+
+        int colon = id.indexOf(':');
+        String namespace = colon >= 0 ? id.substring(0, colon) : "minecraft";
+        String path = colon >= 0 ? id.substring(colon + 1) : id;
+
+        Method fromParts = findMethod(identifierClass, "fromNamespaceAndPath", String.class, String.class);
+        if (fromParts != null && Modifier.isStatic(fromParts.getModifiers())) {
+            return fromParts.invoke(null, namespace, path);
+        }
+
+        try {
+            var ctor = identifierClass.getConstructor(String.class, String.class);
+            return ctor.newInstance(namespace, path);
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        var ctor = identifierClass.getConstructor(String.class);
+        return ctor.newInstance(id);
+    }
+
+    private static void openExternal(String url) {
+        try {
+            if (!java.awt.Desktop.isDesktopSupported()) {
+                System.err.println("[CodaLoader] Desktop URL opening is not supported: " + url);
+                return;
+            }
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+            System.out.println("[CodaLoader] Opened: " + url);
+        } catch (Throwable ex) {
+            System.err.println("[CodaLoader] Could not open URL " + url + ": " + ex);
         }
     }
 
