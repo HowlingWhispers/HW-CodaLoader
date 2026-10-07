@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.6-menu-probe-win64.zip
+CodaLoader-v0.0.7-menu-stable-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,11 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.6-menu-probe
+## Current milestone: 0.0.7-menu-stable
+
+### Persistent CML title button
+
+Snapshot 3 can rebuild the title-screen widgets after CodaLoader first reaches the screen. CML now tracks the exact injected button object and verifies that it remains present in the screen's widget/container state. If Minecraft clears the widget during menu initialization, CML injects a replacement on the render thread instead of treating the first add call as permanent success.
 
 ### Snapshot 3 title-screen probe
 

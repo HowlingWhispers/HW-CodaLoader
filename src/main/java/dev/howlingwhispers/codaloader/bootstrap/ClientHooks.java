@@ -29,6 +29,7 @@ final class ClientHooks {
     private static volatile boolean schedulerReported;
     private static volatile boolean screenSearchReported;
     private static volatile Object injectedTitleScreen;
+    private static volatile Object injectedButton;
 
     private ClientHooks() {}
 
@@ -74,11 +75,17 @@ final class ClientHooks {
                             System.out.println("[CodaLoader] Minecraft title screen located.");
                         }
 
-                        if (screen != injectedTitleScreen) {
+                        boolean needsButton = screen != injectedTitleScreen
+                                || injectedButton == null
+                                || !screenContainsObject(screen, injectedButton);
+
+                        if (needsButton) {
                             Object target = screen;
                             schedule(minecraft, () -> {
-                                if (injectMenuButton(target, modCount)) {
+                                Object button = injectMenuButton(target, modCount);
+                                if (button != null) {
                                     injectedTitleScreen = target;
+                                    injectedButton = button;
                                 }
                             });
                         }
@@ -135,7 +142,7 @@ final class ClientHooks {
         }
     }
 
-    private static boolean injectMenuButton(Object screen, int modCount) {
+    private static Object injectMenuButton(Object screen, int modCount) {
         try {
             ClassLoader loader = screen.getClass().getClassLoader();
             Class<?> componentClass = Class.forName("net.minecraft.network.chat.Component", true, loader);
@@ -188,15 +195,73 @@ final class ClientHooks {
             add.invoke(screen, button);
 
             System.out.println("[CodaLoader] Added CML button to Minecraft title screen.");
-            return true;
+            return button;
         } catch (Throwable ex) {
             if (!menuFailureReported) {
                 menuFailureReported = true;
                 System.err.println("[CodaLoader] Could not add title-screen button:");
                 ex.printStackTrace(System.err);
             }
+            return null;
+        }
+    }
+
+    private static boolean screenContainsObject(Object screen, Object needle) {
+        if (screen == null || needle == null) return false;
+
+        for (Class<?> current = screen.getClass(); current != null; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || field.getType().isPrimitive()) continue;
+
+                Object value;
+                try {
+                    field.setAccessible(true);
+                    value = field.get(screen);
+                } catch (Throwable ignored) {
+                    continue;
+                }
+
+                if (value == needle) return true;
+                if (containerContainsIdentity(value, needle)) return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean containerContainsIdentity(Object value, Object needle) {
+        if (value == null) return false;
+
+        if (value instanceof Optional<?> optional) {
+            return optional.orElse(null) == needle;
+        }
+
+        if (value instanceof AtomicReference<?> reference) {
+            return reference.get() == needle;
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            for (Object key : map.keySet()) if (key == needle) return true;
+            for (Object nested : map.values()) if (nested == needle) return true;
             return false;
         }
+
+        if (value instanceof Iterable<?> iterable) {
+            for (Object nested : iterable) {
+                if (nested == needle) return true;
+            }
+            return false;
+        }
+
+        Class<?> type = value.getClass();
+        if (type.isArray() && !type.getComponentType().isPrimitive()) {
+            int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                if (Array.get(value, i) == needle) return true;
+            }
+        }
+
+        return false;
     }
 
     private static void schedule(Object minecraft, Runnable task) {
