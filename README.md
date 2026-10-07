@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.7-menu-stable-win64.zip
+CodaLoader-v0.0.8-splashes-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -57,7 +57,19 @@ updates=auto
 
 Supported values are `auto`, `notify`, and `off`.
 
-## Current milestone: 0.0.7-menu-stable
+## Current milestone: 0.0.8-splashes
+
+### Coda-flavored title splashes
+
+The Howling Whispers branding pack now replaces Minecraft's vanilla yellow title-screen splash messages with a built-in Coda/CML pool.
+
+To supply your own messages, create:
+
+```text
+run/branding/splashes.txt
+```
+
+Put one message per line. When that file exists, CodaLoader uses it instead of the built-in list.
 
 ### Persistent CML title button
 
@@ -88,7 +100,8 @@ run/
     ├── panorama_2.png
     ├── panorama_3.png
     ├── panorama_4.png
-    └── panorama_5.png
+    ├── panorama_5.png
+    └── splashes.txt   (optional)
 ```
 
 The panorama images may be six completely different Howling Whispers scenes. CodaLoader converts them into Minecraft's rotating title panorama and replaces the large Minecraft logo with the supplied transparent `title.png`.

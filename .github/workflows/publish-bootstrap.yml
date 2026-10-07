@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.7 menu stable bundle
+    name: Publish v0.0.8 splashes bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -39,13 +39,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.7-menu-stable"
-          ZIP="dist/CodaLoader-v0.0.7-menu-stable-win64.zip"
+          TAG="v0.0.8-splashes"
+          ZIP="dist/CodaLoader-v0.0.8-splashes-win64.zip"
 
           cat > release-notes.md <<'EOF'
-          # CodaLoader v0.0.7 Menu Stable
+          # CodaLoader v0.0.8 Splashes
 
-          Download **CodaLoader-v0.0.7-menu-stable-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
+          Download **CodaLoader-v0.0.8-splashes-win64.zip**, extract it into its own folder, then double-click **Launch-CodaLoader.bat**.
 
           The files inside the ZIP keep stable names:
           - CodaLoader.jar
@@ -54,13 +54,11 @@ jobs:
 
           CodaLoader checks this public GitHub release on startup. In auto mode it verifies SHA-256 hashes, stages a newer or repaired bundle, replaces only the managed CodaLoader files, and restarts automatically.
 
-          New in 0.0.7:
-          - Keeps the working Howling Whispers branding and custom menu music
-          - Keeps the proven Snapshot 3 TitleScreen discovery path
-          - Tracks the exact injected CML button object
-          - Verifies the button still exists in the title screen's widget/container state
-          - Reinjects the CML button if Minecraft clears or rebuilds its menu widgets after initialization
-          - Preserves render-thread scheduling for every reinjection
+          New in 0.0.8:
+          - Keeps the stable CML title-screen button, Howling Whispers panorama, logo, and custom menu music
+          - Replaces Minecraft's vanilla yellow splash pool with Coda/CML flavored messages
+          - Includes Howling Whispers, CML, Discord Coda, Browser Coda, Speculus, Orbis, and Praxis easter eggs
+          - Supports an optional run/branding/splashes.txt override with one custom message per line
 
           User worlds, configs, custom music, branding source art, and other mods are not part of the managed update set.
           EOF
@@ -70,7 +68,7 @@ jobs:
               gh release delete-asset "$TAG" "$OLD" -y >/dev/null 2>&1 || true
             done
             gh release upload "$TAG" "$ZIP" dist/update-manifest.json --clobber
-            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.7 Menu Stable"
+            gh release edit "$TAG" --notes-file release-notes.md --prerelease --title "CodaLoader v0.0.8 Splashes"
           else
-            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.7 Menu Stable"               --notes-file release-notes.md               --prerelease
+            gh release create "$TAG" "$ZIP" dist/update-manifest.json               --target "$GITHUB_SHA"               --title "CodaLoader v0.0.8 Splashes"               --notes-file release-notes.md               --prerelease
           fi

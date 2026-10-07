@@ -175,6 +175,8 @@ public final class MinecraftBootstrap {
                             + "Required files:\n"
                             + "  title.png\n"
                             + "  panorama_0.png through panorama_5.png\n"
+                            + "Optional:\n"
+                            + "  splashes.txt (one custom yellow title message per line)\n"
                             + "The six panorama images may be different scenes; Minecraft rotates them as its title panorama.\n",
                     StandardCharsets.UTF_8);
         }
@@ -224,8 +226,63 @@ public final class MinecraftBootstrap {
                     512);
         }
 
+        writeSplashTexts(branding, pack);
+
         enableGeneratedPack("file/HowlingWhispers-Branding");
-        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: title + 6 rotating scenes.");
+        System.out.println("[CodaLoader] Howling Whispers menu branding enabled: title + 6 rotating scenes + Coda splashes.");
+    }
+
+    private void writeSplashTexts(Path branding, Path pack) throws IOException {
+        Path custom = branding.resolve("splashes.txt");
+        String splashes;
+
+        if (Files.isRegularFile(custom)) {
+            splashes = Files.readString(custom, StandardCharsets.UTF_8);
+            System.out.println("[CodaLoader] Using custom Howling Whispers splash messages.");
+        } else {
+            splashes = String.join("\n", List.of(
+                    "Howling Whispers!",
+                    "Pawprint confirmed!",
+                    "Coda approves this build!",
+                    "Clipboard says ship it!",
+                    "Powered by CML!",
+                    "Tiny Codas at work!",
+                    "Whispers in the chunks!",
+                    "Cyan crystals included!",
+                    "Main branch only!",
+                    "Mods, music, and moonlight!",
+                    "One more hook...",
+                    "API paws ready!",
+                    "Build green. Tail wagging.",
+                    "Keep your mods tidy!",
+                    "Loaded with extra fluff!",
+                    "Discord Coda says hi!",
+                    "Browser Coda found the docs!",
+                    "Resource pack wrangled!",
+                    "Do not feed the stacktrace!",
+                    "Bacon-powered debugging!",
+                    "Another commit escaped!",
+                    "CML means business!",
+                    "Worlds within worlds!",
+                    "Read the logs!",
+                    "Whispers beneath the pines!",
+                    "Speculus is listening!",
+                    "Orbis remembers!",
+                    "Praxis keeps the state!",
+                    "Coda was here!",
+                    "Hooks before breakfast!",
+                    "Compiled with pawprints!",
+                    "The wolves are shipping!",
+                    "No black fur!",
+                    "One loader. Many worlds.",
+                    "Moonlight on the clipboard!"
+            )) + "\n";
+        }
+
+        Path splashesFile = pack.resolve("assets").resolve("minecraft")
+                .resolve("texts").resolve("splashes.txt");
+        Files.createDirectories(splashesFile.getParent());
+        Files.writeString(splashesFile, splashes, StandardCharsets.UTF_8);
     }
 
     private void writeLogoTexture(Path sourceFile, Path targetFile) throws IOException {
