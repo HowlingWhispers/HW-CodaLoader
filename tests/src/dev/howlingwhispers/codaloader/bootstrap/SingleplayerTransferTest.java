@@ -55,7 +55,8 @@ public final class SingleplayerTransferTest {
         var source = new ChestBlockEntity(new ItemStack("minecraft:diamond", 18, 64,
                 "custom_name:Keepsake"), new ItemStack(0,64));
         var output = new BarrelBlockEntity(new ItemStack(0,64),
-                new ItemStack("minecraft:diamond", 60,64, "custom_name:Keepsake"));
+                new ItemStack("minecraft:diamond", 60,64, "custom_name:Keepsake"),
+                new ItemStack(0,64));
         chunk.put(new BlockPos(0, 64, 0), source);
         chunk.put(new BlockPos(4, 64, 0), output);
         for (int i=1; i<=3; i++) chunk.putBlock(new BlockPos(i, 64, 0), new BlockState(Blocks.GLASS));
@@ -84,8 +85,9 @@ public final class SingleplayerTransferTest {
         check(output.getItem(0).getCount() == 18
                 && output.getItem(1).getCount() == 60,
                 "Items with different components do not merge");
-        check(output.getItem(0).components().equals("custom_name:Keepsake"),
-                "Original component data is unchanged");
+        check(output.getItem(0).components().equals("custom_name:Keepsake")
+                && output.getItem(2).components().equals("enchantment:sharpness"),
+                "Different item components remain separate and intact");
 
         // Setter throws after destination acceptance: recover the original.
         source.setItem(0, new ItemStack("minecraft:iron_ingot", 7,64,""));
