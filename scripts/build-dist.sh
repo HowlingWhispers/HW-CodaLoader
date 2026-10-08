@@ -2,7 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.24"
+LOADER_VERSION="$(sed -n 's/.*LOADER_VERSION = "\([^"]*\)";.*/\1/p' src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java)"
+[[ "$LOADER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid CodaTarget.LOADER_VERSION: $LOADER_VERSION" >&2; exit 1; }
 EXAMPLE_VERSION="0.0.1"
 ESSENTIALS_VERSION="0.2.0"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
