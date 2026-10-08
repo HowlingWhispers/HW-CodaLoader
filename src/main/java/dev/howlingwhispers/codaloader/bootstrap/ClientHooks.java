@@ -114,6 +114,8 @@ final class ClientHooks {
                             Object target = screen;
                             schedule(minecraft, () -> {
                                 if (findActiveScreen(minecraft, screenClass) != target) return;
+                                if (injectedTitleScreen == target && injectedMenuWidgets.length == 3
+                                        && allWidgetsPresent(target, injectedMenuWidgets)) return;
                                 Object[] widgets = injectMenuWidgets(target, modCount);
                                 if (widgets.length == 3) {
                                     injectedTitleScreen = target;
@@ -294,8 +296,8 @@ final class ClientHooks {
             add.invoke(screen, discord);
             add.invoke(screen, youtube);
 
-            // Reflow all native and social controls in the same GUI-thread task.
-            CodaMenus.apply(screen, true);
+            // Reflow through the same owner used by the native initialization hook.
+            CodaMenuLifecycle.afterInitialize(screen);
 
             System.out.println("[CodaLoader] Added compact CML status + Discord/YouTube social controls.");
             return new Object[]{cml, discord, youtube};
