@@ -27,6 +27,8 @@ jobs:
           VERSION_URL="$(jq -r --arg version "$VERSION" '.versions[] | select(.id == $version) | .url' inspection/manifest.json)"
           if [[ -z "$VERSION_URL" ]]; then echo "Mojang version not found: $VERSION"; exit 1; fi
           curl --fail --silent --show-error --location "$VERSION_URL" > inspection/version.json
+          echo "Official Snapshot resourcepack/datapack formats:"
+          jq '{pack_version: .pack_version, javaVersion: .javaVersion}' inspection/version.json
           CLIENT="$(jq -r '.downloads.client.url' inspection/version.json)"
           CHECK="$(jq -r '.downloads.client.sha1' inspection/version.json)"
           curl --fail --silent --show-error --location --retry 3 "$CLIENT" -o inspection/client.jar
