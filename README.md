@@ -12,6 +12,19 @@ H.O.W.L. player releases have **no optional first-party mods**. All officially r
 
 Verified world-generation changes must become required, automatically enabled content in new H.O.W.L. worlds. Existing world saves must not be silently rewritten; that requires a separate, tested backup/migration plan. User-developed community mods are separate from the official required set.
 
+## Development: verified Quiet Underground world bootstrap
+
+A cross-platform Java `RequiredWorldPacks.prepareNewWorld` utility now validates
+the exact Snapshot 3 worldgen ZIP and its pinned SHA-256. It atomically stages
+the pack only in ungenerated, safe world-creation folders; existing worlds,
+generated chunk data, community packs and conflicting files remain untouched.
+The Java fixture tests reject corrupted hashes, unexpected save contents,
+symlinks and wrong data formats. **It is not enabled for players yet.**
+Minecraft's initial data-pack discovery must still be hooked before the first
+world creation, and the pack must be marked active in its world data
+configuration. Simply writing `datapacks/*.zip` does not activate the pack.
+Live new-world integration and terrain checks remain release blockers.
+
 ## Development: native server tick API for BuildCraft
 
 The next H.O.W.L. API milestone adds a version-pinned JVM callback at the end
