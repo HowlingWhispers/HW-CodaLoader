@@ -15,8 +15,15 @@ public final class Wolf {
     private final UUID uuid = UUID.randomUUID();
     public Wolf(EntityType type,ServerLevel level) { this.type=type; this.level=level; }
     public void setPos(double x,double y,double z) {}
-    public void setOwnerUUID(UUID id) { owner=id; }
-    public void setTame(boolean tame,boolean broadcast) { tamed=tame; }
+    // Deliberately omit setOwnerUUID: absent on the user's 26.4 Snapshot 3.
+    public void tame(net.minecraft.client.server.IntegratedServer.FakePlayer player) {
+        owner=player.getUUID();
+        tamed=true;
+    }
+    public boolean isTame() { return tamed; }
+    public boolean isOwnedBy(net.minecraft.client.server.IntegratedServer.FakePlayer player) {
+        return owner!=null && owner.equals(player.getUUID());
+    }
     public void setOrderedToSit(boolean sit) { sitting=sit; }
     public void setCustomName(Component name) { label=name; }
     public void setCustomNameVisible(boolean value) { nameVisible=value; }

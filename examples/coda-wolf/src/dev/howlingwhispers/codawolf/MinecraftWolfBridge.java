@@ -121,9 +121,13 @@ final class MinecraftWolfBridge {
                 ((Number) NativeCalls.call(player,"getX")).doubleValue(),
                 ((Number) NativeCalls.call(player,"getY")).doubleValue(),
                 ((Number) NativeCalls.call(player,"getZ")).doubleValue());
-        NativeCalls.call(wolf,"setOwnerUUID",id(player));
-        try { NativeCalls.call(wolf,"setTame",true,true); }
-        catch (NoSuchMethodException ex) { NativeCalls.call(wolf,"setTame",true); }
+        // Snapshot 3's TamableAnimal no longer exposes setOwnerUUID(UUID).
+        // Vanilla's tame(Player) establishes BOTH the owner reference and the
+        // tamed flag with the game's own entity-reference system.
+        NativeCalls.call(wolf,"tame",player);
+        if (!Boolean.TRUE.equals(NativeCalls.call(wolf,"isTame"))
+                || !Boolean.TRUE.equals(NativeCalls.call(wolf,"isOwnedBy",player)))
+            throw new IllegalStateException("Minecraft did not bind Coda's wolf to the player");
         NativeCalls.call(wolf,"setOrderedToSit",false);
         Object text = NativeCalls.call(NativeCalls.type("net.minecraft.network.chat.Component",gameLoader),"literal","Coda");
         NativeCalls.call(wolf,"setCustomName",text);
