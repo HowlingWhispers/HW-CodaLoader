@@ -34,6 +34,8 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 "$CLIENT" -o inspection/client.jar
           [[ "$(sha1sum inspection/client.jar | cut -d' ' -f1)" == "$CHECK" ]] || { echo "CLIENT HASH MISMATCH"; exit 1; }
           echo "Verified actual Mojang version $VERSION, client SHA1 $CHECK, bytes $(wc -c < inspection/client.jar)"
+          echo "Embedded Minecraft pack version:"
+          unzip -p inspection/client.jar version.json | jq '.pack_version'
           classes=(
             net.minecraft.core.registries.BuiltInRegistries
             net.minecraft.core.Registry
