@@ -30,7 +30,14 @@ public final class LaunchIdentityTest {
         env.put("CODA_PLAYER_NAME", "CodaPlayer");
         env.put("CODA_PLAYER_UUID", "1234567890abcdef1234567890abcdef"); reject(env);
         env.put("CODA_PLAY_MODE", "online"); reject(env);
-        reject(Map.of());
+        var previousLauncher = LaunchIdentity.fromEnvironment(
+                Map.of("CODA_LAUNCHED_BY", "CodaLauncher", "CODA_NO_PAUSE", "1"));
+        if (!previousLauncher.localOnly() || !previousLauncher.offline()
+                || !previousLauncher.uuid().equals(local.uuid()))
+            throw new AssertionError("Older launcher CodaPlayer compatibility failed");
+        reject(Map.of("CODA_LAUNCHED_BY", "CodaLauncher", "CODA_NO_PAUSE", "1",
+                "CODA_PLAY_MODE", "online"));
+                reject(Map.of());
         System.out.println("PASS: verified identities and isolated local-only unverified identity");
     }
     private static void reject(Map<String,String> env) {
