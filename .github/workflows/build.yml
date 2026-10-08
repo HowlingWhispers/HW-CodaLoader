@@ -50,7 +50,8 @@ jobs:
         shell: bash
         run: |
           version="$(java -jar dist/CodaLoader.jar --version)"
-          test "$version" = "0.0.24"
+          expected="$(sed -n 's/.*LOADER_VERSION = "\([^"]*\)";.*/\1/p' src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java)"
+          test "$version" = "$expected"
           java -jar dist/CodaLoader.jar --version-json | grep -F '"minecraft":"26.4-snapshot-3"'
 
       - name: Smoke-test loader without launching Minecraft
@@ -82,11 +83,13 @@ jobs:
       - name: Verify ZIP layout and update manifest
         shell: bash
         run: |
-          unzip -l dist/CodaLoader-v0.0.24-win64.zip
-          unzip -l dist/CodaLoader-v0.0.24-win64.zip | grep -F "CodaLoader.jar"
-          unzip -l dist/CodaLoader-v0.0.24-win64.zip | grep -F "Launch-CodaLoader.bat"
-          unzip -l dist/CodaLoader-v0.0.24-win64.zip | grep -F "run/mods/hello-coda.jar"
-          grep -F '"version": "0.0.24"' dist/update-manifest.json
+          version="$(java -jar dist/CodaLoader.jar --version)"
+          bundle="dist/CodaLoader-v${version}-win64.zip"
+          unzip -l "$bundle"
+          unzip -l "$bundle" | grep -F "CodaLoader.jar"
+          unzip -l "$bundle" | grep -F "Launch-CodaLoader.bat"
+          unzip -l "$bundle" | grep -F "run/mods/hello-coda.jar"
+          grep -F "\"version\": \"${version}\"" dist/update-manifest.json
           jar tf dist/CodaLoader.jar | grep -F "codaloader/mods/hw-essentials.jar"
           jar tf dist/hw-essentials.jar | grep -F "coda.mod.json"
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/discord.png"
@@ -97,7 +100,7 @@ jobs:
         with:
           name: CodaLoader-${{ github.sha }}
           path: |
-            dist/CodaLoader-v0.0.24-win64.zip
+            dist/CodaLoader-v*-win64.zip
             dist/update-manifest.json
             dist/CodaLoader.jar
             dist/hello-coda.jar
@@ -129,6 +132,7 @@ jobs:
         run: |
           if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
-          if (!(Test-Path dist/CodaLoader-v0.0.24-win64.zip)) { throw "ZIP missing" }
+          $version = (Get-Content -Raw dist/update-manifest.json | ConvertFrom-Json).version
+          if (!(Test-Path "dist/CodaLoader-v$version-win64.zip")) { throw "ZIP missing" }
           if (!(Test-Path dist/update-manifest.json)) { throw "Update manifest missing" }
 
