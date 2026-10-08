@@ -17,6 +17,7 @@ public final class CodaAgent {
         CodaMenuTransformer.install(instrumentation);
         CodaServerTickTransformer.install(instrumentation);
         CodaWorldCreationTransformer.install(instrumentation);
+        CodaNativeRegistryTransformer.install(instrumentation);
 
         Path root = agentArgs == null || agentArgs.isBlank()
                 ? Path.of("run")
