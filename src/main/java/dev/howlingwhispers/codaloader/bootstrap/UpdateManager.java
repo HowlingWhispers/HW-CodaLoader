@@ -38,8 +38,7 @@ public final class UpdateManager {
     private static final String MANIFEST_ASSET = "update-manifest.json";
     private static final String[] MANAGED = {
             "CodaLoader.jar",
-            "Launch-CodaLoader.bat",
-            "run/mods/hello-coda.jar"
+            "Launch-CodaLoader.bat"
     };
 
     private UpdateManager() {}
@@ -180,10 +179,8 @@ public final class UpdateManager {
                 + "  timeout /t 1 /nobreak >NUL\r\n"
                 + "  goto wait_for_loader\r\n"
                 + ")\r\n"
-                + "if not exist \"%CODA_ROOT%\\run\\mods\" mkdir \"%CODA_ROOT%\\run\\mods\"\r\n"
                 + "copy /Y \"%CODA_STAGE%\\CodaLoader.jar\" \"%CODA_ROOT%\\CodaLoader.jar\" >NUL || goto failed\r\n"
                 + "copy /Y \"%CODA_STAGE%\\Launch-CodaLoader.bat\" \"%CODA_ROOT%\\Launch-CodaLoader.bat\" >NUL || goto failed\r\n"
-                + "copy /Y \"%CODA_STAGE%\\run\\mods\\hello-coda.jar\" \"%CODA_ROOT%\\run\\mods\\hello-coda.jar\" >NUL || goto failed\r\n"
                 + "start \"CodaLoader\" cmd.exe /d /c call \"%CODA_ROOT%\\Launch-CodaLoader.bat\"\r\n"
                 + "exit /b 0\r\n"
                 + ":failed\r\n"
