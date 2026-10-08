@@ -193,7 +193,9 @@ public final class CodaWolfMod implements CodaMod {
 
     private void update(MinecraftWolfBridge game, Companion c, Object player, long tick) throws Exception {
         Object level = game.level(player);
-        boolean slept = c.sleep.tick(game.sleeping(player), game.dayTime(level));
+        // First companion creation cannot depend on optional sleep/time APIs.
+        // Snapshot 3's ServerLevel.getDayTime() is absent. Only consult the
+        // day clock while a *dead* companion is awaiting bed-based recovery.
         if (!c.save.created) { create(game, c, player); return; }
 
         Object wolf = c.save.wolfId == null ? null : game.wolf(level, c.save.wolfId);
@@ -206,8 +208,12 @@ public final class CodaWolfMod implements CodaMod {
             c.save.persist();
             System.out.println(PREFIX + "Coda fell in combat. Bed sleep required for her return.");
         }
-        if (c.save.pendingRespawn && slept) { create(game, c, player); return; }
-        if (wolf != null && !c.save.pendingRespawn && !game.dead(wolf))
+        if (c.save.pendingRespawn) {
+            boolean slept = c.sleep.tick(game.sleeping(player), game.dayTime(level));
+            if (slept) create(game, c, player);
+            return;
+        }
+        if (wolf != null && !game.dead(wolf))
             defend(game, c, player, wolf, tick);
     }
 
