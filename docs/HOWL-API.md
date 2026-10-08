@@ -92,6 +92,33 @@ transactional inventory transfers must be implemented before playable
 extraction. This API has only instrumented JVM **fixture** test coverage so far,
 not live 26.4 Snapshot 3 compatibility confirmation.
 
+## Experimental single-player chest transfer test
+
+The **development-only** `CodaCommandContext.singleplayerWorld()` method
+exposes a tightly limited `CodaSingleplayerWorld`. This is an early **real
+Minecraft chest transaction test**, not a complete block registry or BuildCraft
+release. It only works in an integrated single-player server on its command
+thread and only operates on already-loaded standard single chest and barrel
+block entities. It never generates or loads chunks.
+
+- `isLoaded(CodaBlockPos)` checks a non-loading chunk lookup.
+- `isBlock(CodaBlockPos, "minecraft:glass")` verifies the **temporary glass
+  pipe marker**; all other registry IDs are intentionally refused.
+- `transfer(from, to, maximum)` tries to transfer at most 64 items between
+  supported containers. It uses `ItemStack.copyWithCount` instead of
+  reconstructing item IDs, protecting item components and stack limits.
+- Source and destination slot checks occur on the authoritative server thread.
+  Setter errors attempt to restore both original slots and are reported.
+- It refuses unknown mapping methods, unsuitable block entities, off-thread
+  use, destination changes that cannot fit, and unloading-related access.
+
+**Prototype restriction:** Do not use in a cherished world. Full rollback
+in the presence of a broken/mutating third-party inventory implementation is
+not guaranteed. Vanilla ordinary chests/barrels are the only supported
+storage here. The Java fixtures validate this logic but **live 26.4 Snapshot 3
+compatibility still requires an in-game playtest**. Custom pipe blocks,
+models, wrench item and energy engine remain future work.
+
 ## What revival mods still need
 
 Block/item registration, recipes, machine ticking, persistent block entities,

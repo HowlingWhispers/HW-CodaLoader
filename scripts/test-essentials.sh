@@ -45,3 +45,4 @@ printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.ServerTickTestAg
 jar --create --file out/server-tick-test-agent.jar --manifest out/server-tick-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/ServerTickTestAgent.class
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ServerTickLifecycleTest
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.WorldInventoryTickTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest

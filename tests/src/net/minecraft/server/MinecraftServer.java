@@ -57,8 +57,17 @@ public class MinecraftServer {
 
     public static final class Chunk {
         private final Map<BlockPos, Object> entities = new HashMap<>();
+        private final Map<BlockPos, net.minecraft.world.level.block.state.BlockState> blocks = new HashMap<>();
         public void put(BlockPos pos, Object entity) { entities.put(pos, entity); }
         public Object getBlockEntity(BlockPos pos) { return entities.get(pos); }
+        public void putBlock(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
+            blocks.put(pos, state);
+        }
+        public net.minecraft.world.level.block.state.BlockState getBlockState(BlockPos pos) {
+            return blocks.getOrDefault(pos,
+                    new net.minecraft.world.level.block.state.BlockState(
+                            net.minecraft.world.level.block.Blocks.STONE));
+        }
     }
 
     public static final class Chest implements Container {
