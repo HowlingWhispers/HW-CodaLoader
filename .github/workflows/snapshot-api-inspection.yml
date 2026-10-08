@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - .github/workflows/snapshot-api-inspection.yml
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryTransformer.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
   workflow_dispatch:
 
 jobs:
