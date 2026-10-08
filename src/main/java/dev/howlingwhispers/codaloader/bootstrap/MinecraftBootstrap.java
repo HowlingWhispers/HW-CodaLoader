@@ -116,15 +116,29 @@ public final class MinecraftBootstrap {
         Path versionDir = versions.resolve(CodaTarget.MINECRAFT_VERSION);
         Files.createDirectories(versionDir);
         Path versionJson = versionDir.resolve(CodaTarget.MINECRAFT_VERSION + ".json");
-        if (identity.offline() && !identity.localOnly()) {
-            if (!Files.isRegularFile(versionJson)) throw new IOException("Install this Minecraft version while online before using offline play.");
+        Path officialVersionJson = officialPath("versions", CodaTarget.MINECRAFT_VERSION,
+                CodaTarget.MINECRAFT_VERSION + ".json");
+        // Local singleplayer sessions MUST NOT depend on Mojang's manifest
+        // endpoint once their version metadata is already installed. The
+        // launcher already selected an exact Minecraft build, and downstream
+        // client/library/asset downloads retain Mojang SHA-1 verification.
+        // This also permits normal launches during a temporary Mojang outage.
+        if (reuseVersionMetadata(versionJson, officialVersionJson, CodaTarget.MINECRAFT_VERSION)) {
+            System.out.println("[CodaLoader] Reusing cached Minecraft version metadata; no manifest request.");
+        } else if (identity.offline() && !identity.localOnly()) {
+            throw new IOException("Missing or invalid Minecraft version metadata for "
+                    + CodaTarget.MINECRAFT_VERSION + ". Repair the installation while online.");
         } else {
-            Map<String, Object> manifest = object(readJson(VERSION_MANIFEST));
+            Map<String, Object> manifest;
+            try {
+                manifest = object(readJson(VERSION_MANIFEST));
+            } catch (java.net.http.HttpTimeoutException | java.net.ConnectException ex) {
+                throw new IOException("Cannot reach Mojang's version manifest and no valid cached metadata exists. "
+                        + "Start the official Minecraft Launcher once for this version, or retry when online.", ex);
+            }
             Map<String, Object> versionRef = findVersion(manifest, CodaTarget.MINECRAFT_VERSION);
             String versionUrl = string(versionRef, "url");
             String versionSha1 = optionalString(versionRef, "sha1");
-            Path officialVersionJson = officialPath("versions", CodaTarget.MINECRAFT_VERSION,
-                    CodaTarget.MINECRAFT_VERSION + ".json");
             ensureFile(versionJson, officialVersionJson, URI.create(versionUrl), versionSha1, -1);
         }
 
@@ -1077,6 +1091,62 @@ public final class MinecraftBootstrap {
             }
         }
         return java.util.HexFormat.of().formatHex(digest.digest());
+    }
+
+    /**
+     * Accept a version JSON from this Nightly runtime or the user's own
+     * official .minecraft only when it matches the target and has required
+     * download metadata. This never downloads files or modifies game saves.
+     * Actual binaries and assets are still checked against Mojang SHA-1 in
+     * ensureFile(), so cached metadata does not relax content verification.
+     */
+    static boolean reuseVersionMetadata(Path local, Path official, String target) throws IOException {
+        if (usableVersionMetadata(local, target)) return true;
+        if (official == null || !usableVersionMetadata(official, target)) return false;
+        Files.createDirectories(local.getParent());
+        Path staged = local.resolveSibling(local.getFileName() + ".metadata-tmp");
+        try {
+            Files.copy(official, staged, StandardCopyOption.REPLACE_EXISTING);
+            if (!usableVersionMetadata(staged, target))
+                throw new IOException("Official Minecraft version metadata changed during import.");
+            Files.move(staged, local, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(staged);
+        }
+        return true;
+    }
+
+    static boolean usableVersionMetadata(Path file, String target) {
+        if (file == null || !Files.isRegularFile(file)) return false;
+        try {
+            if (Files.size(file) > 4 * 1024 * 1024) return false;
+            Map<String, Object> metadata = object(MiniJson.parse(Files.readString(file, StandardCharsets.UTF_8)));
+            if (!target.equals(optionalString(metadata, "id"))) return false;
+            if (optionalString(metadata, "mainClass") == null) return false;
+            if (!(metadata.get("libraries") instanceof List<?>)) return false;
+            if (!(metadata.get("arguments") instanceof Map<?, ?>)) return false;
+            Map<String, Object> client = childObject(childObject(metadata, "downloads"), "client");
+            Map<String, Object> index = childObject(metadata, "assetIndex");
+            return usableShaDownload(client) && usableShaDownload(index);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private static boolean usableShaDownload(Map<String, Object> item) {
+        String sha = optionalString(item, "sha1");
+        String raw = optionalString(item, "url");
+        if (sha == null || sha.length() != 40 || !sha.chars().allMatch(c ->
+                (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+            return false;
+        if (raw == null) return false;
+        try {
+            URI uri = URI.create(raw);
+            return "https".equalsIgnoreCase(uri.getScheme())
+                    && uri.getHost() != null && !uri.getHost().isBlank();
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     private Object readJson(URI uri) throws Exception {

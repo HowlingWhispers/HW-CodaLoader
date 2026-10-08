@@ -48,6 +48,7 @@ java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhisper
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.NativeRegistryTransformerTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.BuildCraftResourceInstallerTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MinecraftVersionMetadataTest
 
 # Verify the same new-world ASM hook that the real Minecraft agent installs.
 # This is a named JVM fixture, not a live Snapshot 3 world-creation test.
