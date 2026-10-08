@@ -49,6 +49,6 @@ java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransfe
 
 # Verify the same new-world ASM hook that the real Minecraft agent installs.
 # This is a named JVM fixture, not a live Snapshot 3 world-creation test.
-printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.WorldCreationTestAgent\\n\\n' > out/world-creation-test-manifest.mf
+printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.WorldCreationTestAgent\n\n' > out/world-creation-test-manifest.mf
 jar --create --file out/world-creation-test-agent.jar --manifest out/world-creation-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/WorldCreationTestAgent.class
 java -javaagent:out/world-creation-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.QuietUndergroundCreationTest
