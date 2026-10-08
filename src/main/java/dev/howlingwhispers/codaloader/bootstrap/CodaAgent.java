@@ -18,6 +18,7 @@ public final class CodaAgent {
         CodaServerTickTransformer.install(instrumentation);
         CodaWorldCreationTransformer.install(instrumentation);
         CodaNativeRegistryTransformer.install(instrumentation);
+        CodaBlockPlacementTransformer.install(instrumentation);
 
         Path root = agentArgs == null || agentArgs.isBlank()
                 ? Path.of("run")
