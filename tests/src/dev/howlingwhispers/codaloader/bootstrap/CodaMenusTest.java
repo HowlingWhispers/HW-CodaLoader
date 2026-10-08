@@ -89,7 +89,7 @@ public final class CodaMenusTest {
     public static class Screen {
         final List<Widget> children = new ArrayList<>(), renderables = new ArrayList<>();
         int removed;
-        Widget add(String key, int x, int y, int width) { Widget widget = new Widget(key, x, y, width); children.add(widget); renderables.add(widget); return widget; }
+        public Widget add(String key, int x, int y, int width) { Widget widget = new Widget(key, x, y, width); children.add(widget); renderables.add(widget); return widget; }
         public List<Widget> children() { return children; }
         protected void removeWidget(Widget widget) { children.remove(widget); renderables.remove(widget); removed++; }
     }
@@ -106,6 +106,7 @@ public final class CodaMenusTest {
         public int getWidth() { return width; } public int getHeight() { return 20; }
         public void setY(int y) { this.y = y; } public void setX(int x) { this.x = x; }
         public void setWidth(int width) { this.width = width; }
+        public int pressCount() { return presses; }
         public void press() { if (visible && active) presses++; }
     }
     public record Contents(String key) { public String getKey() { return key; } }
@@ -115,3 +116,4 @@ public final class CodaMenusTest {
         public String getString() { return text; }
     }
 }
+

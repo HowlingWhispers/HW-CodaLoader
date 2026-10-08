@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.22 bundle
+    name: Publish v0.0.23 bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +30,15 @@ jobs:
       - name: Test HW Essentials and command bridge
         run: bash scripts/test-essentials.sh
 
+      - name: Set up Minecraft Java 25 runtime
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Verify menu lifecycle hooks on Java 25
+        run: bash scripts/test-essentials.sh
+
       - name: Smoke-test loader
         run: |
           rm -rf run
@@ -42,24 +51,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.22"
-          ZIP="dist/CodaLoader-v0.0.22-win64.zip"
+          TAG="v0.0.23"
+          ZIP="dist/CodaLoader-v0.0.23-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; bump the version for a new build." >&2
             exit 1
           fi
           cat > release-notes.md <<'EOF'
-          # CodaLoader 0.0.22
+          # CodaLoader 0.0.23
 
           Pinned to Minecraft Java 26.4 Snapshot 3.
 
-          - Discord, YouTube, language and accessibility controls now sit in a separate centred row below Settings and Clock Out.
-          - Small controls keep their native actions and no longer overlap the main menu buttons.
-          - Layout remains stable across polling and menu rebuilds.
-          - Existing Coda menus, HW Essentials, worlds, homes and settings are preserved.
+          - Coda menus are applied during native screen initialization, before their first frame, rather than after a polling delay.
+          - Reopening the pause menu and resizing reapply the layout immediately.
+          - Pause-menu small controls have their own row. World Options remains accessible next to Settings.
+          - Native actions, HW Essentials, worlds, homes and settings are preserved.
 
-          CI checks main-button/icon separation, pairwise icon overlap, centring, actions and reinitialization. Live Snapshot 3 layout still needs an in-game check.
+          Automated tests exercise the real Java-agent transformation on Java 21 and 25, repeated screen opening and widget rebuilds. Live Snapshot 3 still needs an in-game check.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
-            --target "$GITHUB_SHA" --title "CodaLoader 0.0.22" \
+            --target "$GITHUB_SHA" --title "CodaLoader 0.0.23" \
             --notes-file release-notes.md --prerelease

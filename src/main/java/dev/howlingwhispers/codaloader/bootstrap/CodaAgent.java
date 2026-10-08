@@ -14,6 +14,8 @@ public final class CodaAgent {
     private CodaAgent() {}
 
     public static void premain(String agentArgs, Instrumentation instrumentation) {
+        CodaMenuTransformer.install(instrumentation);
+
         Path root = agentArgs == null || agentArgs.isBlank()
                 ? Path.of("run")
                 : Path.of(agentArgs).toAbsolutePath().normalize();
@@ -48,3 +50,4 @@ public final class CodaAgent {
         ServerCommandHooks.start();
     }
 }
+

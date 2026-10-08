@@ -9,7 +9,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 Releases are distributed as one versioned ZIP:
 
 ```text
-CodaLoader-v0.0.22-win64.zip
+CodaLoader-v0.0.23-win64.zip
 │
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
@@ -59,7 +59,7 @@ Supported values are `auto`, `notify`, and `off`.
 
 ## HW Essentials 0.2.0
 
-The CML-native homes mod for **Minecraft Java 26.4 Snapshot 3** is now bundled with CodaLoader 0.0.22. It is installed automatically into the active game profile, including CodaLauncher-managed profiles.
+The CML-native homes mod for **Minecraft Java 26.4 Snapshot 3** is now bundled with CodaLoader 0.0.23. It is installed automatically into the active game profile, including CodaLauncher-managed profiles.
 
 Commands: `/sethome [name]`, `/home [name]`, `/back`, `/homes`, `/delhome <name>` and `/hwessentials`.
 
@@ -69,7 +69,7 @@ Homes belong to the current player and world, preserve facing, and use atomic sa
 
 See [HW Essentials](https://github.com/HowlingWhispers/HW-Mods/tree/main/mods/hw-essentials) for storage, configuration and the live-game verification boundary. Its source and storage tests live in HW-Mods and it ships as a separate mod JAR; the loader exposes a small server-thread command API.
 
-## Current milestone: 0.0.22
+## Current milestone: 0.0.23
 
 ### Coda's personal-world menus
 
@@ -78,6 +78,8 @@ Social, language and accessibility controls occupy a separate centred row below 
 The title menu removes Realms and traditional Multiplayer, keeping My Worlds, Coda's Settings and Clock Out. The pause menu removes Open to LAN and vanilla feedback/bug-report shortcuts, while preserving native resume, advancements, statistics, settings and save-and-quit actions.
 
 Coda labels: Back to Adventure, Pawprints, Coda's Ledger and Save & Curl Up. The UI pack supplies English Coda wording for world selection, settings and resource packs. Destructive world deletion still says clearly that the world is permanently deleted.
+
+The Java agent applies the layout at the end of native initialization and rebuild methods, before rendering, instead of waiting for the background polling thread. Snapshot 3 pause icons have a dedicated row and World Options remains accessible alongside Settings.
 
 The hook recognizes translation keys, not displayed English text. It runs widget changes on Minecraft's GUI thread, handles rebuilt menus and leaves unknown third-party controls intact. Fixtures check input/render removal, retained callbacks, layout and repeated initialization. Live Snapshot 3 GUI verification remains outstanding.
 
@@ -237,3 +239,4 @@ run/music/menu/
 CodaLoader generates a resource pack for them inside the isolated game profile.
 
 Java 25+ is required by Minecraft 26.4 Snapshot 3. Java 26 is supported.
+

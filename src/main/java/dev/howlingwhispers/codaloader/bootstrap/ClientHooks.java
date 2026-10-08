@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.lang.reflect.Array;
 
 /**
@@ -36,8 +35,6 @@ final class ClientHooks {
     private static volatile boolean firstTitleSceneSeen;
     private static volatile boolean sceneReloadFailureReported;
     private static int nullScreenPolls;
-    private static final AtomicBoolean menuTaskPending = new AtomicBoolean();
-    private static volatile boolean codaMenuFailureReported;
 
     private ClientHooks() {}
 
@@ -73,23 +70,6 @@ final class ClientHooks {
                     Object screen = findActiveScreen(minecraft, screenClass);
                     boolean isTitleScreen = screen != null
                             && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
-
-                    boolean isPauseScreen = screen != null
-                            && "net.minecraft.client.gui.screens.PauseScreen".equals(screen.getClass().getName());
-                    if ((isTitleScreen || isPauseScreen) && menuTaskPending.compareAndSet(false, true)) {
-                        Object target = screen;
-                        schedule(minecraft, () -> {
-                            try {
-                                if (findActiveScreen(minecraft, screenClass) == target)
-                                    CodaMenus.apply(target, isTitleScreen);
-                            } catch (Throwable ex) {
-                                if (!codaMenuFailureReported) {
-                                    codaMenuFailureReported = true;
-                                    System.err.println("[CodaLoader] Coda menu customization warning: " + ex);
-                                }
-                            } finally { menuTaskPending.set(false); }
-                        });
-                    }
 
                     if (screen == null) {
                         nullScreenPolls++;
@@ -580,7 +560,6 @@ final class ClientHooks {
             schedulerReported = true;
             System.err.println("[CodaLoader] No Minecraft Runnable scheduler found; menu task skipped to protect the GUI thread.");
         }
-        menuTaskPending.set(false);
     }
 
     private static Object readField(Object target, String name) throws Exception {
@@ -897,3 +876,4 @@ final class ClientHooks {
         return null;
     }
 }
+

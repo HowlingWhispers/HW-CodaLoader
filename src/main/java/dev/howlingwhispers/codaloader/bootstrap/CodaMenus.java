@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -15,6 +16,7 @@ final class CodaMenus {
     private static final Set<String> PAUSE_REMOVED = Set.of("menu.shareToLan", "menu.sendFeedback", "menu.reportBugs");
     private static final Map<String, String> LABELS = Map.ofEntries(
             Map.entry("menu.singleplayer", "My Worlds"),
+            Map.entry("menu.worldOptions", "World Rules"),
             Map.entry("menu.options", "Coda's Settings"),
             Map.entry("menu.quit", "Clock Out"),
             Map.entry("menu.returnToGame", "Back to Adventure"),
@@ -50,6 +52,7 @@ final class CodaMenus {
     private static String tooltipFor(String key) {
         return switch (key) {
             case "menu.singleplayer" -> "Coda: Your worlds, filed and ready for adventure.";
+            case "menu.worldOptions" -> "Coda: The rules of your world. Make yourself at home.";
             case "menu.options" -> "Coda: Sound, sights and controls. Your paws, your preferences.";
             case "menu.quit" -> "Coda: Clipboard closed. See you next adventure.";
             case "menu.returnToGame" -> "Coda: Enough paperwork. Back to your world.";
@@ -74,6 +77,8 @@ final class CodaMenus {
         if (getKey == null) return "";
         Object value = getKey.invoke(contents);
         if (!(value instanceof String text)) return "";
+        String normalized = text.toLowerCase(Locale.ROOT);
+        if (normalized.contains("world") && normalized.contains("option")) text = "menu.worldOptions";
         ORIGINAL_KEYS.put(widget, text);
         return text;
     }
@@ -143,7 +148,7 @@ final class CodaMenus {
             }
         }
         // Keep social/language/accessibility controls below the full-size buttons.
-        // Sorting preserves their left-to-right order across repeated polls and widget rebuilds.
+        // Sorting preserves their left-to-right order across repeated initialization and widget rebuilds.
         icons.sort(java.util.Comparator.comparingInt(widget -> {
             try { return number(widget, "getX", 0); }
             catch (Exception unavailable) { return 0; }
@@ -172,11 +177,52 @@ final class CodaMenus {
         }
         Object options = find(widgets, "menu.options");
         Object quit = find(widgets, "menu.returnToMenu");
-        for (Object widget : new Object[]{options, quit}) {
-            if (widget == null) continue;
-            coordinate(widget, "setX", x);
-            coordinate(widget, "setWidth", number(resume, "getWidth", 200));
-            coordinate(widget, "setY", y + (widget == options ? 48 : 72));
+        Object worldOptions = find(widgets, "menu.worldOptions");
+        // Preserve Snapshot 3's adjacent native world control even if its key changes.
+        if (worldOptions == null && options != null) {
+            int optionY = number(options, "getY", -1);
+            for (Object widget : widgets) {
+                if (widget != options && widget != quit && number(widget, "getY", -2) == optionY
+                        && number(widget, "getX", -1) > x && number(widget, "getWidth", 0) >= 80) {
+                    worldOptions = widget;
+                    break;
+                }
+            }
+        }
+        List<Object> icons = new ArrayList<>();
+        for (Object widget : widgets) {
+            int iconY = number(widget, "getY", -1000);
+            if (number(widget, "getHeight", 0) == 20 && number(widget, "getWidth", 1000) <= 40
+                    && iconY >= y + 24 && iconY <= y + 200) icons.add(widget);
+        }
+        icons.sort(java.util.Comparator.comparingInt(widget -> {
+            try { return number(widget, "getX", 0); }
+            catch (Exception unavailable) { return 0; }
+        }));
+        int width = number(resume, "getWidth", 200);
+        int totalWidth = Math.max(0, icons.size() - 1) * 4;
+        for (Object icon : icons) totalWidth += number(icon, "getWidth", 20);
+        int iconX = x + width / 2 - totalWidth / 2;
+        for (Object icon : icons) {
+            coordinate(icon, "setX", iconX);
+            coordinate(icon, "setY", y + 48);
+            iconX += number(icon, "getWidth", 20) + 4;
+        }
+        int settingsY = y + (icons.isEmpty() ? 48 : 72);
+        if (options != null) {
+            coordinate(options, "setX", x);
+            coordinate(options, "setWidth", worldOptions == null ? width : (width - 4) / 2);
+            coordinate(options, "setY", settingsY);
+        }
+        if (worldOptions != null) {
+            coordinate(worldOptions, "setX", x + (width - 4) / 2 + 4);
+            coordinate(worldOptions, "setWidth", (width - 4) / 2);
+            coordinate(worldOptions, "setY", settingsY);
+        }
+        if (quit != null) {
+            coordinate(quit, "setX", x);
+            coordinate(quit, "setWidth", width);
+            coordinate(quit, "setY", settingsY + 24);
         }
     }
 
@@ -219,3 +265,4 @@ final class CodaMenus {
         return null;
     }
 }
+
