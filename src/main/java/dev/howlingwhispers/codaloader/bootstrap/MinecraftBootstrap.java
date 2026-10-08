@@ -72,6 +72,14 @@ public final class MinecraftBootstrap {
                 .build();
     }
 
+    /** Builds the custom UI, menu-scene and music packs for either launch path. */
+    public void prepareProfileResources() throws IOException {
+        Files.createDirectories(game);
+        prepareCodaUiPack();
+        prepareBrandingPack();
+        prepareCustomMusicPack();
+    }
+
     public int launch() throws Exception {
         identity = LaunchIdentity.fromEnvironment(System.getenv());
         identity.verifyOnline();
@@ -91,9 +99,7 @@ public final class MinecraftBootstrap {
         Files.createDirectories(game);
         Files.createDirectories(root.resolve("mods"));
         Files.createDirectories(root.resolve("config"));
-        prepareCodaUiPack();
-        prepareBrandingPack();
-        prepareCustomMusicPack();
+        prepareProfileResources();
 
         System.out.println("[CodaLoader] Bootstrap target: " + CodaTarget.MINECRAFT_DISPLAY_NAME);
         System.out.println("[CodaLoader] Runtime Java: " + java);
