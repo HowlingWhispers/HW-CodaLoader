@@ -1,0 +1,70 @@
+name: Inspect exact Minecraft Snapshot API for BuildCraft port
+on:
+  push:
+    paths:
+      - .github/workflows/snapshot-api-inspection.yml
+  workflow_dispatch:
+
+jobs:
+  inspect-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Inspect Mojang-published Minecraft 26.4 Snapshot 3 named classes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inspection
+          VERSION="26.4-snapshot-3"
+          curl --fail --silent --show-error --location https://piston-meta.mojang.com/mc/game/version_manifest_v2.json > inspection/manifest.json
+          VERSION_URL="$(jq -r --arg version "$VERSION" '.versions[] | select(.id == $version) | .url' inspection/manifest.json)"
+          if [[ -z "$VERSION_URL" ]]; then echo "Mojang version not found: $VERSION"; exit 1; fi
+          curl --fail --silent --show-error --location "$VERSION_URL" > inspection/version.json
+          CLIENT="$(jq -r '.downloads.client.url' inspection/version.json)"
+          CHECK="$(jq -r '.downloads.client.sha1' inspection/version.json)"
+          curl --fail --silent --show-error --location --retry 3 "$CLIENT" -o inspection/client.jar
+          [[ "$(sha1sum inspection/client.jar | cut -d' ' -f1)" == "$CHECK" ]] || { echo "CLIENT HASH MISMATCH"; exit 1; }
+          echo "Verified actual Mojang version $VERSION, client SHA1 $CHECK, bytes $(wc -c < inspection/client.jar)"
+          classes=(
+            net.minecraft.core.registries.BuiltInRegistries
+            net.minecraft.core.Registry
+            net.minecraft.core.registries.Registries
+            net.minecraft.resources.ResourceLocation
+            net.minecraft.world.level.block.Block
+            net.minecraft.world.level.block.state.BlockBehaviour
+            'net.minecraft.world.level.block.state.BlockBehaviour$Properties'
+            net.minecraft.world.item.Item
+            'net.minecraft.world.item.Item$Properties'
+            net.minecraft.world.item.BlockItem
+            net.minecraft.world.item.CreativeModeTabs
+            net.minecraft.world.item.CreativeModeTab
+            'net.minecraft.world.item.CreativeModeTab$Builder'
+            net.minecraft.world.item.Items
+            net.minecraft.world.level.block.Blocks
+            net.minecraft.world.item.context.BlockPlaceContext
+            net.minecraft.world.level.block.entity.BlockEntity
+            net.minecraft.world.level.block.entity.BlockEntityType
+            net.minecraft.world.level.block.entity.ChestBlockEntity
+            net.minecraft.world.level.Level
+            net.minecraft.server.MinecraftServer
+          )
+          for cls in "${classes[@]}"; do
+            echo ""
+            echo "=============== $cls ================"
+            javap -p -classpath inspection/client.jar "$cls" 2>&1 | head -n 100 || true
+          done | tee inspection/snapshot-api.txt
+          # Fail if this is an obfuscated client or the registry is missing;
+          # never implement and ship guesses from earlier Minecraft versions.
+          javap -p -classpath inspection/client.jar net.minecraft.core.registries.BuiltInRegistries | grep -F 'BLOCK'
+          javap -p -classpath inspection/client.jar net.minecraft.world.item.Item | grep -F 'Item('
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot3-api-evidence
+          path: |
+            inspection/snapshot-api.txt
+            inspection/version.json
+          retention-days: 14
