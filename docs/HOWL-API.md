@@ -59,6 +59,39 @@ The automated fixture tests cover callback timing, fault isolation, repeated
 ticks and new-server isolation. These tests do **not** establish live Snapshot 3
 mapping compatibility.
 
+## Single-player world inspection (development API)
+
+When Minecraft runs an integrated single-player server, H.O.W.L. provides a
+**read-only and tick-scoped** world view to server tick callbacks:
+
+```java
+context.registerServerTick("inspect", tick -> {
+    if (tick.world().isEmpty()) return; // old test fixtures still work
+    var world = tick.world().orElseThrow();
+    var where = new CodaBlockPos(12, 64, -3);
+    if (!world.isChunkLoaded("minecraft:overworld", where)) return;
+    world.inventory("minecraft:overworld", where).ifPresent(chest -> {
+        int items = chest.slots().stream().mapToInt(CodaInventoryView.Slot::count).sum();
+        // Read-only information; no extraction or item conversion is allowed.
+    });
+});
+```
+
+The adapter resolves loaded level identities and already-loaded chunks, uses
+Snapshot 3's named `ServerChunkCache.getChunkNow` (never `getChunk`) and
+exposes only slot counts/capacities for `net.minecraft.world.Container`.
+World views expire as soon as the owning server-tick callback dispatch ends.
+Cross-thread access is refused. A missing native mapping raises an explicit
+error rather than trying unsafe fallbacks. Unknown or unloaded chunks are
+reported as absent and do not get generated.
+
+This is the first safe bridge needed to make wooden BuildCraft pipes work with
+single-player chests; it is **not a way to remove, clone, add or transfer
+items**. Minecraft ItemStack components, slot restrictions, permissions and
+transactional inventory transfers must be implemented before playable
+extraction. This API has only instrumented JVM **fixture** test coverage so far,
+not live 26.4 Snapshot 3 compatibility confirmation.
+
 ## What revival mods still need
 
 Block/item registration, recipes, machine ticking, persistent block entities,
