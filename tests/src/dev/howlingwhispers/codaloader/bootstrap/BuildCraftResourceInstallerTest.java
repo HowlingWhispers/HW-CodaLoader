@@ -22,7 +22,10 @@ public final class BuildCraftResourceInstallerTest {
         Path game = Files.createTempDirectory("howl-buildcraft-original-art");
         Files.createDirectories(game.resolve("mods"));
         Path jar = game.resolve("mods/buildcraft-cml-0.1.0-dev.jar");
-        usingJar(jar);
+        if (args.length > 0)
+            Files.copy(Path.of(args[0]), jar);
+        else
+            usingJar(jar);
         check(BuildCraftResourceInstaller.prepare(game), "resource pack generated");
         Path result = game.resolve("resourcepacks/HOWL-BuildCraft-8.0.0.zip");
         check(Files.exists(result), "one generated resourcepack ZIP");
