@@ -11,12 +11,20 @@ public final class CodaMenuLifecycle {
         if (!title && !name.equals("net.minecraft.client.gui.screens.PauseScreen")) return;
         String screenId = title ? dev.howlingwhispers.codaloader.api.CodaScreens.TITLE
                 : dev.howlingwhispers.codaloader.api.CodaScreens.PAUSE;
+        // One owner of native widgets per lifecycle event. Compatibility mode
+        // can be selected with -Dcodaloader.menu.mode=legacy.
+        boolean owned = false;
         try {
-            // One owner of native widgets per lifecycle event. Compatibility mode
-            // can be selected with -Dcodaloader.menu.mode=legacy.
-            boolean owned = !"legacy".equalsIgnoreCase(System.getProperty("codaloader.menu.mode", "owned"));
-            if (!owned || !CodaOwnedMenus.apply(screen, title))
-                CodaMenus.apply(screen, title);
+            if (!"legacy".equalsIgnoreCase(System.getProperty("codaloader.menu.mode", "owned")))
+                owned = CodaOwnedMenus.apply(screen, title);
+        } catch (Throwable failure) {
+            if (!failureReported) {
+                failureReported = true;
+                System.err.println("[CodaLoader] Owned menu unavailable, falling back: " + failure);
+            }
+        }
+        try {
+            if (!owned) CodaMenus.apply(screen, title);
             CodaScreenBridge.afterNativeInitialize(screen, screenId);
         } catch (Throwable failure) {
             if (!failureReported) {
