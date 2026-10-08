@@ -9,8 +9,12 @@ public final class CodaMenuLifecycle {
         String name = screen.getClass().getName();
         boolean title = name.equals("net.minecraft.client.gui.screens.TitleScreen");
         if (!title && !name.equals("net.minecraft.client.gui.screens.PauseScreen")) return;
+        String screenId = title ? dev.howlingwhispers.codaloader.api.CodaScreens.TITLE
+                : dev.howlingwhispers.codaloader.api.CodaScreens.PAUSE;
         try {
-            CodaMenus.apply(screen, title);
+            if (dev.howlingwhispers.codaloader.api.CodaScreens.global().providers(screenId).isEmpty())
+                CodaMenus.apply(screen, title);
+            CodaScreenBridge.afterNativeInitialize(screen, screenId);
         } catch (Throwable failure) {
             if (!failureReported) {
                 failureReported = true;
