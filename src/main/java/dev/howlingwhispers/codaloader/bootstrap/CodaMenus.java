@@ -49,7 +49,7 @@ final class CodaMenus {
         else layoutPause(screen, kept);
     }
 
-    private static String tooltipFor(String key) {
+    static String tooltipFor(String key) {
         return switch (key) {
             case "menu.singleplayer" -> "Coda: Your worlds, filed and ready for adventure.";
             case "menu.worldOptions" -> "Coda: The rules of your world. Make yourself at home.";
