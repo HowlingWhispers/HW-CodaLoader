@@ -56,14 +56,25 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
     @Override
     public boolean isBlock(CodaBlockPos pos, String blockId) throws Exception {
         checkThread();
-        if (!"minecraft:glass".equals(blockId))
-            throw new IllegalArgumentException("Only minecraft:glass test pipes are supported");
+        // Exact Snapshot 3 native block IDs. An unrecognized mod ID cannot
+        // be assumed to be vanilla glass or a valid BuildCraft pipe.
+        if (!java.util.Set.of("minecraft:glass", "buildcrafttransport:wood_item",
+                "buildcrafttransport:cobblestone_item",
+                "buildcraftcore:engine_redstone").contains(blockId))
+            throw new IllegalArgumentException("Unknown H.O.W.L. test block: " + blockId);
         Object loaded = chunk(Objects.requireNonNull(pos, "pos"));
         if (loaded == null) return false;
         Object state = CommandReflection.call(loaded, "getBlockState", nativePos(pos));
-        Class<?> blocks = Class.forName("net.minecraft.world.level.block.Blocks", true, loader);
-        Object glass = blocks.getField("GLASS").get(null);
-        return (Boolean) CommandReflection.call(state, "is", glass);
+        Object registry = Class.forName("net.minecraft.core.registries.BuiltInRegistries", true, loader)
+                .getField("BLOCK").get(null);
+        Class<?> idClass = Class.forName("net.minecraft.resources.Identifier", true, loader);
+        Object id = idClass.getMethod("parse", String.class).invoke(null, blockId);
+        Object candidate = registry.getClass().getMethod("getValue", idClass).invoke(registry, id);
+        if (candidate == null) return false;
+        // Defaulted block registries return minecraft:air for unknown keys.
+        Object candidateId = registry.getClass().getMethod("getKey", Object.class).invoke(registry, candidate);
+        if (!blockId.equals(candidateId.toString())) return false;
+        return (Boolean) CommandReflection.call(state, "is", candidate);
     }
 
     private Object chest(CodaBlockPos pos) throws Exception {
