@@ -39,6 +39,26 @@ Use a unique command name. The bridge preserves an existing command collision
 and reports it rather than replacing it. Keep command work short and store
 world data under `player.worldDirectory()` with your own mod namespace.
 
+## Native server ticks (development API)
+
+```java
+context.registerServerTick("machine_tick", tick -> {
+    // This callback runs on the integrated server thread, not the client.
+    // tick.sessionId() distinguishes new server/world instances.
+    // tick.tick() is a monotonically increasing tick callback counter.
+});
+```
+
+The H.O.W.L. agent instruments **only** the exact named Snapshot 3 server method
+`MinecraftServer.tickServer(BooleanSupplier)`. If the method name or descriptor
+does not match, it logs the mismatch and **does not guess another hook**. There
+is no fallback polling thread, no client tick masquerading as a server tick,
+and no direct Minecraft world or inventory references in the callback yet.
+Callbacks must never block the server or assume they have item/block APIs.
+The automated fixture tests cover callback timing, fault isolation, repeated
+ticks and new-server isolation. These tests do **not** establish live Snapshot 3
+mapping compatibility.
+
 ## What revival mods still need
 
 Block/item registration, recipes, machine ticking, persistent block entities,
