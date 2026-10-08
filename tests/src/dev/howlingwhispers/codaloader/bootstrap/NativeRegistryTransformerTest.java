@@ -55,9 +55,14 @@ public final class NativeRegistryTransformerTest {
     }
     public static void main(String[] args) throws Exception {
         verify("net/minecraft/world/level/block/Blocks", "<clinit>", "()V",
-                Opcodes.RETURN, "registerBlocks");
-        verify("net/minecraft/world/item/Items", "<clinit>", "()V",
-                Opcodes.RETURN, "registerItems");
+                Opcodes.RETURN, "registerBlocksAndItems");
+        // Explicitly refuse the historically wrong Items.<clinit> hook:
+        // Mojang starts Items during Blocks initialization, before Blocks
+        // is complete, so registering there previously crashed the real game.
+        CodaNativeRegistryTransformer transformer = new CodaNativeRegistryTransformer();
+        check(transformer.transform(null, "net/minecraft/world/item/Items", null, null,
+                fixture("net/minecraft/world/item/Items", "<clinit>", "()V", Opcodes.RETURN)) == null,
+                "Items phase must not inject premature registrations");
         verify("net/minecraft/world/item/CreativeModeTabs", "bootstrap",
                 "(Lnet/minecraft/core/Registry;)Lnet/minecraft/world/item/CreativeModeTab;",
                 Opcodes.ARETURN, "registerCreativeTabs");
