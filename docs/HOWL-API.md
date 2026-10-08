@@ -15,6 +15,7 @@ and retest against new releases.
 | `context.registerCommand(name, description, command)` | Registers a player command. The integrated-server bridge executes it on the server thread. |
 | `CodaCommandContext` | Player UUID, world directory, position, replies and checked teleports. Store world/player state using these identities. |
 | `context.registerScreen(id, priority, factory)` | Registers a native-screen factory; the Minecraft GUI bridge constructs/opens it on the GUI thread when requested. Registration alone does not open a screen. |
+| `context.registerServerTick(id, callback)` | Registers an authoritative server-thread callback after each native `MinecraftServer.tickServer(BooleanSupplier)` return. Server sessions have opaque IDs and 1-based tick counters; handlers are isolated and disabled after three consecutive errors. Early integration, requires live Snapshot 3 mapping verification. |
 | `coda.mod.json` schema 1 | Exact Minecraft target, unique mod ID, entrypoint and required mod IDs. Missing dependencies, duplicates and dependency cycles are rejected. |
 
 The public Java namespace remains `dev.howlingwhispers.codaloader.api`.
