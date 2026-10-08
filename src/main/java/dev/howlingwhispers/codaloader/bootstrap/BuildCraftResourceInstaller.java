@@ -64,6 +64,8 @@ final class BuildCraftResourceInstaller {
                     // Preserve original textures, replacing only these specific
                     // old 1.12 JSON descriptors with native-format adapters.
                     if (name.equals("assets/buildcraftcore/models/item/engine_redstone.json")
+                        || name.equals("assets/buildcraftcore/models/block/engine_redstone.json")
+                        || name.equals("assets/buildcraftcore/blockstates/engine_redstone.json")
                         || name.equals("assets/buildcraftcore/lang/en_us.json")
                         || name.equals("assets/buildcrafttransport/lang/en_us.json"))
                         continue;
