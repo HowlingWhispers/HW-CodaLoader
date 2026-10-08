@@ -21,4 +21,20 @@ public interface CodaWorldView {
      * inventory (including an unloaded chunk). Not a transactional adapter.
      */
     Optional<CodaInventoryView> inventory(String dimension, CodaBlockPos pos) throws Exception;
+
+    /** Native block registration check, only in loaded chunks. */
+    default boolean isBlock(String dimension, CodaBlockPos pos, String blockId) throws Exception {
+        throw new UnsupportedOperationException("Snapshot transport world adapter unavailable");
+    }
+
+    /** Powered redstone engine detection, server thread only. */
+    default boolean hasNeighborSignal(String dimension, CodaBlockPos pos) throws Exception {
+        throw new UnsupportedOperationException("Snapshot redstone adapter unavailable");
+    }
+
+    /** Atomic vanilla chest/barrel transfer, never virtual inventories. */
+    default int transfer(String dimension, CodaBlockPos source,
+                         CodaBlockPos target, int maxItems) throws Exception {
+        throw new UnsupportedOperationException("Snapshot native inventory write adapter unavailable");
+    }
 }
