@@ -175,7 +175,10 @@ public final class CodaNativeRegistryBridge {
                             if (method.getName().equals("equals")) return proxy == args[0];
                             if (method.getName().equals("accept") && args.length == 2) {
                                 Object output = args[1];
-                                Method accept = output.getClass().getMethod("accept", itemStack);
+                                // Interface is public. Minecraft's internal
+                                // output implementation can be package-private.
+                                Method accept = type("net.minecraft.world.item.CreativeModeTab$Output")
+                                        .getMethod("accept", itemStack);
                                 for (String id : spec.items()) {
                                     Object entry = ITEMS.get(id);
                                     if (entry == null) throw new IllegalStateException("Missing tab item " + id);
