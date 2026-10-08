@@ -33,6 +33,11 @@ public record CodaContext(
         CodaNativeContents.registerTab(modId, id, title, icon, entries);
     }
 
+    /** Receive placement events from the authoritative Minecraft server. */
+    public void registerBlockPlacement(java.util.function.Consumer<CodaBlockPlacements.Placement> listener) {
+        CodaBlockPlacements.register(modId, listener);
+    }
+
     /** Register a Minecraft-native screen factory for a namespaced screen ID. */
     public void registerScreen(String screenId, int priority, CodaScreens.ScreenFactory factory) {
         CodaScreens.global().register(new CodaScreens.Provider(screenId, modId, priority, factory));
