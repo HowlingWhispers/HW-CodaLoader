@@ -48,6 +48,18 @@ not part of the released 0.0.26 build. JVM fixture checks are wired into CI;
 live Snapshot 3 verification remains mandatory. No block or inventory APIs are
 claimed, and BuildCraft remains non-playable until its world adapters exist.
 
+## H.O.W.L. 0.0.27: authoritative game mods
+
+Fresh distributions contain no loader/run/mods directory. HW Essentials is
+embedded inside CodaLoader.jar and installed in the active game profile's
+minecraft/mods directory. CodaLauncher migrates legacy JARs with no-clobber
+copying, retains conflicts, and archives old folders without deleting files.
+The integrated single-player agent and official launcher use the same
+game-directory-owned mod scanner. Nightly uses a separate game profile.
+Fresh CodaLauncher installs use %APPDATA%/.howlingwhispers; installations
+that already use the old misspelled .howlingshispers root keep it to preserve
+worlds and settings. In-game Snapshot 3 verification is still required.
+
 ## H.O.W.L. 0.0.26 and developer downloads
 
 The loader now displays **H.O.W.L.** in the game window, status badge and pack
@@ -105,9 +117,7 @@ CodaLoader-v0.0.24-win64.zip
 ├── CodaLoader.jar
 ├── Launch-CodaLoader.bat
 ├── README-FIRST.txt
-└── run/
-    └── mods/
-        └── hello-coda.jar
+(HW Essentials is embedded in CodaLoader.jar and installed into the active game profile.)
 ```
 
 Extract the whole ZIP into its own folder and double-click `Launch-CodaLoader.bat`.
@@ -135,12 +145,11 @@ Managed files are deliberately limited to:
 ```text
 CodaLoader.jar
 Launch-CodaLoader.bat
-run/mods/hello-coda.jar
 ```
 
 Worlds, configuration, custom music, Minecraft runtime downloads, and other mods are left alone.
 
-The first launch creates `run/config/codaloader.properties`:
+Standalone launches now create `minecraft/config/codaloader.properties` by default:
 
 ```properties
 updates=auto
