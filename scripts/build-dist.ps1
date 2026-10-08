@@ -1,7 +1,10 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
-$LoaderVersion = "0.0.24"
+$versionSource = Get-Content -Raw "src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java"
+$versionMatch = [regex]::Match($versionSource, 'LOADER_VERSION\s*=\s*"(\d+\.\d+\.\d+)"')
+if (!$versionMatch.Success) { throw "Invalid version in CodaTarget.LOADER_VERSION" }
+$LoaderVersion = $versionMatch.Groups[1].Value
 $EssentialsVersion = "0.2.0"
 $MainClass = "dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 $AgentClass = "dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
