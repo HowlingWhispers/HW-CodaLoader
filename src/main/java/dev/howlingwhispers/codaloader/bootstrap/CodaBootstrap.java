@@ -20,6 +20,8 @@ public final class CodaBootstrap {
         if (args.length > 0 && "--version-json".equals(args[0])) {
             System.out.println("{"
                     + "\"loader\":\"" + CodaTarget.LOADER_VERSION + "\","
+                    + "\"displayName\":\"" + CodaTarget.LOADER_DISPLAY_NAME + "\","
+                    + "\"fullName\":\"" + CodaTarget.LOADER_FULL_NAME + "\","
                     + "\"minecraft\":\"" + CodaTarget.MINECRAFT_VERSION + "\","
                     + "\"minecraftDisplay\":\"" + CodaTarget.MINECRAFT_DISPLAY_NAME + "\","
                     + "\"minimumJava\":" + CodaTarget.MINECRAFT_MINIMUM_JAVA
@@ -47,7 +49,7 @@ public final class CodaBootstrap {
             return;
         }
         if (launcherManaged) {
-            System.out.println("[CodaLoader] Launcher-managed install: self-update handoff skipped.");
+            System.out.println("[CodaLoader] H.O.W.L. updates were checked by CodaLauncher before launch.");
         }
 
         MinecraftBootstrap minecraft = new MinecraftBootstrap(root, basePack);

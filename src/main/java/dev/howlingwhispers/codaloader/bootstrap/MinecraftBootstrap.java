@@ -189,7 +189,7 @@ public final class MinecraftBootstrap {
 
         String packMeta = "{\n"
                 + "  \"pack\": {\n"
-                + "    \"description\": \"CodaLoader built-in UI sprites\",\n"
+                + "    \"description\": \"H.O.W.L. built-in UI sprites\",\n"
                 + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
                 + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
                 + "  }\n"
@@ -225,7 +225,7 @@ public final class MinecraftBootstrap {
         Path readme = branding.resolve("README.txt");
         if (!Files.exists(readme)) {
             Files.writeString(readme,
-                    "Howling Whispers menu branding for CodaLoader.\n"
+                    "Howling Whispers menu branding for H.O.W.L..\n"
                             + "Required files:\n"
                             + "  title.png\n"
                             + "  panorama_0.png through panorama_3.png (four horizontal Coda scenes)\n"
@@ -257,7 +257,7 @@ public final class MinecraftBootstrap {
 
         String packMeta = "{\n"
                 + "  \"pack\": {\n"
-                + "    \"description\": \"Howling Whispers CodaLoader menu branding\",\n"
+                + "    \"description\": \"Howling Whispers H.O.W.L. menu branding\",\n"
                 + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
                 + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
                 + "  }\n"
@@ -503,7 +503,7 @@ public final class MinecraftBootstrap {
             System.out.println("[CodaLoader] Using custom Howling Whispers splash messages.");
         } else if (Files.isRegularFile(base)) {
             splashes = Files.readString(base, StandardCharsets.UTF_8);
-            System.out.println("[CodaLoader] Using CML base-pack splash messages.");
+            System.out.println("[CodaLoader] Using H.O.W.L. base-pack splash messages.");
         } else {
             splashes = String.join("\n", List.of(
                     "Howling Whispers!",
@@ -543,6 +543,8 @@ public final class MinecraftBootstrap {
                     "Moonlight on the clipboard!"
             )) + "\n";
         }
+
+        if (!Files.isRegularFile(custom)) splashes = HowlSplashes.shipped(splashes);
 
         Path splashesFile = pack.resolve("assets").resolve("minecraft")
                 .resolve("texts").resolve("splashes.txt");
@@ -672,7 +674,7 @@ public final class MinecraftBootstrap {
 
         String packMeta = "{\n"
                 + "  \"pack\": {\n"
-                + "    \"description\": \"CodaLoader custom menu music\",\n"
+                + "    \"description\": \"H.O.W.L. custom menu music\",\n"
                 + "    \"min_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0],\n"
                 + "    \"max_format\": [" + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ", 0]\n"
                 + "  }\n"
@@ -899,7 +901,7 @@ public final class MinecraftBootstrap {
 
         Map<String, String> vars = new HashMap<>();
         vars.put("natives_directory", natives.toString());
-        vars.put("launcher_name", "CodaLoader");
+        vars.put("launcher_name", "HOWL");
         vars.put("launcher_version", CodaTarget.LOADER_VERSION);
         vars.put("classpath", String.join(File.pathSeparator,
                 classpath.stream().map(Path::toString).toList()));

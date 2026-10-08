@@ -87,6 +87,17 @@ Copy-Item examples/hello-coda/resources/coda.mod.json out/example-classes/
 & jar --create --file "dist/hello-coda.jar" -C out/example-classes .
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+# Compile-only API and editable starter for third-party HOWL mods.
+& jar --create --file "dist/howl-api-$LoaderVersion.jar" -C out/classes dev/howlingwhispers/codaloader/api
+if ($LASTEXITCODE -ne 0) { throw "API packaging failed" }
+New-Item -ItemType Directory -Force dist/sdk/lib, dist/sdk/api-src/dev/howlingwhispers/codaloader | Out-Null
+Copy-Item "dist/howl-api-$LoaderVersion.jar" dist/sdk/lib/howl-api.jar
+Copy-Item -Recurse examples/hello-coda/src, examples/hello-coda/resources dist/sdk/
+Copy-Item -Recurse src/main/java/dev/howlingwhispers/codaloader/api dist/sdk/api-src/dev/howlingwhispers/codaloader/
+Copy-Item sdk/README.md, sdk/build-mod.sh, sdk/build-mod.ps1 dist/sdk/
+Copy-Item docs/HOWL-API.md dist/sdk/
+Compress-Archive -Path dist/sdk/* -DestinationPath "dist/HOWL-SDK-v$LoaderVersion.zip" -Force
+
 Copy-Item Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 Copy-Item dist/CodaLoader.jar dist/package/CodaLoader.jar
 Copy-Item dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
@@ -94,12 +105,12 @@ Copy-Item dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
 Copy-Item dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 @"
-CodaLoader $LoaderVersion
+H.O.W.L. $LoaderVersion - Howling Open Works Loader
 
 1. Extract the entire ZIP into its own folder.
 2. Double-click Launch-CodaLoader.bat.
 3. Keep CodaLoader.jar beside the BAT.
-4. Put CodaLoader mods in run\mods.
+4. Put HOWL mods in run\mods.
 5. Put custom menu .ogg music in run\music\menu.
 
 CodaLoader checks public GitHub Releases for updates automatically.
@@ -135,3 +146,5 @@ Write-Host "  dist/Launch-CodaLoader.bat"
 Write-Host "  dist/hw-essentials.jar (from HW-Mods v$EssentialsVersion)"
 Write-Host "  dist/$BundleName"
 Write-Host "  dist/update-manifest.json"
+Write-Host "  dist/HOWL-SDK-v$LoaderVersion.zip"
+Write-Host "  dist/howl-api-$LoaderVersion.jar"

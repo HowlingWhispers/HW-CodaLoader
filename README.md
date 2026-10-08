@@ -1,8 +1,31 @@
-# CodaLoader
+# H.O.W.L.
 
-CodaLoader is a from-scratch Minecraft Java mod loader and bootstrap project targeting **Minecraft Java 26.4 Snapshot 3**.
+**Howling Open Works Loader**, by Howling Whispers. CodaLauncher remains the player launcher.
+
+H.O.W.L. is a from-scratch Minecraft Java mod loader and bootstrap project targeting **Minecraft Java 26.4 Snapshot 3**.
 
 It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
+
+## H.O.W.L. 0.0.26 and developer downloads
+
+The loader now displays **H.O.W.L.** in the game window, status badge and pack
+descriptions. The shipped yellow splash pool includes
+`COWL?! ...no. *huff* H.O.W.L.!`, including when an older base pack supplies
+splash text. A player's custom `branding/splashes.txt` remains authoritative.
+
+Existing repository names, `CodaLoader.jar`, update bundles, `coda.mod.json`,
+Java API packages, configuration keys and save paths stay compatible.
+CodaLauncher 0.7.3 renames its existing official installation to
+**Howling Whispers | H.O.W.L.** without duplicating it or moving worlds.
+
+[Releases](https://github.com/HowlingWhispers/HW-CodaLoader/releases) include
+`HOWL-SDK-v0.0.26.zip` and `howl-api-0.0.26.jar` for developers. The SDK has an
+editable mod, compile-only API, API sources and build scripts.
+See [HOWL API](docs/HOWL-API.md) for supported hooks and current revival limits.
+Block/item/machine/transport APIs needed for BuildCraft remain development work.
+
+This remains a prerelease: automated menu and agent checks do not replace a
+live Minecraft Snapshot 3 test of launch, Settings return, menu spacing and music.
 
 ## Custom Coda menu ownership (source milestone)
 

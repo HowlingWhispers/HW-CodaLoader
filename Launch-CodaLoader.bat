@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-title CodaLoader
+title H.O.W.L.
 
 cd /d "%~dp0"
 

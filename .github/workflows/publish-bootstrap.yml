@@ -1,4 +1,4 @@
-name: Publish CodaLoader bundle
+name: Publish HOWL bundle and SDK
 
 # Only a deliberate loader version bump can produce a new prerelease.
 # Publishing requires the compatible 0.7.1+ CodaLauncher release and full
@@ -60,6 +60,15 @@ jobs:
           cp dist/hello-coda.jar run/mods/
           java -jar dist/CodaLoader.jar --loader-only run
 
+      - name: Verify HOWL SDK starter
+        run: |
+          version="$(java -jar dist/CodaLoader.jar --version)"
+          unzip -q "dist/HOWL-SDK-v${version}.zip" -d out/sdk-check
+          bash out/sdk-check/build-mod.sh
+          mkdir -p out/sdk-run/mods
+          cp out/sdk-check/out/hello-coda.jar out/sdk-run/mods/
+          java -jar dist/CodaLoader.jar --loader-only out/sdk-run | grep -F 'Pawprint confirmed'
+
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
@@ -81,11 +90,17 @@ jobs:
             exit 0
           fi
           cat > release-notes.md <<EOF
-          # CodaLoader ${VERSION}
+          # H.O.W.L. ${VERSION} — Howling Open Works Loader
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
 
-          - CML-owned layouts for the title and Escape menus, with retained native game actions.
+          - New H.O.W.L. display branding, preserving existing CodaLoader filenames,
+            mod metadata, Java API namespaces, configuration and update paths.
+          - Coda's yellow splash: COWL?! ...no. *huff* H.O.W.L.!
+            Included with older shipped base packs; user splash overrides remain intact.
+          - HOWL SDK: compile-only API JAR, public API sources, editable starter,
+            cross-platform build scripts and current API/BuildCraft revival limits.
+          - HOWL-owned layouts for the title and Escape menus, with retained native game actions.
           - Consistent Coda-flavoured labels, tooltips and icon spacing.
           - GUI-thread lifecycle, menu rebuild and duplicate injection protection.
           - Safe fallback to the legacy menu layout on incompatible screens.
@@ -102,6 +117,6 @@ jobs:
           Tested by CI with command, menu and Java-agent fixtures on Java 21 and 25.
           **Live Snapshot 3 menu verification is still required.**
           EOF
-          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
-            --target "$GITHUB_SHA" --title "CodaLoader ${VERSION}" \
+          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
+            --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \
             --notes-file release-notes.md --prerelease

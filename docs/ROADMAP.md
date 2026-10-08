@@ -1,4 +1,14 @@
-# CodaLoader roadmap
+# H.O.W.L. roadmap
+
+## 0.0.26: H.O.W.L. and first SDK
+
+- [x] H.O.W.L. display name, preserving installed filenames and public API contracts
+- [x] Coda's COWL huff yellow splash with shipped-pack migration and user override preservation
+- [x] Compile-only HOWL API JAR, editable starter and Windows/Linux/macOS build scripts
+- [x] Current developer API documentation and BuildCraft port limits
+- [ ] Block/item registration, recipes, machine ticks and persistent block entities
+- [ ] Inventory/fluid/energy transport contracts needed for BuildCraft
+- [ ] Live Snapshot 3 verification of official launcher, menu layout and music
 
 ## 0.0.1 Foundation
 

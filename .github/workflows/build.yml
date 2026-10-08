@@ -53,6 +53,17 @@ jobs:
           expected="$(sed -n 's/.*LOADER_VERSION = "\([^"]*\)";.*/\1/p' src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java)"
           test "$version" = "$expected"
           java -jar dist/CodaLoader.jar --version-json | grep -F '"minecraft":"26.4-snapshot-3"'
+          java -jar dist/CodaLoader.jar --version-json | grep -F '"displayName":"H.O.W.L."'
+
+      - name: Build and load the HOWL SDK starter
+        shell: bash
+        run: |
+          version="$(java -jar dist/CodaLoader.jar --version)"
+          unzip -q "dist/HOWL-SDK-v${version}.zip" -d out/sdk-check
+          bash out/sdk-check/build-mod.sh
+          mkdir -p out/sdk-run/mods
+          cp out/sdk-check/out/hello-coda.jar out/sdk-run/mods/
+          java -jar dist/CodaLoader.jar --loader-only out/sdk-run | grep -F 'Pawprint confirmed'
 
       - name: Smoke-test loader without launching Minecraft
         shell: bash
@@ -117,6 +128,8 @@ jobs:
             dist/hello-coda.jar
             dist/hw-essentials.jar
             dist/Launch-CodaLoader.bat
+            dist/HOWL-SDK-v*.zip
+            dist/howl-api-*.jar
           if-no-files-found: error
           retention-days: 30
 

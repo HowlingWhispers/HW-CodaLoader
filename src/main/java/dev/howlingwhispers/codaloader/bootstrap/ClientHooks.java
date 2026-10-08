@@ -220,7 +220,7 @@ final class ClientHooks {
 
             Method setTitle = findMethod(window.getClass(), "setTitle", String.class);
             if (setTitle == null) return;
-            setTitle.invoke(window, "CodaLoader " + CodaTarget.LOADER_VERSION
+            setTitle.invoke(window, CodaTarget.LOADER_DISPLAY_NAME + " " + CodaTarget.LOADER_VERSION
                     + " | " + CodaTarget.MINECRAFT_DISPLAY_NAME);
             if (!titleSuccessReported) {
                 titleSuccessReported = true;
@@ -254,7 +254,7 @@ final class ClientHooks {
             String modWord = modCount == 1 ? "mod" : "mods";
             Object cml = createButton(
                     buttonClass, onPressClass, builderMethod, literal,
-                    "Coda | " + modCount + " " + modWord,
+                    CodaTarget.LOADER_DISPLAY_NAME + " | " + modCount + " " + modWord,
                     4, Math.max(4, screenHeight - 36), 138, 16,
                     "CMLStatus",
                     clicked -> System.out.println("[CodaLoader] CML status button clicked: "

@@ -81,6 +81,16 @@ javac --release 21 -encoding UTF-8 -cp out/classes -d out/example-classes "${EXA
 cp examples/hello-coda/resources/coda.mod.json out/example-classes/
 jar --create --file "dist/hello-coda.jar" -C out/example-classes .
 
+# Compile-only API and editable starter for third-party HOWL mods.
+jar --create --file "dist/howl-api-${LOADER_VERSION}.jar" -C out/classes dev/howlingwhispers/codaloader/api
+mkdir -p dist/sdk/lib dist/sdk/api-src/dev/howlingwhispers/codaloader
+cp "dist/howl-api-${LOADER_VERSION}.jar" dist/sdk/lib/howl-api.jar
+cp -R examples/hello-coda/src examples/hello-coda/resources dist/sdk/
+cp -R src/main/java/dev/howlingwhispers/codaloader/api dist/sdk/api-src/dev/howlingwhispers/codaloader/
+cp sdk/README.md sdk/build-mod.sh sdk/build-mod.ps1 dist/sdk/
+cp docs/HOWL-API.md dist/sdk/
+(cd dist/sdk && zip -q -r "../HOWL-SDK-v${LOADER_VERSION}.zip" .)
+
 cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 cp dist/CodaLoader.jar dist/package/CodaLoader.jar
 cp dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
@@ -88,12 +98,12 @@ cp dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
 cp dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 cat > dist/package/README-FIRST.txt <<EOF
-CodaLoader ${LOADER_VERSION}
+H.O.W.L. ${LOADER_VERSION} - Howling Open Works Loader
 
 1. Extract the entire ZIP into its own folder.
 2. Double-click Launch-CodaLoader.bat.
 3. Keep CodaLoader.jar beside the BAT.
-4. Put CodaLoader mods in run\\mods.
+4. Put HOWL mods in run\\mods.
 5. Put custom menu .ogg music in run\\music\\menu.
 
 CodaLoader checks public GitHub Releases for updates automatically.
@@ -132,3 +142,5 @@ echo "  dist/Launch-CodaLoader.bat"
 echo "  dist/hw-essentials.jar (from HW-Mods v${ESSENTIALS_VERSION})"
 echo "  dist/${BUNDLE_NAME}"
 echo "  dist/update-manifest.json"
+echo "  dist/HOWL-SDK-v${LOADER_VERSION}.zip"
+echo "  dist/howl-api-${LOADER_VERSION}.jar"
