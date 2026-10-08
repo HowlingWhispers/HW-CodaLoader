@@ -67,6 +67,35 @@ jobs:
           # never implement and ship guesses from earlier Minecraft versions.
           javap -p -classpath inspection/client.jar net.minecraft.core.registries.BuiltInRegistries | grep -F 'BLOCK'
           javap -p -classpath inspection/client.jar net.minecraft.world.item.Item | grep -F 'Item('
+      - name: Build real H.O.W.L. and exercise vanilla registry bootstrap headlessly
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/build-dist.sh
+          mkdir -p inspection/test-classes inspection/maven
+          javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \\
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \\
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+          printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.NativeGameTestAgent\\n\\n' > inspection/agent.mf
+          jar --create --file inspection/test-agent.jar --manifest inspection/agent.mf \\
+            -C inspection/test-classes dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.class
+          jq -r '.libraries[].downloads.artifact | select(.url != null) | [.url, .path, .sha1] | @tsv' inspection/version.json > inspection/libs.tsv
+          while IFS=
+        with:
+          name: snapshot3-api-evidence
+          path: |
+            inspection/snapshot-api.txt
+            inspection/version.json
+          retention-days: 14
+\\t' read -r url path checksum; do
+            mkdir -p "inspection/maven/$(dirname "$path")"
+            curl -fsSL --retry 3 "$url" -o "inspection/maven/$path"
+            [[ "$(sha1sum "inspection/maven/$path" | cut -d' ' -f1)" == "$checksum" ]] || exit 1
+          done < inspection/libs.tsv
+          CLASSPATH="inspection/test-classes:dist/CodaLoader.jar:inspection/client.jar"
+          while IFS= read -r jar; do CLASSPATH="$CLASSPATH:$jar"; done < <(find inspection/maven -type f -name '*.jar')
+          java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \\
+            -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
       - uses: actions/upload-artifact@v4
         with:
           name: snapshot3-api-evidence
