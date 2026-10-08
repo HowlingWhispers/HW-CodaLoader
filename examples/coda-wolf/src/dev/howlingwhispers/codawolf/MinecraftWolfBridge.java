@@ -37,7 +37,17 @@ final class MinecraftWolfBridge {
         return ((Path) NativeCalls.call(server,"getWorldPath",root)).toAbsolutePath().normalize();
     }
     Object level(Object player) throws Exception { return NativeCalls.call(player,"level"); }
-    long dayTime(Object level) throws Exception { return ((Number) NativeCalls.call(level,"getDayTime")).longValue(); }
+    long dayTime(Object level) throws Exception {
+        // Snapshot 3's ServerLevel does not expose getDayTime() directly.
+        // The level-data object is the authoritative daylight clock used
+        // for night skipping; game time is NOT interchangeable here.
+        try {
+            return ((Number) NativeCalls.call(level, "getDayTime")).longValue();
+        } catch (NoSuchMethodException notOnLevel) {
+            Object levelData = NativeCalls.call(level, "getLevelData");
+            return ((Number) NativeCalls.call(levelData, "getDayTime")).longValue();
+        }
+    }
     boolean sleeping(Object player) throws Exception { return (Boolean) NativeCalls.call(player,"isSleeping"); }
     Object wolf(Object level, UUID uuid) throws Exception {
         // getEntity is intentionally a loaded-entity lookup. Missing does NOT mean dead.
@@ -64,6 +74,37 @@ final class MinecraftWolfBridge {
         return ((Number) NativeCalls.call(entity,"getLastHurtByMobTimestamp")).intValue();
     }
 
+    /**
+     * Resolve the existing vanilla wolf entity by its registry id, not a
+     * hard-coded static EntityType.WOLF field. Snapshot 3 no longer exposes
+     * that field. No registry writes, entity registration or loader edits.
+     */
+    private static Object resolveWolfType(ClassLoader loader) throws Exception {
+        Class<?> entityType = NativeCalls.type("net.minecraft.world.entity.EntityType", loader);
+        try {
+            Object constant = NativeCalls.field(entityType, "WOLF");
+            if (entityType.isInstance(constant)) return constant;
+            throw new IllegalStateException("EntityType.WOLF is not an EntityType");
+        } catch (NoSuchFieldException absentOnSnapshot3) {
+            Class<?> builtIns = NativeCalls.type(
+                    "net.minecraft.core.registries.BuiltInRegistries", loader);
+            Object registry = NativeCalls.field(builtIns, "ENTITY_TYPE");
+            Class<?> identifier = NativeCalls.type("net.minecraft.resources.Identifier", loader);
+            Object id = NativeCalls.call(identifier, "parse", "minecraft:wolf");
+            Object value;
+            try {
+                value = NativeCalls.call(registry, "getValue", id);
+            } catch (NoSuchMethodException noGetValue) {
+                // Explicit second supported Registry lookup signature.
+                value = NativeCalls.call(registry, "get", id);
+            }
+            if (value instanceof java.util.Optional<?> optional) value = optional.orElse(null);
+            if (value == null || !entityType.isInstance(value))
+                throw new IllegalStateException("Vanilla minecraft:wolf has no EntityType in Snapshot 3");
+            return value;
+        }
+    }
+
     /** Spawn an ordinary vanilla Wolf and let vanilla pathfinding/following run. */
     Object spawn(Object player) throws Exception {
         Object level = level(player);
@@ -72,8 +113,7 @@ final class MinecraftWolfBridge {
         catch (ClassNotFoundException ex) {
             wolfClass = NativeCalls.type("net.minecraft.world.entity.animal.Wolf",gameLoader);
         }
-        Class<?> typeClass = NativeCalls.type("net.minecraft.world.entity.EntityType",gameLoader);
-        Object wolfType = NativeCalls.field(typeClass,"WOLF");
+        Object wolfType = resolveWolfType(gameLoader);
         Object wolf = NativeCalls.construct(wolfClass,wolfType,level);
         // Spawn in the same loaded, collision-free position the player occupies.
         // Offsetting into an unknown neighbouring block may embed the wolf in stone.

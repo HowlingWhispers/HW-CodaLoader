@@ -1,7 +1,11 @@
 name: Verify Coda Wolf spawn diagnostics
 on:
   push:
-    branches: [fix/coda-wolf-spawn-diagnostics]
+    branches: [fix/coda-wolf-spawn-diagnostics, fix/coda-wolf-snapshot3-native-lookup]
+    paths:
+      - 'examples/coda-wolf/**'
+      - '.github/workflows/coda-wolf-spawn-fix.yml'
+  pull_request:
     paths:
       - 'examples/coda-wolf/**'
       - '.github/workflows/coda-wolf-spawn-fix.yml'
@@ -33,6 +37,16 @@ jobs:
           javac --release 21 -encoding UTF-8 -cp "build/howlapi:examples/coda-wolf/out/classes" \
             -d examples/coda-wolf/out/classes examples/coda-wolf/tests/CodaWolfCommandTest.java
           java -cp "build/howlapi:examples/coda-wolf/out/classes" CodaWolfCommandTest
+      - name: Reproduce missing Snapshot 3 EntityType.WOLF and ServerLevel.getDayTime
+        run: |
+          set -euo pipefail
+          mkdir -p examples/coda-wolf/out/native-fixture
+          find examples/coda-wolf/tests/native-fixture/src -name '*.java' > examples/coda-wolf/out/native-fixture-sources.txt
+          javac --release 21 -encoding UTF-8 -d examples/coda-wolf/out/native-fixture \
+            @examples/coda-wolf/out/native-fixture-sources.txt \
+            examples/coda-wolf/src/dev/howlingwhispers/codawolf/NativeCalls.java \
+            examples/coda-wolf/src/dev/howlingwhispers/codawolf/MinecraftWolfBridge.java
+          java -cp examples/coda-wolf/out/native-fixture dev.howlingwhispers.codawolf.NativeLookupSnapshotTest
       - name: Verify official launcher-readable mod JAR
         run: |
           python3 - <<'PY'
