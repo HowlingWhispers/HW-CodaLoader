@@ -12,8 +12,8 @@ public final class CodaMenuLifecycle {
         String screenId = title ? dev.howlingwhispers.codaloader.api.CodaScreens.TITLE
                 : dev.howlingwhispers.codaloader.api.CodaScreens.PAUSE;
         try {
-            if (dev.howlingwhispers.codaloader.api.CodaScreens.global().providers(screenId).isEmpty())
-                CodaMenus.apply(screen, title);
+            // Keep the current Coda-styled native menu usable when a custom provider defers.
+            CodaMenus.apply(screen, title);
             CodaScreenBridge.afterNativeInitialize(screen, screenId);
         } catch (Throwable failure) {
             if (!failureReported) {
