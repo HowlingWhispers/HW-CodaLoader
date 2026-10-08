@@ -7,7 +7,11 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-Add-Type -AssemblyName System.IO.Compression
+# Windows PowerShell 5.1 needs FileSystem for ZipFile; PowerShell 7 exposes it directly.
+if (-not ('System.IO.Compression.ZipFile' -as [type])) {
+    try { Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop }
+    catch { Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop }
+}
 $jar = Join-Path $PSScriptRoot 'coda-wolf-0.1.0-dev.jar'
 if (-not (Test-Path -LiteralPath $jar -PathType Leaf)) {
     throw 'Keep this installer alongside coda-wolf-0.1.0-dev.jar in the extracted package.'
@@ -45,7 +49,7 @@ if ([string]::IsNullOrWhiteSpace($GameRoot)) {
         $settings = Join-Path $root 'launcher/settings.json'
         if (Test-Path -LiteralPath $settings -PathType Leaf) {
             $saved = Get-Content -LiteralPath $settings -Raw | ConvertFrom-Json
-            if ($saved.updateChannel -eq 'nightly') { $Channel = 'Nightly' }
+            if ($null -ne $saved.PSObject.Properties['updateChannel'] -and $saved.updateChannel -eq 'nightly') { $Channel = 'Nightly' }
         }
     }
     $GameRoot = if ($Channel -eq 'Nightly') { Join-Path $root 'nightly/minecraft' }
