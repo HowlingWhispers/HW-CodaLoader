@@ -4,6 +4,32 @@ CodaLoader is a from-scratch Minecraft Java mod loader and bootstrap project tar
 
 It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 
+## Custom Coda menu ownership (source milestone)
+
+CodaLoader now defaults to a CML-owned **widget layout** for the Minecraft 26.4
+Snapshot 3 title and pause screens. This stage keeps Minecraft's native screen
+classes and action callbacks, but CML owns the known button captions, spacing,
+positions and the visibility of unwanted native controls:
+
+- Title: **My Worlds**, **Coda's Settings**, **Clock Out**, plus a separate
+  centred row for native and HW social controls.
+- Pause: **Back to Adventure**, **Pawprints**, **Coda's Ledger**, native
+  World Rules / Settings, icon controls and **Save & Curl Up**.
+- Legacy multiplayer/Realms and LAN/feedback shortcuts are removed from
+  input and rendering. Unknown third-party controls remain untouched.
+- Both layouts are rebuilt on Minecraft's GUI thread, including after resize.
+  Duplicate asynchronous CML control injection is guarded.
+- A failed layout or unknown essential native action falls back to the older
+  native customization, instead of replacing functional game actions.
+- To force legacy layout during development, launch with Java property
+  `-Dcodaloader.menu.mode=legacy`. The default is `owned`.
+
+**Scope:** This does not yet create standalone Screen subclasses or a custom
+frame renderer. It is the safe menu-control foundation for that subsequent
+milestone and the planned HW Clipboard. Automated fixture tests validate
+spacing, callbacks and repeated initialization; live Snapshot 3 verification
+remains required before a production release.
+
 ## Windows download
 
 Releases are distributed as one versioned ZIP:
