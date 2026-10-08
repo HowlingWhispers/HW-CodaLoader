@@ -2,9 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOADER_VERSION="0.0.19"
+LOADER_VERSION="0.0.20"
 EXAMPLE_VERSION="0.0.1"
-ESSENTIALS_VERSION="0.1.0"
+ESSENTIALS_VERSION="0.2.0"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 BUNDLE_NAME="CodaLoader-v${LOADER_VERSION}-win64.zip"

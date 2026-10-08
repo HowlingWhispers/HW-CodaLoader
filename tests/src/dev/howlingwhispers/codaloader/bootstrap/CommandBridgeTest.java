@@ -17,14 +17,14 @@ public final class CommandBridgeTest {
     public static void main(String[] args) throws Exception {
         Path world = Files.createTempDirectory("cml-command-bridge-");
         Path config = world.resolve("config"); Files.createDirectories(config);
-        new HwEssentialsMod().onInitialize(new CodaContext("0.0.19", "26.4-snapshot-3", world, config, "hw_essentials", List.of("hw_essentials")));
+        new HwEssentialsMod().onInitialize(new CodaContext("0.0.20", "26.4-snapshot-3", world, config, "hw_essentials", List.of("hw_essentials")));
         Server server = new Server(world);
         Source source = new Source(server);
         ServerCommandHooks.register(server);
-        check(server.commands.dispatcher.getRoot().getChildren().size() == 5, "register all roots");
+        check(server.commands.dispatcher.getRoot().getChildren().size() == 6, "register all roots");
         check(server.commands.syncs == 1, "connected player receives refreshed command tree");
         ServerCommandHooks.register(server);
-        check(server.commands.dispatcher.getRoot().getChildren().size() == 5, "repeat registration preserves roots");
+        check(server.commands.dispatcher.getRoot().getChildren().size() == 6, "repeat registration preserves roots");
         check(server.commands.dispatcher.execute("sethome cabin", source) == 1, "named home command parses");
         source.player.x = 100; source.player.yaw = 180;
         check(server.commands.dispatcher.execute("home cabin", source) == 1, "home command succeeds");
@@ -39,6 +39,14 @@ public final class CommandBridgeTest {
         source.level.supported = true; source.level.bounds = false;
         check(server.commands.dispatcher.execute("home cabin", source) == 0, "world bounds refuse");
         source.level.bounds = true;
+        check(server.commands.dispatcher.execute("back", source) == 1, "back command succeeds after refused home trips");
+        check(source.player.x == 100 && source.player.yaw == 180, "back restores departure position and facing");
+        source.level.collision = true;
+        check(server.commands.dispatcher.execute("back", source) == 0, "blocked back destination refuses");
+        check(source.player.teleports == 2, "blocked back never moves player");
+        source.level.collision = false;
+        check(server.commands.dispatcher.execute("back", source) == 1, "back return point survives refused trip");
+        check(source.player.x == 10.5 && source.player.yaw == 90, "back toggles to home");
         check(server.commands.dispatcher.execute("sethome", source) == 1, "no-argument command parses");
         check(server.commands.dispatcher.execute("sethome one two", source) == 0, "extra arguments rejected");
         check(server.commands.dispatcher.execute("homes", source) == 1, "list command");
