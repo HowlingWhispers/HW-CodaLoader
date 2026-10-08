@@ -95,11 +95,22 @@ jobs:
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/discord.png"
           jar tf dist/CodaLoader.jar | grep -F "codaloader/ui/youtube.png"
 
+      - name: Mark development bundle as non-releasable
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(java -jar dist/CodaLoader.jar --version)"
+          printf '{"channel":"development","version":"%s","commit":"%s","autoInstall":false,"requiresVerifiedAccount":true}\n' \
+            "$version" "$GITHUB_SHA" > dist/build-channel.json
+          echo "This bundle is a CI development artifact, NOT a CodaLauncher auto-update."
+          cat dist/build-channel.json
+
       - name: Upload distribution
         uses: actions/upload-artifact@v4
         with:
-          name: CodaLoader-${{ github.sha }}
+          name: CodaLoader-development-${{ github.sha }}
           path: |
+            dist/build-channel.json
             dist/CodaLoader-v*-win64.zip
             dist/update-manifest.json
             dist/CodaLoader.jar
