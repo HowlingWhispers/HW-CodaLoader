@@ -84,6 +84,11 @@ final class CodaOwnedMenus {
 
             Object rules = CodaMenus.find(active, "menu.worldOptions");
             if (rules == null) rules = findWorldOptions(active, settings, exit);
+            List<Object> reserved = new ArrayList<>(List.of(principal, settings, exit));
+            if (advancements != null) reserved.add(advancements);
+            if (statistics != null) reserved.add(statistics);
+            if (rules != null) reserved.add(rules);
+            if (placeIcons(active, center, line, reserved)) line += ROW;
             if (rules != null) {
                 place(settings, center - 100, line, 98);
                 place(rules, center + 2, line, 98);
@@ -91,11 +96,6 @@ final class CodaOwnedMenus {
                 place(settings, center - 100, line, 200);
             }
             line += ROW;
-            List<Object> reserved = new ArrayList<>(List.of(principal, settings, exit));
-            if (advancements != null) reserved.add(advancements);
-            if (statistics != null) reserved.add(statistics);
-            if (rules != null) reserved.add(rules);
-            if (placeIcons(active, center, line, reserved)) line += ROW;
             place(exit, center - 100, line, 200);
         }
         return true;
