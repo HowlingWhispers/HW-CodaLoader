@@ -84,6 +84,36 @@ public final class MinecraftWorldInventoryView implements CodaWorldView, AutoClo
         return Optional.of(new CodaInventoryView(pos, slots));
     }
 
+    @Override
+    public boolean isBlock(String dimension, CodaBlockPos pos, String blockId) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null) return false;
+        return new MinecraftSingleplayerWorld(server, level).isBlock(pos, blockId);
+    }
+
+    @Override
+    public boolean hasNeighborSignal(String dimension, CodaBlockPos pos) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null || existingChunk(level, pos) == null) return false;
+        Class<?> nativePos = Class.forName("net.minecraft.core.BlockPos", true,
+                level.getClass().getClassLoader());
+        Object at = nativePos.getConstructor(int.class,int.class,int.class)
+                .newInstance(pos.x(),pos.y(),pos.z());
+        return (Boolean)CommandReflection.call(level, "hasNeighborSignal", at);
+    }
+
+    @Override
+    public int transfer(String dimension, CodaBlockPos from, CodaBlockPos to,
+                        int maximum) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null || existingChunk(level, from) == null
+                || existingChunk(level, to) == null) return 0;
+        return new MinecraftSingleplayerWorld(server, level).transfer(from, to, maximum);
+    }
+
     private Iterable<?> levels() throws Exception {
         Object levels = CommandReflection.call(server, "getAllLevels");
         if (!(levels instanceof Iterable<?> result))
@@ -102,7 +132,13 @@ public final class MinecraftWorldInventoryView implements CodaWorldView, AutoClo
 
     private static String dimensionId(Object level) throws Exception {
         Object dimensionKey = CommandReflection.call(level, "dimension");
-        return CommandReflection.call(dimensionKey, "location").toString();
+        try {
+            return CommandReflection.call(dimensionKey, "identifier").toString();
+        } catch (IllegalArgumentException fixtureOnly) {
+            // Older JVM fixture names used location; the official Snapshot 3
+            // ResourceKey was renamed to identifier(). Production chooses it.
+            return CommandReflection.call(dimensionKey, "location").toString();
+        }
     }
 
     private static Object existingChunk(Object level, CodaBlockPos pos) throws Exception {
