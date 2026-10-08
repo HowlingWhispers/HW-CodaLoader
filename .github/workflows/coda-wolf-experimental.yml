@@ -52,6 +52,21 @@ jobs:
           cp examples/coda-wolf/README-FIRST.txt build/coda-wolf-installer/
           cd build/coda-wolf-installer
           zip -r ../CodaWolf-HOWL-0.1.0-dev-Installer.zip .
+      - name: Check installer places JAR in the active mod folder
+        shell: bash
+        run: |
+          if ! command -v pwsh >/dev/null; then
+            echo 'PowerShell unavailable on build runner; refusing to skip installation test.'
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/coda-profile/launcher"
+          printf '{"updateChannel":"nightly"}' > "$RUNNER_TEMP/coda-profile/launcher/settings.json"
+          mkdir -p "$RUNNER_TEMP/roaming"
+          mv "$RUNNER_TEMP/coda-profile" "$RUNNER_TEMP/roaming/.howlingshispers"
+          APPDATA="$RUNNER_TEMP/roaming" pwsh -NoProfile -File build/coda-wolf-installer/Install-CodaWolf.ps1
+          test -f "$RUNNER_TEMP/roaming/.howlingshispers/nightly/minecraft/mods/coda-wolf-0.1.0-dev.jar"
+          APPDATA="$RUNNER_TEMP/roaming" pwsh -NoProfile -File build/coda-wolf-installer/Install-CodaWolf.ps1
+          echo 'PASS: nightly channel autodetection, installed JAR, duplicate-safe repeat.'
       - uses: actions/upload-artifact@v4
         with:
           name: CodaWolf-HOWL-0.1.0-dev
