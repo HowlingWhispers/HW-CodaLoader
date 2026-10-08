@@ -26,6 +26,12 @@ final class MinecraftWolfBridge {
         return (List<Object>) NativeCalls.call(NativeCalls.call(server,"getPlayerList"),"getPlayers");
     }
     UUID id(Object entity) throws Exception { return (UUID) NativeCalls.call(entity,"getUUID"); }
+    Object player(UUID ownerId) throws Exception {
+        for (Object candidate : players()) {
+            if (ownerId.equals(id(candidate))) return candidate;
+        }
+        return null;
+    }
     Path worldDirectory() throws Exception {
         Object root = NativeCalls.field(NativeCalls.type("net.minecraft.world.level.storage.LevelResource",gameLoader),"ROOT");
         return ((Path) NativeCalls.call(server,"getWorldPath",root)).toAbsolutePath().normalize();
@@ -38,8 +44,9 @@ final class MinecraftWolfBridge {
         return NativeCalls.call(level,"getEntity",uuid);
     }
     boolean dead(Object wolf) throws Exception {
-        return !(Boolean) NativeCalls.call(wolf,"isAlive")
-                || (Boolean) NativeCalls.call(wolf,"isDeadOrDying");
+        // isAlive() is enough to distinguish a loaded living entity. Do not
+        // require a second snapshot-specific native method merely to spawn.
+        return !(Boolean) NativeCalls.call(wolf,"isAlive");
     }
     float health(Object entity) throws Exception {
         return ((Number) NativeCalls.call(entity,"getHealth")).floatValue();
@@ -68,10 +75,12 @@ final class MinecraftWolfBridge {
         Class<?> typeClass = NativeCalls.type("net.minecraft.world.entity.EntityType",gameLoader);
         Object wolfType = NativeCalls.field(typeClass,"WOLF");
         Object wolf = NativeCalls.construct(wolfClass,wolfType,level);
+        // Spawn in the same loaded, collision-free position the player occupies.
+        // Offsetting into an unknown neighbouring block may embed the wolf in stone.
         NativeCalls.call(wolf,"setPos",
-                ((Number) NativeCalls.call(player,"getX")).doubleValue()+1.5,
+                ((Number) NativeCalls.call(player,"getX")).doubleValue(),
                 ((Number) NativeCalls.call(player,"getY")).doubleValue(),
-                ((Number) NativeCalls.call(player,"getZ")).doubleValue()+1.5);
+                ((Number) NativeCalls.call(player,"getZ")).doubleValue());
         NativeCalls.call(wolf,"setOwnerUUID",id(player));
         try { NativeCalls.call(wolf,"setTame",true,true); }
         catch (NoSuchMethodException ex) { NativeCalls.call(wolf,"setTame",true); }
