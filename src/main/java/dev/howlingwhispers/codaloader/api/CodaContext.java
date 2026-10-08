@@ -16,6 +16,23 @@ public record CodaContext(
         loadedModIds = List.copyOf(loadedModIds);
     }
 
+    /**
+     * Declare native blocks before Snapshot 3's vanilla registries freeze.
+     * H.O.W.L. owns the game-specific registration and Creative tab bridge.
+     * An actual BlockItem is automatically registered for each block.
+     */
+    public void registerBlock(String namespacedId, float hardness) {
+        CodaNativeContents.registerBlock(modId, namespacedId, hardness);
+    }
+
+    public void registerItem(String namespacedId) {
+        CodaNativeContents.registerItem(modId, namespacedId);
+    }
+
+    public void registerCreativeTab(String id, String title, String icon, List<String> entries) {
+        CodaNativeContents.registerTab(modId, id, title, icon, entries);
+    }
+
     /** Register a Minecraft-native screen factory for a namespaced screen ID. */
     public void registerScreen(String screenId, int priority, CodaScreens.ScreenFactory factory) {
         CodaScreens.global().register(new CodaScreens.Provider(screenId, modId, priority, factory));
