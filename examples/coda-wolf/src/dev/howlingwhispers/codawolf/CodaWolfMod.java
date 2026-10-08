@@ -83,7 +83,7 @@ public final class CodaWolfMod implements CodaMod {
                 System.err.println(PREFIX + "Diagnostic exception: " + ex);
             }
         });
-        System.out.println(PREFIX + "0.1.0-dev initialized. If she does not spawn: /codawolf diagnose, then /codawolf summon.");
+        System.out.println(PREFIX + "0.1.1-dev initialized. If she does not spawn: /codawolf diagnose, then /codawolf summon.");
     }
 
     private String describeSave(CompanionSave save) {
