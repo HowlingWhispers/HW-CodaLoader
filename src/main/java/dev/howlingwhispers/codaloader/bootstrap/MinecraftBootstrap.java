@@ -78,6 +78,12 @@ public final class MinecraftBootstrap {
         prepareCodaUiPack();
         prepareBrandingPack();
         prepareCustomMusicPack();
+        // The BuildCraft mod JAR contains its original 8.0.0 visual assets.
+        // Enable the one generated compatibility resourcepack for both
+        // official and local test launch modes. Stable without BuildCraft is
+        // unaffected.
+        if (BuildCraftResourceInstaller.prepare(game))
+            enableGeneratedPack("file/" + BuildCraftResourceInstaller.packName());
     }
 
     public int launch() throws Exception {
