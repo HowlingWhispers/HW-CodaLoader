@@ -14,8 +14,21 @@ $EssentialsSha256Url = "$EssentialsJarUrl.sha256"
 Remove-Item -Recurse -Force out, dist -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/package/run/mods | Out-Null
 
+# Bundle pinned ASM for Java 25-compatible menu instrumentation.
+New-Item -ItemType Directory -Force out/libraries | Out-Null
+Invoke-WebRequest -Uri "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.9/asm-9.9.jar" -OutFile out/libraries/asm.jar
+if ((Get-FileHash out/libraries/asm.jar -Algorithm SHA256).Hash.ToLowerInvariant() -ne "03d99a74ad1ee5c71334ef67437f4ef4fe3488caa7c96d8645abc73c8e2017d4") {
+    throw "ASM checksum mismatch"
+}
+Push-Location out/classes
+try {
+    & jar xf ../libraries/asm.jar
+    if ($LASTEXITCODE -ne 0) { throw "Cannot unpack ASM" }
+} finally { Pop-Location }
+Remove-Item out/classes/module-info.class, out/classes/META-INF/MANIFEST.MF -ErrorAction SilentlyContinue
+
 $loaderSources = @(Get-ChildItem -Recurse src/main/java -Filter *.java | ForEach-Object { $_.FullName })
-& javac --release 21 -encoding UTF-8 -d out/classes @loaderSources
+& javac --release 21 -encoding UTF-8 -cp out/libraries/asm.jar -d out/classes @loaderSources
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if (Test-Path src/main/resources) {
     Copy-Item -Recurse -Force src/main/resources/* out/classes/

@@ -79,6 +79,8 @@ The title menu removes Realms and traditional Multiplayer, keeping My Worlds, Co
 
 Coda labels: Back to Adventure, Pawprints, Coda's Ledger and Save & Curl Up. The UI pack supplies English Coda wording for world selection, settings and resource packs. Destructive world deletion still says clearly that the world is permanently deleted.
 
+The distribution bundles ASM 9.9 (BSD 3-Clause), pinned by SHA-256 at build time, for bytecode hooks on Java 25 and 26.
+
 The Java agent applies the layout at the end of native initialization and rebuild methods, before rendering, instead of waiting for the background polling thread. Snapshot 3 pause icons have a dedicated row and World Options remains accessible alongside Settings.
 
 The hook recognizes translation keys, not displayed English text. It runs widget changes on Minecraft's GUI thread, handles rebuilt menus and leaves unknown third-party controls intact. Fixtures check input/render removal, retained callbacks, layout and repeated initialization. Live Snapshot 3 GUI verification remains outstanding.

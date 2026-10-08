@@ -37,6 +37,8 @@ jobs:
           java-version: "25"
 
       - name: Verify menu lifecycle hooks on Java 25
+        env:
+          MENU_FIXTURE_RELEASE: "25"
         run: bash scripts/test-essentials.sh
 
       - name: Smoke-test loader

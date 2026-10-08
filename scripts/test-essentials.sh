@@ -16,13 +16,17 @@ curl --fail --location --retry 3 -o out/test-libraries/brigadier.jar https://lib
 # Compile API classes
 mkdir -p out/api-classes
 mapfile -d '' API_SOURCES < <(find src/main/java -name '*.java' -print0)
-javac --release 21 -encoding UTF-8 -d out/api-classes "${API_SOURCES[@]}"
+javac --release 21 -encoding UTF-8 -cp dist/CodaLoader.jar -d out/api-classes "${API_SOURCES[@]}"
 
-# Compile tests (only command bridge test remains in HW-CodaLoader)
+# Compile command bridge and menu fixtures
 mapfile -d '' TEST_SOURCES < <(find tests/src -name '*.java' -print0)
 javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar -d out/test-classes "${TEST_SOURCES[@]}"
 
-TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar
+# On Java 25, also test transformation of class files compiled for Minecraft's runtime.
+if [[ -n "${MENU_FIXTURE_RELEASE:-}" ]]; then
+  javac --release "$MENU_FIXTURE_RELEASE" -encoding UTF-8 -cp out/test-classes:out/api-classes -d out/test-classes tests/src/net/minecraft/client/gui/screens/*.java
+fi
+TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar:dist/CodaLoader.jar
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CommandBridgeTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaMenusTest
 

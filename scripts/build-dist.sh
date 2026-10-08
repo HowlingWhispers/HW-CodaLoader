@@ -16,13 +16,20 @@ ESSENTIALS_SHA256_URL="${HW_ESSENTIALS_SHA256_URL:-${ESSENTIALS_JAR_URL}.sha256}
 rm -rf out dist
 mkdir -p out/classes out/example-classes dist/package/run/mods
 
+# Bundle a pinned ASM build; Java 25 no longer exposes the old internal ASM.
+mkdir -p out/libraries
+curl --fail --location --retry 3 -o out/libraries/asm.jar https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.9/asm-9.9.jar
+printf '%s  %s\n' '03d99a74ad1ee5c71334ef67437f4ef4fe3488caa7c96d8645abc73c8e2017d4' out/libraries/asm.jar | sha256sum --check
+(cd out/classes && jar xf ../libraries/asm.jar)
+rm -f out/classes/module-info.class out/classes/META-INF/MANIFEST.MF
+
 mapfile -d '' LOADER_SOURCES < <(find src/main/java -name '*.java' -print0)
 if [[ ${#LOADER_SOURCES[@]} -eq 0 ]]; then
   echo "No CodaLoader Java sources found." >&2
   exit 1
 fi
 
-javac --release 21 -encoding UTF-8 -d out/classes "${LOADER_SOURCES[@]}"
+javac --release 21 -encoding UTF-8 -cp out/libraries/asm.jar -d out/classes "${LOADER_SOURCES[@]}"
 if [[ -d src/main/resources ]]; then
   cp -R src/main/resources/. out/classes/
 fi
