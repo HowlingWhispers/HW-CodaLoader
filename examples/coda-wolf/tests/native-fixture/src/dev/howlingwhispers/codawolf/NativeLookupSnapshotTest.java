@@ -1,7 +1,7 @@
 package dev.howlingwhispers.codawolf;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.animal.wolf.Wolf;
-/** Mimic the two precise missing mappings reported by the player's game log. */
+/** Mimic all three missing mappings observed in the player's game logs. */
 public final class NativeLookupSnapshotTest {
     static int checks;
     static void assertThat(boolean b,String why) { checks++; if (!b) throw new AssertionError(why); }
@@ -12,12 +12,20 @@ public final class NativeLookupSnapshotTest {
                 .noneMatch(m->m.getName().equals("getDayTime")), "missing direct dayTime reproduced");
         assertThat(java.util.Arrays.stream(net.minecraft.world.entity.EntityType.class.getFields())
                 .noneMatch(f->f.getName().equals("WOLF")), "missing static wolf field reproduced");
+        assertThat(java.util.Arrays.stream(Wolf.class.getMethods())
+                .noneMatch(m->m.getName().equals("setOwnerUUID")),
+                "missing vanilla setOwnerUUID reproduced");
+        assertThat(java.util.Arrays.stream(Wolf.class.getMethods())
+                .anyMatch(m->m.getName().equals("tame") && m.getParameterCount()==1),
+                "native vanilla tame(player) method available");
         var bridge = new MinecraftWolfBridge();
         assertThat(bridge.player(fixture.player.getUUID()) == fixture.player, "native owner lookup");
         assertThat(bridge.dayTime(fixture.level) == 12345L, "authoritative level-data day clock");
         var wolf = (Wolf) bridge.spawn(fixture.player);
         assertThat(wolf.type.name.equals("minecraft:wolf"), "wolf resolved via vanilla registry id");
         assertThat(wolf.owner.equals(fixture.player.getUUID()), "wolf tamed to local owner");
+        assertThat(wolf.isTame() && wolf.isOwnedBy(fixture.player),
+                "Minecraft native ownership and tame flags verified");
         assertThat(wolf.tamed && !wolf.sitting && wolf.persistent, "defensive companion can follow");
         assertThat("Coda".equals(wolf.label.text()) && wolf.nameVisible, "Coda named visibly");
         assertThat(wolf.collar == net.minecraft.world.item.DyeColor.CYAN, "cyan collar");
@@ -25,6 +33,6 @@ public final class NativeLookupSnapshotTest {
         assertThat(wolf.health == 20f && !bridge.dead(wolf), "wolf spawns healthy and alive");
         bridge.discard(wolf);
         assertThat(bridge.wolf(fixture.level,wolf.getUUID()) == null, "fixture cleanup");
-        System.out.println("PASS: " + checks + " observed Snapshot 3 wolf/dayTime mapping regression assertions");
+        System.out.println("PASS: " + checks + " observed Snapshot 3 wolf/dayTime/taming mapping regression assertions");
     }
 }
