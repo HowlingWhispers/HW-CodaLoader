@@ -15,7 +15,7 @@ ESSENTIALS_JAR_URL="${HW_ESSENTIALS_JAR_URL:-https://github.com/HowlingWhispers/
 ESSENTIALS_SHA256_URL="${HW_ESSENTIALS_SHA256_URL:-${ESSENTIALS_JAR_URL}.sha256}"
 
 rm -rf out dist
-mkdir -p out/classes out/example-classes dist/package/run/mods
+mkdir -p out/classes out/example-classes dist/package
 
 # Bundle a pinned ASM build; Java 25 no longer exposes the old internal ASM.
 mkdir -p out/libraries
@@ -94,8 +94,6 @@ cp docs/HOWL-API.md dist/sdk/
 cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 cp dist/CodaLoader.jar dist/package/CodaLoader.jar
 cp dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
-cp dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
-cp dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 cat > dist/package/README-FIRST.txt <<EOF
 H.O.W.L. ${LOADER_VERSION} - Howling Open Works Loader
@@ -103,7 +101,7 @@ H.O.W.L. ${LOADER_VERSION} - Howling Open Works Loader
 1. Extract the entire ZIP into its own folder.
 2. Double-click Launch-CodaLoader.bat.
 3. Keep CodaLoader.jar beside the BAT.
-4. Put HOWL mods in run\\mods.
+4. Put HOWL mods in the active Minecraft game profile's mods folder.
 5. Put custom menu .ogg music in run\\music\\menu.
 
 CodaLoader checks public GitHub Releases for updates automatically.
@@ -116,8 +114,6 @@ EOF
 
 JAR_SHA="$(sha256sum dist/package/CodaLoader.jar | awk '{print $1}')"
 BAT_SHA="$(sha256sum dist/package/Launch-CodaLoader.bat | awk '{print $1}')"
-HELLO_SHA="$(sha256sum dist/package/run/mods/hello-coda.jar | awk '{print $1}')"
-ESSENTIALS_SHA="$(sha256sum dist/package/run/mods/hw-essentials.jar | awk '{print $1}')"
 BUNDLE_SHA="$(sha256sum "dist/${BUNDLE_NAME}" | awk '{print $1}')"
 
 cat > dist/update-manifest.json <<EOF
@@ -128,9 +124,7 @@ cat > dist/update-manifest.json <<EOF
   "sha256": "${BUNDLE_SHA}",
   "files": {
     "CodaLoader.jar": "${JAR_SHA}",
-    "Launch-CodaLoader.bat": "${BAT_SHA}",
-    "run/mods/hello-coda.jar": "${HELLO_SHA}",
-    "run/mods/hw-essentials.jar": "${ESSENTIALS_SHA}"
+    "Launch-CodaLoader.bat": "${BAT_SHA}"
   }
 }
 EOF
