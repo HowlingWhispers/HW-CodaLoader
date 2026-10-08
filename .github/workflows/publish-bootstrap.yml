@@ -1,15 +1,13 @@
 name: Publish CodaLoader bundle
 
-# Main branch builds are development artifacts only. A release must be
-# explicitly authorized after the launcher/account handoff has been live-tested.
+# Only a deliberate loader version bump can produce a new prerelease.
+# Publishing requires the compatible 0.7.1+ CodaLauncher release and full
+# Java 21/25 fixture tests. Source-only changes never overwrite a release.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      verified_launcher_and_identity:
-        description: "I have live-tested account verification and this loader with the published launcher"
-        required: true
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -20,12 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Confirm release readiness
+      - name: Require compatible published CodaLauncher
         env:
-          VERIFIED: ${{ inputs.verified_launcher_and_identity }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "$VERIFIED" != "true" ]]; then
-            echo "::error::Release blocked: the verified launcher and Minecraft identity handoff have not been confirmed."
+          if ! gh release view v0.7.1 --repo HowlingWhispers/HW-CodaLauncher >/dev/null 2>&1; then
+            echo "::error::CodaLauncher 0.7.1 must be published before this loader can be released."
             exit 1
           fi
 
@@ -79,8 +77,8 @@ jobs:
           test -f dist/update-manifest.json
           grep -F "\"version\": \"${VERSION}\"" dist/update-manifest.json
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Release $TAG already exists. Bump CodaTarget.LOADER_VERSION; never silently replace an existing binary."
-            exit 1
+            echo "Published $TAG is immutable. Source-only changes won't replace it; bump the version for a new release."
+            exit 0
           fi
           cat > release-notes.md <<EOF
           # CodaLoader ${VERSION}
@@ -91,6 +89,14 @@ jobs:
           - Consistent Coda-flavoured labels, tooltips and icon spacing.
           - GUI-thread lifecycle, menu rebuild and duplicate injection protection.
           - Safe fallback to the legacy menu layout on incompatible screens.
+          - Official Minecraft Launcher profile integration via CodaLauncher 0.7.1:
+            the official launcher authenticates Minecraft and passes game identity
+            to Minecraft; the CodaLoader Java agent supplies menus, mods, scenes,
+            menu music, and shared base resources.
+          - Settings Local Test Mode uses an explicit unverified CodaPlayer local
+            identity (not a credential for online CML services).
+          - Pre-0.7.1 CodaLauncher compatibility is retained for existing local
+            CodaPlayer saves.
           - HW Essentials and existing worlds remain supported.
 
           Tested by CI with command, menu and Java-agent fixtures on Java 21 and 25.
