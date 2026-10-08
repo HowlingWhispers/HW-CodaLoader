@@ -33,7 +33,10 @@ jobs:
             net.minecraft.core.registries.BuiltInRegistries
             net.minecraft.core.Registry
             net.minecraft.core.registries.Registries
-            net.minecraft.resources.ResourceLocation
+            net.minecraft.resources.Identifier
+            net.minecraft.resources.ResourceKey
+            net.minecraft.core.MappedRegistry
+            net.minecraft.network.chat.Component
             net.minecraft.world.level.block.Block
             net.minecraft.world.level.block.state.BlockBehaviour
             'net.minecraft.world.level.block.state.BlockBehaviour$Properties'
@@ -43,6 +46,9 @@ jobs:
             net.minecraft.world.item.CreativeModeTabs
             net.minecraft.world.item.CreativeModeTab
             'net.minecraft.world.item.CreativeModeTab$Builder'
+            'net.minecraft.world.item.CreativeModeTab$Row'
+            'net.minecraft.world.item.CreativeModeTab$Output'
+            'net.minecraft.world.item.CreativeModeTab$DisplayItemsGenerator'
             net.minecraft.world.item.Items
             net.minecraft.world.level.block.Blocks
             net.minecraft.world.item.context.BlockPlaceContext
