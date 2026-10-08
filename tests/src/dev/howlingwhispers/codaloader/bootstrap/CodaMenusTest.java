@@ -73,6 +73,35 @@ public final class CodaMenusTest {
         CodaMenus.apply(pause, false);
         check(options.width == 200 && save.y == 132, "pause layout is idempotent");
 
+        // Snapshot 3 creates three native icons before CML adds its two socials.
+        Screen five = new Screen();
+        Widget fiveWorlds = five.add("menu.singleplayer", 60, 100, 200);
+        Widget fiveSettings = five.add("menu.options", 60, 172, 98);
+        Widget fiveQuit = five.add("menu.quit", 162, 172, 98);
+        Widget account = five.add("narrator.button.account", 120, 172, 20);
+        Widget fiveLanguage = five.add("narrator.button.language", 144, 172, 20);
+        Widget fiveAccess = five.add("narrator.button.accessibility", 168, 172, 20);
+        CodaMenus.apply(five, true);
+        Widget fiveDiscord = five.add("codaloader.discord", 114, 148, 20);
+        Widget fiveYoutube = five.add("codaloader.youtube", 186, 148, 20);
+        CodaMenus.apply(five, true);
+        List<Widget> fiveIcons = List.of(fiveDiscord, account, fiveLanguage, fiveAccess, fiveYoutube);
+        for (int pass = 0; pass < 2; pass++) {
+            for (int i = 0; i < fiveIcons.size(); i++) {
+                Widget icon = fiveIcons.get(i);
+                check(icon.y == 148 && !overlap(icon, fiveWorlds) && !overlap(icon, fiveSettings)
+                        && !overlap(icon, fiveQuit), "five-icon row stays below main controls");
+                if (i > 0) check(icon.x - (fiveIcons.get(i - 1).x + fiveIcons.get(i - 1).width) >= 8,
+                        "all five controls have at least eight pixels between hitboxes");
+                int presses = icon.presses;
+                icon.press();
+                check(icon.presses == presses + 1, "five-icon row keeps original handlers");
+            }
+            check((fiveIcons.get(0).x + fiveIcons.get(4).x + fiveIcons.get(4).width) / 2
+                    == fiveWorlds.x + fiveWorlds.width / 2, "complete five-icon row is centered");
+            CodaMenus.apply(five, true);
+        }
+
         HiddenScreen fallback = new HiddenScreen();
         Widget lan = new Widget("menu.shareToLan", 0, 0, 98);
         fallback.children.add(lan);

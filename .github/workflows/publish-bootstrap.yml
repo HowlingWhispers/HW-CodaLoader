@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.23 bundle
+    name: Publish v0.0.24 bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -53,24 +53,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.23"
-          ZIP="dist/CodaLoader-v0.0.23-win64.zip"
+          TAG="v0.0.24"
+          ZIP="dist/CodaLoader-v0.0.24-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; bump the version for a new build." >&2
             exit 1
           fi
           cat > release-notes.md <<'EOF'
-          # CodaLoader 0.0.23
+          # CodaLoader 0.0.24
 
           Pinned to Minecraft Java 26.4 Snapshot 3.
 
-          - Coda menus are applied during native screen initialization, before their first frame, rather than after a polling delay.
-          - Reopening the pause menu and resizing reapply the layout immediately.
-          - Pause-menu small controls have their own row. World Options remains accessible next to Settings.
-          - Native actions, HW Essentials, worlds, homes and settings are preserved.
+          - Discord, Snapshot 3's three native controls and YouTube are spaced together in one centered row.
+          - Social-button injection immediately reflows the complete row with eight-pixel gaps.
+          - Returning from Settings, world selection or other title submenus no longer rotates the scene, reloads resources or restarts the music.
+          - Scene rotation happens only after leaving an actual world.
+          - Native actions, menu initialization hooks, HW Essentials, worlds, homes and settings are preserved.
 
-          Automated tests exercise the real Java-agent transformation on Java 21 and 25, repeated screen opening and widget rebuilds. Live Snapshot 3 still needs an in-game check.
+          CI checks five-control spacing and handlers, submenu/world transitions and the real Java-agent lifecycle on Java 21 and 25. Live Snapshot 3 still needs an in-game check.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
-            --target "$GITHUB_SHA" --title "CodaLoader 0.0.23" \
+            --target "$GITHUB_SHA" --title "CodaLoader 0.0.24" \
             --notes-file release-notes.md --prerelease

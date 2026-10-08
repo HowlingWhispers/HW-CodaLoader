@@ -29,6 +29,7 @@ fi
 TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar:dist/CodaLoader.jar
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CommandBridgeTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaMenusTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MenuSceneVisitsTest
 
 # Run the production transformer through the JVM instrumentation API.
 printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.MenuTestAgent\n\n' > out/menu-test-manifest.mf

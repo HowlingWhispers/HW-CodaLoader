@@ -153,13 +153,13 @@ final class CodaMenus {
             try { return number(widget, "getX", 0); }
             catch (Exception unavailable) { return 0; }
         }));
-        int totalWidth = Math.max(0, icons.size() - 1) * 4;
+        int totalWidth = Math.max(0, icons.size() - 1) * 8;
         for (Object icon : icons) totalWidth += number(icon, "getWidth", 20);
         int x = number(worlds, "getX", 0) + number(worlds, "getWidth", 200) / 2 - totalWidth / 2;
         for (Object icon : icons) {
             coordinate(icon, "setX", x);
             coordinate(icon, "setY", worldY + 48);
-            x += number(icon, "getWidth", 20) + 4;
+            x += number(icon, "getWidth", 20) + 8;
         }
     }
 
@@ -200,13 +200,13 @@ final class CodaMenus {
             catch (Exception unavailable) { return 0; }
         }));
         int width = number(resume, "getWidth", 200);
-        int totalWidth = Math.max(0, icons.size() - 1) * 4;
+        int totalWidth = Math.max(0, icons.size() - 1) * 8;
         for (Object icon : icons) totalWidth += number(icon, "getWidth", 20);
         int iconX = x + width / 2 - totalWidth / 2;
         for (Object icon : icons) {
             coordinate(icon, "setX", iconX);
             coordinate(icon, "setY", y + 48);
-            iconX += number(icon, "getWidth", 20) + 4;
+            iconX += number(icon, "getWidth", 20) + 8;
         }
         int settingsY = y + (icons.isEmpty() ? 48 : 72);
         if (options != null) {

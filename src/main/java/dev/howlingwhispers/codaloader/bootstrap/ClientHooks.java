@@ -31,10 +31,8 @@ final class ClientHooks {
     private static volatile boolean screenSearchReported;
     private static volatile Object injectedTitleScreen;
     private static volatile Object[] injectedMenuWidgets = new Object[0];
-    private static volatile boolean titleScreenActive;
-    private static volatile boolean firstTitleSceneSeen;
+    private static final MenuSceneVisits sceneVisits = new MenuSceneVisits();
     private static volatile boolean sceneReloadFailureReported;
-    private static int nullScreenPolls;
 
     private ClientHooks() {}
 
@@ -71,33 +69,25 @@ final class ClientHooks {
                     boolean isTitleScreen = screen != null
                             && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
 
-                    if (screen == null) {
-                        nullScreenPolls++;
-                        if (nullScreenPolls >= 3) titleScreenActive = false;
+                    if (sceneVisits.observe(isTitleScreen, hasClientWorld(minecraft))) {
+                        Object target = screen;
+                        schedule(minecraft, () -> {
+                            if (findActiveScreen(minecraft, screenClass) == target && !hasClientWorld(minecraft))
+                                switchMenuScene(minecraft);
+                        });
+                    }
 
+                    if (screen == null) {
                         screenSearchMisses++;
                         if (!screenSearchReported && screenSearchMisses >= 8) {
                             screenSearchReported = true;
                             System.out.println("[CodaLoader] Title-screen search is still probing Snapshot 3 client state...");
                         }
-                    } else if (!isTitleScreen) {
-                        nullScreenPolls = 0;
-                        titleScreenActive = false;
-                    } else {
-                        nullScreenPolls = 0;
+                    } else if (isTitleScreen) {
 
                         if (!screenDiscoveryReported) {
                             screenDiscoveryReported = true;
                             System.out.println("[CodaLoader] Minecraft title screen located.");
-                        }
-
-                        if (!titleScreenActive) {
-                            titleScreenActive = true;
-                            if (firstTitleSceneSeen) {
-                                schedule(minecraft, () -> switchMenuScene(minecraft));
-                            } else {
-                                firstTitleSceneSeen = true;
-                            }
                         }
 
                         boolean needsWidgets = screen != injectedTitleScreen
@@ -127,6 +117,17 @@ final class ClientHooks {
         } catch (Throwable ex) {
             System.err.println("[CodaLoader] Client hook failed:");
             ex.printStackTrace(System.err);
+        }
+    }
+
+    private static boolean hasClientWorld(Object minecraft) {
+        Field level = findField(minecraft.getClass(), "level");
+        if (level == null) return false; // Missing API must not cause unwanted resource reloads.
+        try {
+            level.setAccessible(true);
+            return level.get(minecraft) != null;
+        } catch (ReflectiveOperationException | RuntimeException unavailable) {
+            return false;
         }
     }
 
@@ -275,6 +276,9 @@ final class ClientHooks {
             add.invoke(screen, cml);
             add.invoke(screen, discord);
             add.invoke(screen, youtube);
+
+            // Reflow all native and social controls in the same GUI-thread task.
+            CodaMenus.apply(screen, true);
 
             System.out.println("[CodaLoader] Added compact CML status + Discord/YouTube social controls.");
             return new Object[]{cml, discord, youtube};
