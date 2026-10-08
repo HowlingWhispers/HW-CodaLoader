@@ -99,7 +99,12 @@ jobs:
           unzip -l "$bundle"
           unzip -l "$bundle" | grep -F "CodaLoader.jar"
           unzip -l "$bundle" | grep -F "Launch-CodaLoader.bat"
-          unzip -l "$bundle" | grep -F "run/mods/hello-coda.jar"
+          if unzip -Z1 "$bundle" | grep -E '(^|/)run/mods/'; then
+            echo "ERROR: distribution must not create loader/run/mods" >&2
+            exit 1
+          fi
+          unzip -p "$bundle" CodaLoader.jar > out/packaged-loader.jar
+          jar tf out/packaged-loader.jar | grep -F "codaloader/mods/hw-essentials.jar"
           grep -F "\"version\": \"${version}\"" dist/update-manifest.json
           jar tf dist/CodaLoader.jar | grep -F "codaloader/mods/hw-essentials.jar"
           jar tf dist/hw-essentials.jar | grep -F "coda.mod.json"
