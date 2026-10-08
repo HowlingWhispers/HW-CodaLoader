@@ -12,8 +12,11 @@ public final class CodaMenuLifecycle {
         String screenId = title ? dev.howlingwhispers.codaloader.api.CodaScreens.TITLE
                 : dev.howlingwhispers.codaloader.api.CodaScreens.PAUSE;
         try {
-            // Keep the current Coda-styled native menu usable when a custom provider defers.
-            CodaMenus.apply(screen, title);
+            // One owner of native widgets per lifecycle event. Compatibility mode
+            // can be selected with -Dcodaloader.menu.mode=legacy.
+            boolean owned = !"legacy".equalsIgnoreCase(System.getProperty("codaloader.menu.mode", "owned"));
+            if (!owned || !CodaOwnedMenus.apply(screen, title))
+                CodaMenus.apply(screen, title);
             CodaScreenBridge.afterNativeInitialize(screen, screenId);
         } catch (Throwable failure) {
             if (!failureReported) {
