@@ -65,6 +65,13 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         Object loaded = chunk(Objects.requireNonNull(pos, "pos"));
         if (loaded == null) return false;
         Object state = CommandReflection.call(loaded, "getBlockState", nativePos(pos));
+        // Preserve the legacy vanilla-glass fixture until native snapshot
+        // registry test classes are available. New BuildCraft paths use the
+        // real registered native block and never fall back to glass.
+        if (blockId.equals("minecraft:glass")) {
+            Class<?> blocks = Class.forName("net.minecraft.world.level.block.Blocks", true, loader);
+            return (Boolean)CommandReflection.call(state, "is", blocks.getField("GLASS").get(null));
+        }
         Object registry = Class.forName("net.minecraft.core.registries.BuiltInRegistries", true, loader)
                 .getField("BLOCK").get(null);
         Class<?> idClass = Class.forName("net.minecraft.resources.Identifier", true, loader);
