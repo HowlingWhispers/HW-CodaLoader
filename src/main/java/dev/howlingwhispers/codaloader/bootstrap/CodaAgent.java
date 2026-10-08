@@ -25,6 +25,21 @@ public final class CodaAgent {
 
         System.out.println("[CodaLoader] Agent attached inside Minecraft JVM. PID=" + ProcessHandle.current().pid());
 
+        if (Boolean.getBoolean("codaloader.officialLauncher")) {
+            // The official launcher handles account verification and downloads.
+            // The agent still provides our menus, artwork and menu music.
+            try {
+                String configured = System.getProperty("codaloader.basePack", "");
+                Path basePack = configured.isBlank()
+                        ? root.resolveSibling("resourcepacks").resolve("cml-base-resources")
+                        : Path.of(configured).toAbsolutePath().normalize();
+                new MinecraftBootstrap(root, basePack).prepareProfileResources();
+                System.out.println("[CodaLoader] Official launcher profile resources prepared.");
+            } catch (Exception error) {
+                System.err.println("[CodaLoader] Official profile branding warning: " + error);
+            }
+        }
+
         int modCount = 0;
         try {
             CodaLoader loader = new CodaLoader(root);
