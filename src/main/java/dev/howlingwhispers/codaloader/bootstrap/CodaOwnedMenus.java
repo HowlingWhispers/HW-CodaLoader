@@ -1,6 +1,5 @@
 package dev.howlingwhispers.codaloader.bootstrap;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -19,7 +18,6 @@ import java.util.Set;
 final class CodaOwnedMenus {
     private static final Set<String> TITLE_BLOCKED = Set.of("menu.multiplayer", "menu.online", "menu.realms");
     private static final Set<String> PAUSE_BLOCKED = Set.of("menu.shareToLan", "menu.sendFeedback", "menu.reportBugs");
-    private static final int GAP = 4;
     private static final int ROW = 24;
     private static final int ICON_GAP = 8;
 
@@ -57,7 +55,10 @@ final class CodaOwnedMenus {
         for (Object widget : active) {
             String key = CodaMenus.key(widget);
             String caption = label(key);
-            if (caption != null) CodaMenus.setLabel(widget, caption);
+            if (caption != null) {
+                CodaMenus.setLabel(widget, caption);
+                CodaMenus.tooltip(widget, CodaMenus.tooltipFor(key));
+            }
         }
 
         int center = CodaMenus.number(principal, "getX", 0)
