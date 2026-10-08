@@ -124,6 +124,17 @@ public final class CodaNativeRegistryBridge {
                     value = item.getConstructor(properties).newInstance(p);
                 }
                 register(registry, def.id(), value);
+                if (def.kind() == CodaNativeContents.Kind.BLOCK) {
+                    // Vanilla Blocks.asItem()/Item.byBlock() relies on the
+                    // global BY_BLOCK index, not just the ITEM registry.
+                    // Without it, placed blocks can render but report AIR
+                    // when dropped, picked or used in an inventory.
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<Object,Object> byBlock =
+                            (java.util.Map<Object,Object>)item.getField("BY_BLOCK").get(null);
+                    if (byBlock.putIfAbsent(BLOCKS.get(def.id()), value) != null)
+                        throw new IllegalStateException("Minecraft block-item association already exists: " + def.id());
+                }
                 ITEMS.put(def.id(), value);
                 System.out.println("[H.O.W.L.] Native item registered: " + def.id());
             }
