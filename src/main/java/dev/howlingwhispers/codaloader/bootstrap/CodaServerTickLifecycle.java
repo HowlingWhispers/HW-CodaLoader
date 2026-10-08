@@ -5,10 +5,11 @@ import dev.howlingwhispers.codaloader.api.CodaServerTicks;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
-/** Runs after each native server tick, on the server thread. */
+/** Runs after native MinecraftServer ticks, on the authoritative server thread. */
 public final class CodaServerTickLifecycle {
     private static final Map<Object, State> STATES = new WeakHashMap<>();
 
@@ -26,7 +27,13 @@ public final class CodaServerTickLifecycle {
             State state = STATES.computeIfAbsent(server, unused -> new State());
             context = new CodaServerTickContext(state.sessionId, ++state.ticks);
         }
-        // The tick API deliberately does not expose unsafe Minecraft objects.
-        CodaServerTicks.dispatch(context);
+
+        // Fixtures with no Minecraft world API still run the existing listeners.
+        // No reflection is performed until a mod explicitly asks for dimensions
+        // or an already-loaded inventory.
+        try (MinecraftWorldInventoryView view = new MinecraftWorldInventoryView(server)) {
+            CodaServerTicks.dispatch(new CodaServerTickContext(
+                    context.sessionId(), context.tick(), Optional.of(view)));
+        }
     }
 }

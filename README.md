@@ -12,6 +12,18 @@ H.O.W.L. player releases have **no optional first-party mods**. All officially r
 
 Verified world-generation changes must become required, automatically enabled content in new H.O.W.L. worlds. Existing world saves must not be silently rewritten; that requires a separate, tested backup/migration plan. User-developed community mods are separate from the official required set.
 
+## Development: safe single-player inventory inspection
+
+The H.O.W.L. server tick context can now expose a read-only, tick-scoped
+`CodaWorldView` for an integrated single-player server. It reports loaded
+dimensions and chest-like inventory slot occupancy without loading chunks,
+exposing mutable Minecraft objects, or permitting extraction. The adapter
+fails closed on unknown Snapshot 3 mappings and rejects wrong-thread or
+after-tick access. A Java instrumentation fixture verifies it. **This is not
+a playable BuildCraft chest-to-chest bridge yet**; transactional inventory
+moves, block/item registrations, rendering, and a live Snapshot 3 test remain
+release gates. No shared-play or networking features are introduced here.
+
 ## Development: verified Quiet Underground world bootstrap
 
 A cross-platform Java `RequiredWorldPacks.prepareNewWorld` utility now validates
