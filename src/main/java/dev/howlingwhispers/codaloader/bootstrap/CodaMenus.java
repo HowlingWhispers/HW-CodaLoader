@@ -62,7 +62,7 @@ final class CodaMenus {
         };
     }
 
-    private static String key(Object widget) throws Exception {
+    static String key(Object widget) throws Exception {
         String cached = ORIGINAL_KEYS.get(widget);
         if (cached != null) return cached;
         Method messageMethod = method(widget.getClass(), "getMessage");
@@ -83,7 +83,7 @@ final class CodaMenus {
         return text;
     }
 
-    private static List<Object> children(Object screen) throws Exception {
+    static List<Object> children(Object screen) throws Exception {
         Method children = method(screen.getClass(), "children");
         if (children == null) throw new NoSuchMethodException("Screen.children()");
         Object value = children.invoke(screen);
@@ -93,7 +93,7 @@ final class CodaMenus {
         return result;
     }
 
-    private static void remove(Object screen, Object widget) throws Exception {
+    static void remove(Object screen, Object widget) throws Exception {
         Method remove = compatibleMethod(screen.getClass(), "removeWidget", widget);
         if (remove != null) remove.invoke(screen, widget);
         else {
@@ -104,7 +104,7 @@ final class CodaMenus {
         }
     }
 
-    private static void setLabel(Object widget, String label) throws Exception {
+    static void setLabel(Object widget, String label) throws Exception {
         Method getMessage = method(widget.getClass(), "getMessage");
         Class<?> component = getMessage.getReturnType();
         Method literal = method(component, "literal", String.class);
@@ -117,7 +117,7 @@ final class CodaMenus {
         set.invoke(widget, literal.invoke(null, label));
     }
 
-    private static void tooltip(Object widget, String text) {
+    static void tooltip(Object widget, String text) {
         try {
             Class<?> component = method(widget.getClass(), "getMessage").getReturnType();
             Class<?> tooltip = Class.forName("net.minecraft.client.gui.components.Tooltip", true, widget.getClass().getClassLoader());
@@ -226,18 +226,18 @@ final class CodaMenus {
         }
     }
 
-    private static Object find(List<Object> widgets, String key) throws Exception {
+    static Object find(List<Object> widgets, String key) throws Exception {
         for (Object widget : widgets) if (key.equals(key(widget))) return widget;
         return null;
     }
-    private static Object findEither(List<Object> widgets, String a, String b) throws Exception {
+    static Object findEither(List<Object> widgets, String a, String b) throws Exception {
         Object result = find(widgets, a); return result == null ? find(widgets, b) : result;
     }
-    private static int number(Object target, String name, int fallback) throws Exception {
+    static int number(Object target, String name, int fallback) throws Exception {
         Method method = method(target.getClass(), name);
         return method == null ? fallback : ((Number) method.invoke(target)).intValue();
     }
-    private static void coordinate(Object widget, String name, int value) throws Exception {
+    static void coordinate(Object widget, String name, int value) throws Exception {
         Method method = method(widget.getClass(), name, int.class);
         if (method != null) method.invoke(widget, value);
     }
