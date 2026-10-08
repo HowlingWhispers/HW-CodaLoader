@@ -12,13 +12,25 @@ import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 
-/** No anonymous CodaPlayer fallback. Online credentials are verified independently. */
+/** Verified accounts remain strict; older launcher builds receive only an unverified local identity. */
 public record LaunchIdentity(String name, String uuid, String token, String clientId, boolean offline, boolean localOnly) {
     public static LaunchIdentity fromEnvironment(Map<String, String> env) {
         String name = env.getOrDefault("CODA_PLAYER_NAME", "");
         String uuid = env.getOrDefault("CODA_PLAYER_UUID", "");
         String mode = env.getOrDefault("CODA_PLAY_MODE", "");
         String token = env.getOrDefault("CODA_ACCESS_TOKEN", "");
+        // CodaLauncher 0.7.0 and earlier sent no account fields. Keep their
+        // existing CodaPlayer singleplayer saves working during migration.
+        // This grants NO online entitlement or verified offline ownership.
+        if ("CodaLauncher".equals(env.get("CODA_LAUNCHED_BY"))
+                && "1".equals(env.get("CODA_NO_PAUSE"))
+                && name.isBlank() && uuid.isBlank() && mode.isBlank() && token.isBlank()
+                && env.getOrDefault("CODA_AUTH_CLIENT_ID", "").isBlank()) {
+            String legacyUuid = UUID.nameUUIDFromBytes(
+                    "OfflinePlayer:CodaPlayer".getBytes(StandardCharsets.UTF_8))
+                    .toString().replace("-", "");
+            return new LaunchIdentity("CodaPlayer", legacyUuid, "0", "", true, true);
+        }
         if (!"CodaLauncher".equals(env.get("CODA_LAUNCHED_BY")) ||
                 !name.matches("[A-Za-z0-9_]{1,16}") || !uuid.matches("[0-9a-fA-F]{32}") ||
                 !(mode.equals("online") || mode.equals("offline") || mode.equals("local")))
