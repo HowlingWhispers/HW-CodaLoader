@@ -57,8 +57,19 @@ public final class CodaNativeRegistryBridge {
             throw new IllegalStateException("Refusing occupied Minecraft id " + name);
     }
 
-    /** Hook: just before Blocks.<clinit> returns. */
-    public static synchronized void registerBlocks() {
+    /**
+     * Mojang Snapshot 3 initializes Items DURING Blocks.<clinit>, while
+     * calculating LightBlock shape caches. Hooking Items.<clinit> separately
+     * therefore sees incomplete Blocks and crashes. Register both at the
+     * RETURN of Blocks.<clinit>, while both vanilla registries are writable.
+     */
+    public static synchronized void registerBlocksAndItems() {
+        registerBlocks();
+        registerItems();
+    }
+
+    /** Register blocks after vanilla Block/Item static constructors complete. */
+    private static synchronized void registerBlocks() {
         if (blocksDone) return;
         try {
             Object registry = registry("BLOCK");
@@ -89,8 +100,8 @@ public final class CodaNativeRegistryBridge {
         }
     }
 
-    /** Hook: just before Items.<clinit> returns. */
-    public static synchronized void registerItems() {
+    /** Register Item and BlockItem entries after native blocks exist. */
+    private static synchronized void registerItems() {
         if (itemsDone) return;
         try {
             Object registry = registry("ITEM");
