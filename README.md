@@ -6,6 +6,12 @@ H.O.W.L. is a from-scratch Minecraft Java mod loader and bootstrap project targe
 
 It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 
+## First-party mod policy
+
+H.O.W.L. player releases have **no optional first-party mods**. All officially released gameplay modules must install and update automatically; missing required modules trigger repair or a visible error, not a skip option. Unfinished prototypes such as BuildCraft CML and HW Quiet Underground stay in development rather than appearing as optional player downloads.
+
+Verified world-generation changes must become required, automatically enabled content in new H.O.W.L. worlds. Existing world saves must not be silently rewritten; that requires a separate, tested backup/migration plan. User-developed community mods are separate from the official required set.
+
 ## H.O.W.L. 0.0.26 and developer downloads
 
 The loader now displays **H.O.W.L.** in the game window, status badge and pack
