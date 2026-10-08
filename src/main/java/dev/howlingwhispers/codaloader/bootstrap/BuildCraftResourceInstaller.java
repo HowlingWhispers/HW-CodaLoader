@@ -60,6 +60,13 @@ final class BuildCraftResourceInstaller {
                         continue;
                     if (name.contains("..") || name.contains("\\") || name.length() > 256)
                         throw new IOException("Unsafe BuildCraft resource path");
+                    // Minecraft 26.4 uses modern item model entrypoints.
+                    // Preserve original textures, replacing only these specific
+                    // old 1.12 JSON descriptors with native-format adapters.
+                    if (name.equals("assets/buildcraftcore/models/item/engine_redstone.json")
+                        || name.equals("assets/buildcraftcore/lang/en_us.json")
+                        || name.equals("assets/buildcrafttransport/lang/en_us.json"))
+                        continue;
                     // 1.12 models are preserved except for the explicitly
                     // translated 26.4 block/item definitions below.
                     if (!paths.add(name)) throw new IOException("Duplicate BuildCraft asset " + name);
