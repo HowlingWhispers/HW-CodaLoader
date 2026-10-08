@@ -40,6 +40,11 @@ final class MinecraftCommandContext implements CodaCommandContext {
 
     public void reply(String message) throws Exception { sendReply(source, message, false); }
 
+    @Override
+    public CodaSingleplayerWorld singleplayerWorld() throws Exception {
+        return new MinecraftSingleplayerWorld(source);
+    }
+
     static void sendReply(Object source, String message, boolean error) throws Exception {
         Class<?> component = Class.forName("net.minecraft.network.chat.Component", true, source.getClass().getClassLoader());
         Object text = CommandReflection.call(component, "literal", message);
