@@ -16,6 +16,11 @@ public record CodaContext(
         loadedModIds = List.copyOf(loadedModIds);
     }
 
+    /** Register a Minecraft-native screen factory for a namespaced screen ID. */
+    public void registerScreen(String screenId, int priority, CodaScreens.ScreenFactory factory) {
+        CodaScreens.global().register(new CodaScreens.Provider(screenId, modId, priority, factory));
+    }
+
     public void registerCommand(String name, String description, CodaCommand command) {
         CodaCommands.register(modId, name, description, command);
     }
