@@ -32,3 +32,18 @@ Defensive mode is intentionally the only mode and does not require saved configu
 5. Observe logs for missing named mapping methods or unresolved death hooks; do not use prized worlds before verification.
 
 Proposed next API evolution: public singleplayer entity lifecycle, owner damage, successful-sleep event, and read-only sensory snapshots. Merge only after the loader team's separate work is compared and reviewed.
+
+## Install via CodaLauncher without modifying loader
+
+CodaLauncher scans only the **active Minecraft mods directory**, not GitHub branches or
+`loader/run/mods`. The correct folder is exposed via **Mods > OPEN MODS FOLDER**.
+Drop the compiled JAR there, then click **REFRESH**. It will appear as
+`Coda Wolf Companion | coda_wolf | 0.1.0-dev | Recognized`.
+The launcher never auto-downloads arbitrary external mods merely because a branch was pushed.
+Stable and Nightly have separate mod folders.
+
+The companion-only GitHub Actions workflow creates a downloadable installer ZIP.
+Windows users can run `Install-CodaWolf.ps1` from the extracted package;
+it detects the launcher's saved channel and refuses to overwrite a duplicate
+`coda_wolf` installation. Alternatively, just copy the JAR using OPEN MODS FOLDER.
+**Recognized** means readable metadata, not validated Minecraft behavior.
