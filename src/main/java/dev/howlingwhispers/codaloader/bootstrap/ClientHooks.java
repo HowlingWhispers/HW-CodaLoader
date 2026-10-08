@@ -1,6 +1,7 @@
 package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.core.CodaTarget;
+import dev.howlingwhispers.codaloader.api.CodaScreens;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -69,6 +70,21 @@ final class ClientHooks {
                     boolean isTitleScreen = screen != null
                             && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
 
+                    // Initialization often runs before Minecraft assigns its active screen.
+                    // Retry ownership only after the screen is visibly active, on the GUI thread.
+                    if (screen != null) {
+                        String screenId = isTitleScreen ? CodaScreens.TITLE
+                                : "net.minecraft.client.gui.screens.PauseScreen".equals(screen.getClass().getName())
+                                ? CodaScreens.PAUSE : null;
+                        if (screenId != null && !CodaScreens.global().providers(screenId).isEmpty()) {
+                            Object target = screen;
+                            schedule(minecraft, () -> {
+                                if (findActiveScreen(minecraft, screenClass) == target)
+                                    CodaScreenBridge.afterNativeInitialize(target, screenId);
+                            });
+                        }
+                    }
+
                     if (sceneVisits.observe(isTitleScreen, hasClientWorld(minecraft))) {
                         Object target = screen;
                         schedule(minecraft, () -> {
@@ -97,6 +113,7 @@ final class ClientHooks {
                         if (needsWidgets) {
                             Object target = screen;
                             schedule(minecraft, () -> {
+                                if (findActiveScreen(minecraft, screenClass) != target) return;
                                 Object[] widgets = injectMenuWidgets(target, modCount);
                                 if (widgets.length == 3) {
                                     injectedTitleScreen = target;
