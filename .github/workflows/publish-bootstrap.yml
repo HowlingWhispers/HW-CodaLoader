@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.21 bundle
+    name: Publish v0.0.22 bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -42,27 +42,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.21"
-          ZIP="dist/CodaLoader-v0.0.21-win64.zip"
+          TAG="v0.0.22"
+          ZIP="dist/CodaLoader-v0.0.22-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; bump the version for a new build." >&2
             exit 1
           fi
           cat > release-notes.md <<'EOF'
-          # CodaLoader 0.0.21
+          # CodaLoader 0.0.22
 
           Pinned to Minecraft Java 26.4 Snapshot 3.
 
-          - Main menu focuses on personal worlds: My Worlds, Coda's Settings and Clock Out.
-          - Realms and traditional Multiplayer controls are removed.
-          - Pause menu offers Back to Adventure, Pawprints, Coda's Ledger, Coda's Settings and Save & Curl Up.
-          - Open to LAN and vanilla feedback/report-bug shortcuts are removed from the pause menu.
-          - Buttons reuse native world, settings, progress, resume and save handlers.
-          - Coda's wording extends to world selection, resource packs and settings through the UI language pack.
-          - HW Essentials 0.2.0 remains bundled automatically; homes and settings are preserved.
+          - Discord, YouTube, language and accessibility controls now sit in a separate centred row below Settings and Clock Out.
+          - Small controls keep their native actions and no longer overlap the main menu buttons.
+          - Layout remains stable across polling and menu rebuilds.
+          - Existing Coda menus, HW Essentials, worlds, homes and settings are preserved.
 
-          CI checks GUI adapter fixtures and the command bridge. Actual Snapshot 3 menu layout, keyboard navigation and gameplay still require an in-game playtest.
+          CI checks main-button/icon separation, pairwise icon overlap, centring, actions and reinitialization. Live Snapshot 3 layout still needs an in-game check.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
-            --target "$GITHUB_SHA" --title "CodaLoader 0.0.21" \
+            --target "$GITHUB_SHA" --title "CodaLoader 0.0.22" \
             --notes-file release-notes.md --prerelease

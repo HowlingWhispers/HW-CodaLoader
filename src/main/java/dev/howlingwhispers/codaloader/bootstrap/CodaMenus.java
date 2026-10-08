@@ -131,13 +131,30 @@ final class CodaMenus {
         int worldY = number(worlds, "getY", -1000);
         if (worldY < 0) return;
         int row = worldY + 24;
+        List<Object> icons = new ArrayList<>();
         for (Object widget : widgets) {
             String key = key(widget);
             int y = number(widget, "getY", -1000);
-            if (key.equals("menu.options") || key.equals("menu.quit")
-                    || (number(widget, "getHeight", 0) == 20 && number(widget, "getWidth", 1000) <= 40
-                        && y >= row && y <= row + 96))
+            if (key.equals("menu.options") || key.equals("menu.quit")) {
                 coordinate(widget, "setY", row);
+            } else if (number(widget, "getHeight", 0) == 20 && number(widget, "getWidth", 1000) <= 40
+                    && y >= row && y <= row + 96) {
+                icons.add(widget);
+            }
+        }
+        // Keep social/language/accessibility controls below the full-size buttons.
+        // Sorting preserves their left-to-right order across repeated polls and widget rebuilds.
+        icons.sort(java.util.Comparator.comparingInt(widget -> {
+            try { return number(widget, "getX", 0); }
+            catch (Exception unavailable) { return 0; }
+        }));
+        int totalWidth = Math.max(0, icons.size() - 1) * 4;
+        for (Object icon : icons) totalWidth += number(icon, "getWidth", 20);
+        int x = number(worlds, "getX", 0) + number(worlds, "getWidth", 200) / 2 - totalWidth / 2;
+        for (Object icon : icons) {
+            coordinate(icon, "setX", x);
+            coordinate(icon, "setY", worldY + 48);
+            x += number(icon, "getWidth", 20) + 4;
         }
     }
 

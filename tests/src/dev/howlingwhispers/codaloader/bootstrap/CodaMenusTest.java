@@ -14,6 +14,9 @@ public final class CodaMenusTest {
         Widget settings = title.add("menu.options", 60, 172, 98);
         Widget quit = title.add("menu.quit", 162, 172, 98);
         Widget language = title.add("narrator.button.language", 36, 172, 20);
+        Widget accessibility = title.add("narrator.button.accessibility", 264, 172, 20);
+        Widget discord = title.add("codaloader.discord", 102, 148, 20);
+        Widget youtube = title.add("codaloader.youtube", 198, 148, 20);
         Widget custom = title.add("another_mod.action", 4, 8, 80);
         CodaMenus.apply(title, true);
         check(!title.children.contains(multiplayer) && !title.renderables.contains(multiplayer), "multiplayer removed from input and rendering");
@@ -23,10 +26,22 @@ public final class CodaMenusTest {
         check(worlds.presses == 1, "world selector keeps original handler");
         settings.press(); quit.press();
         check(settings.presses == 1 && quit.presses == 1, "settings and quit handlers preserved");
-        check(settings.y == 124 && quit.y == 124 && language.y == 124, "title gap collapsed without losing icon controls");
+        check(settings.y == 124 && quit.y == 124, "title gap collapsed");
+        List<Widget> icons = List.of(language, accessibility, discord, youtube);
+        for (Widget icon : icons) {
+            check(!overlap(icon, settings) && !overlap(icon, quit) && !overlap(icon, worlds), "small control does not overlap main actions");
+            icon.press();
+            check(icon.presses == 1, "small control retains original handler");
+        }
+        for (int i = 0; i < icons.size(); i++)
+            for (int j = i + 1; j < icons.size(); j++)
+                check(!overlap(icons.get(i), icons.get(j)), "small controls do not overlap each other");
+        int left = icons.stream().mapToInt(w -> w.x).min().orElseThrow();
+        int right = icons.stream().mapToInt(w -> w.x + w.width).max().orElseThrow();
+        check((left + right) / 2 == worlds.x + worlds.width / 2, "icon row centred beneath worlds");
         check(title.children.contains(custom) && custom.message.getString().equals("another_mod.action"), "unknown mod controls untouched");
         CodaMenus.apply(title, true);
-        check(title.children.size() == 5 && settings.y == 124, "repeated polls do not duplicate or drift");
+        check(title.children.size() == 8 && settings.y == 124 && language.y == 148, "repeated polls do not duplicate or drift");
         check(title.removed == 2, "repeated poll does not remove additional widgets");
 
         // Minecraft rebuilds widgets on resize/resource reload.
@@ -65,6 +80,10 @@ public final class CodaMenusTest {
         check(!lan.visible && !lan.active, "unsupported remove API hides and disables LAN");
         check(fallback.children.size() == 1, "fallback does not mutate unknown collections");
         System.out.println("Coda menu tests passed: " + checks + " checks; live Snapshot 3 GUI remains unverified.");
+    }
+
+    private static boolean overlap(Widget a, Widget b) {
+        return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + 20 && a.y + 20 > b.y;
     }
 
     public static class Screen {

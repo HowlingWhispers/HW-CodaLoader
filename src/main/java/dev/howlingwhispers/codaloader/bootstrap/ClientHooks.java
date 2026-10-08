@@ -249,7 +249,7 @@ final class ClientHooks {
             int screenWidth = readIntMember(screen, "width", 320);
             int screenHeight = readIntMember(screen, "height", 240);
             int centerX = screenWidth / 2;
-            int iconY = screenHeight / 4 + 72;
+            int iconY = screenHeight / 4 + 96;
 
             String modWord = modCount == 1 ? "mod" : "mods";
             Object cml = createButton(
@@ -265,14 +265,14 @@ final class ClientHooks {
             try {
                 discord = createSocialImageButton(
                         loader, componentClass, onPressClass, literal,
-                        centerX - 58, iconY,
+                        centerX - 46, iconY,
                         "codaloader:social/discord",
                         "CMLDiscord",
                         clicked -> System.out.println("[CodaLoader] Coda: The community invite is still on my clipboard. Check the launcher for now."));
 
                 youtube = createSocialImageButton(
                         loader, componentClass, onPressClass, literal,
-                        centerX + 38, iconY,
+                        centerX + 26, iconY,
                         "codaloader:social/youtube",
                         "CMLYouTube",
                         clicked -> openExternal("https://www.youtube.com/@HowlingWhispersOfficial"));
@@ -281,13 +281,13 @@ final class ClientHooks {
                 discord = createButton(
                         buttonClass, onPressClass, builderMethod, literal,
                         "D",
-                        centerX - 58, iconY, 20, 20,
+                        centerX - 46, iconY, 20, 20,
                         "CMLDiscordFallback",
                         clicked -> System.out.println("[CodaLoader] Discord button clicked. Community link is not configured yet."));
                 youtube = createButton(
                         buttonClass, onPressClass, builderMethod, literal,
                         "YT",
-                        centerX + 38, iconY, 20, 20,
+                        centerX + 26, iconY, 20, 20,
                         "CMLYouTubeFallback",
                         clicked -> openExternal("https://www.youtube.com/@HowlingWhispersOfficial"));
             }
