@@ -19,14 +19,20 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
     private final ClassLoader loader;
 
     MinecraftSingleplayerWorld(Object source) throws Exception {
-        Objects.requireNonNull(source, "source");
-        Object server = CommandReflection.call(source, "getServer");
+        this(CommandReflection.call(Objects.requireNonNull(source, "source"), "getServer"),
+                CommandReflection.call(source, "getLevel"));
+    }
+
+    /** Authoritative tick bridge: does not rely on a player command source. */
+    MinecraftSingleplayerWorld(Object server, Object level) throws Exception {
+        Objects.requireNonNull(server, "server");
+        Objects.requireNonNull(level, "level");
         Class<?> integrated = Class.forName(
                 "net.minecraft.server.integrated.IntegratedServer", false,
                 server.getClass().getClassLoader());
         if (!integrated.isInstance(server))
-            throw new IllegalStateException("BuildCraft test transfers require integrated single-player");
-        this.level = CommandReflection.call(source, "getLevel");
+            throw new IllegalStateException("BuildCraft transfers require integrated single-player");
+        this.level = level;
         this.loader = level.getClass().getClassLoader();
         this.ownerThread = Thread.currentThread();
     }
