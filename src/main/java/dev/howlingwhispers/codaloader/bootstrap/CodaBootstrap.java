@@ -32,7 +32,7 @@ public final class CodaBootstrap {
         boolean loaderOnly = args.length > 0 && "--loader-only".equals(args[0]);
         Path root = loaderOnly && args.length > 1
                 ? Path.of(args[1])
-                : argumentPath(args, "--root", Path.of("run"));
+                : argumentPath(args, "--root", Path.of("minecraft"));
         Path basePack = argumentPath(args, "--base-pack",
                 root.toAbsolutePath().normalize().resolveSibling("cml-base"));
 
