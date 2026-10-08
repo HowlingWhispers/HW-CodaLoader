@@ -20,9 +20,6 @@ public final class CodaScreenBridge {
 
     public static void afterNativeInitialize(Object nativeScreen, String screenId) {
         if (SWITCHING.get() || CodaScreens.global().providers(screenId).isEmpty()) return;
-        synchronized (ATTEMPTED) {
-            if (!ATTEMPTED.add(nativeScreen)) return;
-        }
         try {
             ClassLoader loader = nativeScreen.getClass().getClassLoader();
             Class<?> minecraftType = Class.forName("net.minecraft.client.Minecraft", false, loader);
@@ -38,6 +35,9 @@ public final class CodaScreenBridge {
             if (active == null) return; // Unknown snapshot: fail closed.
             active.setAccessible(true);
             if (active.get(client) != nativeScreen) return;
+            synchronized (ATTEMPTED) {
+                if (!ATTEMPTED.add(nativeScreen)) return;
+            }
 
             Object replacement = CodaScreens.global().resolve(screenId, client, nativeScreen);
             if (replacement == null || replacement == nativeScreen) return;
