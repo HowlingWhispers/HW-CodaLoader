@@ -51,7 +51,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json,zipfile
-          f='examples/coda-wolf/out/coda-wolf-0.1.1-dev.jar'
+          f='examples/coda-wolf/out/coda-wolf-0.1.0-dev.jar'
           with zipfile.ZipFile(f) as z:
               m=json.loads(z.read('coda.mod.json'))
               assert m['schema']==1 and m['id']=='coda_wolf'
