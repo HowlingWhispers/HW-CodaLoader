@@ -43,6 +43,16 @@ public final class NativeMinecraftSmoke {
                     .toString().equals(name) == false) {
                 throw new AssertionError("Native Block missing: " + name);
             }
+            // Real BlockItem must also be findable by Minecraft's
+            // Item.byBlock registry, not just ITEM key lookups.
+            Object nativeItem = Class.forName("net.minecraft.world.item.Item",true,loader)
+                    .getMethod("byBlock",Class.forName("net.minecraft.world.level.block.Block",true,loader))
+                    .invoke(null,value);
+            Object itemRegistry = registries.getField("ITEM").get(null);
+            String itemId = itemRegistry.getClass().getMethod("getKey",Object.class)
+                    .invoke(itemRegistry,nativeItem).toString();
+            if (!itemId.equals(name))
+                throw new AssertionError("Native BuildCraft BlockItem mapping absent: "+name);
             checked++;
         }
         for (String name : List.of("buildcrafttransport:wood_item",
