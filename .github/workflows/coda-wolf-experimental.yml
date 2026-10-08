@@ -1,0 +1,77 @@
+name: Coda Wolf experimental module
+on:
+  push:
+    branches: [feature/coda-wolf-companion]
+    paths:
+      - 'examples/coda-wolf/**'
+      - '.github/workflows/coda-wolf-experimental.yml'
+      - 'src/main/java/dev/howlingwhispers/codaloader/api/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  companion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Check survival and persistence rules
+        run: bash examples/coda-wolf/scripts/test.sh
+      - name: Compile against H.O.W.L. public API
+        run: |
+          mkdir -p build/api
+          find src/main/java/dev/howlingwhispers/codaloader/api -name '*.java' -print > build/api-sources.txt
+          javac --release 21 -encoding UTF-8 -d build/api @build/api-sources.txt
+          jar --create --file build/howl-api.jar -C build/api .
+          bash examples/coda-wolf/scripts/build.sh "$PWD/build/howl-api.jar"
+      - name: Verify launcher-readable JAR structure
+        run: |
+          python3 - <<'PY'
+          import json, zipfile
+          f='examples/coda-wolf/out/coda-wolf-0.1.0-dev.jar'
+          with zipfile.ZipFile(f) as z:
+              m=json.loads(z.read('coda.mod.json'))
+              assert m['schema']==1
+              assert m['id']=='coda_wolf'
+              assert m['name']=='Coda Wolf Companion'
+              assert m['version']=='0.1.0-dev'
+              assert m['minecraft']=='26.4-snapshot-3'
+              assert m['entrypoint'].replace('.','/')+'.class' in z.namelist()
+          print('PASS: launcher-recognizable mod metadata and entrypoint')
+          PY
+      - name: Package installation kit
+        run: |
+          mkdir -p build/coda-wolf-installer
+          cp examples/coda-wolf/out/coda-wolf-0.1.0-dev.jar build/coda-wolf-installer/
+          cp examples/coda-wolf/scripts/Install-CodaWolf.ps1 build/coda-wolf-installer/
+          cp examples/coda-wolf/README-FIRST.txt build/coda-wolf-installer/
+          cd build/coda-wolf-installer
+          zip -r ../CodaWolf-HOWL-0.1.0-dev-Installer.zip .
+      - name: Check installer places JAR in the active mod folder
+        shell: bash
+        run: |
+          if ! command -v pwsh >/dev/null; then
+            echo 'PowerShell unavailable on build runner; refusing to skip installation test.'
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/coda-profile/launcher"
+          printf '{"updateChannel":"nightly"}' > "$RUNNER_TEMP/coda-profile/launcher/settings.json"
+          mkdir -p "$RUNNER_TEMP/roaming"
+          mv "$RUNNER_TEMP/coda-profile" "$RUNNER_TEMP/roaming/.howlingshispers"
+          APPDATA="$RUNNER_TEMP/roaming" pwsh -NoProfile -File build/coda-wolf-installer/Install-CodaWolf.ps1
+          test -f "$RUNNER_TEMP/roaming/.howlingshispers/nightly/minecraft/mods/coda-wolf-0.1.0-dev.jar"
+          APPDATA="$RUNNER_TEMP/roaming" pwsh -NoProfile -File build/coda-wolf-installer/Install-CodaWolf.ps1
+          echo 'PASS: nightly channel autodetection, installed JAR, duplicate-safe repeat.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodaWolf-HOWL-0.1.0-dev
+          path: |
+            build/CodaWolf-HOWL-0.1.0-dev-Installer.zip
+            examples/coda-wolf/out/coda-wolf-0.1.0-dev.jar
+          if-no-files-found: error
+          retention-days: 30
