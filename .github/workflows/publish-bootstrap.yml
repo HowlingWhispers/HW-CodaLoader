@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(java -jar dist/CodaLoader.jar --version)"
-          [[ "$VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+$ ]] || {
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
             echo "Invalid packaged CodaLoader version: $VERSION" >&2
             exit 1
           }
@@ -83,6 +83,6 @@ jobs:
           Tested by CI with command, menu and Java-agent fixtures on Java 21 and 25.
           **Live Snapshot 3 menu verification is still required.**
           EOF
-          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \\
-            --target "$GITHUB_SHA" --title "CodaLoader ${VERSION}" \\
+          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
+            --target "$GITHUB_SHA" --title "CodaLoader ${VERSION}" \
             --notes-file release-notes.md --prerelease
