@@ -56,8 +56,8 @@ jobs:
           TAG="v0.0.24"
           ZIP="dist/CodaLoader-v0.0.24-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release already exists; bump the version for a new build." >&2
-            exit 1
+            echo "Source-only change: published release remains unchanged. Bump the version when ready to release."
+            exit 0
           fi
           cat > release-notes.md <<'EOF'
           # CodaLoader 0.0.24
