@@ -31,11 +31,7 @@ public final class CodaNativeRegistryTransformer implements ClassFileTransformer
         switch (internalName == null ? "" : internalName) {
             case "net/minecraft/world/level/block/Blocks" -> {
                 method = "<clinit>"; descriptor = "()V";
-                handler = "registerBlocks"; callDesc = "()V";
-            }
-            case "net/minecraft/world/item/Items" -> {
-                method = "<clinit>"; descriptor = "()V";
-                handler = "registerItems"; callDesc = "()V";
+                handler = "registerBlocksAndItems"; callDesc = "()V";
             }
             case "net/minecraft/world/item/CreativeModeTabs" -> {
                 method = "bootstrap";
