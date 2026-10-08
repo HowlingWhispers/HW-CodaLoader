@@ -20,6 +20,11 @@ public final class NativeMinecraftSmoke {
                         "buildcraftcore:engine_redstone", "buildcraftcore:wrench"));
 
         ClassLoader loader = NativeMinecraftSmoke.class.getClassLoader();
+        // Mojang's real launcher sets the current version before bootstrapping.
+        // The headless test must do the same or DataFixers fails with
+        // "Game version not set" before native registry hooks execute.
+        Class<?> constants = Class.forName("net.minecraft.SharedConstants", true, loader);
+        constants.getMethod("tryDetectVersion").invoke(null);
         Class<?> bootstrap = Class.forName("net.minecraft.server.Bootstrap", true, loader);
         System.out.println("Bootstrapping EXACT Mojang Snapshot 3 registries...");
         bootstrap.getMethod("bootStrap").invoke(null);
