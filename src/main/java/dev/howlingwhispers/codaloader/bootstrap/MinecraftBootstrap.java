@@ -75,6 +75,8 @@ public final class MinecraftBootstrap {
     public int launch() throws Exception {
         identity = LaunchIdentity.fromEnvironment(System.getenv());
         identity.verifyOnline();
+        if (identity.localOnly())
+            System.out.println("[CodaLoader] Local singleplayer mode: no Microsoft session or online entitlement.");
         int java = Runtime.version().feature();
         if (java < CodaTarget.MINECRAFT_MINIMUM_JAVA) {
             throw new IllegalStateException(
@@ -102,7 +104,7 @@ public final class MinecraftBootstrap {
         Path versionDir = versions.resolve(CodaTarget.MINECRAFT_VERSION);
         Files.createDirectories(versionDir);
         Path versionJson = versionDir.resolve(CodaTarget.MINECRAFT_VERSION + ".json");
-        if (identity.offline()) {
+        if (identity.offline() && !identity.localOnly()) {
             if (!Files.isRegularFile(versionJson)) throw new IOException("Install this Minecraft version while online before using offline play.");
         } else {
             Map<String, Object> manifest = object(readJson(VERSION_MANIFEST));
@@ -136,6 +138,7 @@ public final class MinecraftBootstrap {
         Path agentJar = currentCodaLoaderJar();
         command.add("-javaagent:" + agentJar + "=" + root);
         command.add("-Dcoda.offline=" + identity.offline());
+        command.add("-Dcoda.localOnly=" + identity.localOnly());
 
         Map<String, Object> arguments = childObject(version, "arguments");
         List<String> jvm = expandArguments(arguments.get("jvm"), vars);
@@ -906,7 +909,7 @@ public final class MinecraftBootstrap {
         vars.put("auth_access_token", identity.token());
         vars.put("clientid", identity.clientId());
         vars.put("auth_xuid", "");
-        vars.put("user_type", "msa");
+        vars.put("user_type", identity.localOnly() ? "legacy" : "msa");
         vars.put("version_type", optionalString(version, "type") == null ? "snapshot" : optionalString(version, "type"));
         vars.put("user_properties", "{}");
         vars.put("resolution_width", "1280");
@@ -1020,7 +1023,7 @@ public final class MinecraftBootstrap {
             }
         }
 
-        if (identity != null && identity.offline())
+        if (identity != null && identity.offline() && !identity.localOnly())
             throw new IOException("Offline play needs a missing or damaged file: " + target.getFileName() + ". Repair the installation while online.");
         Path temp = target.resolveSibling(target.getFileName() + ".part");
         Files.deleteIfExists(temp);
