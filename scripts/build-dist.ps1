@@ -15,7 +15,7 @@ $EssentialsJarUrl = "https://github.com/HowlingWhispers/HW-Mods/releases/downloa
 $EssentialsSha256Url = "$EssentialsJarUrl.sha256"
 
 Remove-Item -Recurse -Force out, dist -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/package/run/mods | Out-Null
+New-Item -ItemType Directory -Force out/classes, out/example-classes, dist/package | Out-Null
 
 # Bundle pinned ASM for Java 25-compatible menu instrumentation.
 New-Item -ItemType Directory -Force out/libraries | Out-Null
@@ -101,8 +101,6 @@ Compress-Archive -Path dist/sdk/* -DestinationPath "dist/HOWL-SDK-v$LoaderVersio
 Copy-Item Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 Copy-Item dist/CodaLoader.jar dist/package/CodaLoader.jar
 Copy-Item dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
-Copy-Item dist/hello-coda.jar dist/package/run/mods/hello-coda.jar
-Copy-Item dist/hw-essentials.jar dist/package/run/mods/hw-essentials.jar
 
 @"
 H.O.W.L. $LoaderVersion - Howling Open Works Loader
@@ -110,7 +108,7 @@ H.O.W.L. $LoaderVersion - Howling Open Works Loader
 1. Extract the entire ZIP into its own folder.
 2. Double-click Launch-CodaLoader.bat.
 3. Keep CodaLoader.jar beside the BAT.
-4. Put HOWL mods in run\mods.
+4. Put HOWL mods in the active Minecraft game's mods folder.
 5. Put custom menu .ogg music in run\music\menu.
 
 CodaLoader checks public GitHub Releases for updates automatically.
@@ -120,8 +118,6 @@ Compress-Archive -Path dist/package/* -DestinationPath "dist/$BundleName" -Force
 
 $JarSha = (Get-FileHash dist/package/CodaLoader.jar -Algorithm SHA256).Hash.ToLowerInvariant()
 $BatSha = (Get-FileHash dist/package/Launch-CodaLoader.bat -Algorithm SHA256).Hash.ToLowerInvariant()
-$HelloSha = (Get-FileHash dist/package/run/mods/hello-coda.jar -Algorithm SHA256).Hash.ToLowerInvariant()
-$EssentialsSha = (Get-FileHash dist/package/run/mods/hw-essentials.jar -Algorithm SHA256).Hash.ToLowerInvariant()
 $BundleSha = (Get-FileHash "dist/$BundleName" -Algorithm SHA256).Hash.ToLowerInvariant()
 
 @"
@@ -132,9 +128,7 @@ $BundleSha = (Get-FileHash "dist/$BundleName" -Algorithm SHA256).Hash.ToLowerInv
   "sha256": "$BundleSha",
   "files": {
     "CodaLoader.jar": "$JarSha",
-    "Launch-CodaLoader.bat": "$BatSha",
-    "run/mods/hello-coda.jar": "$HelloSha",
-    "run/mods/hw-essentials.jar": "$EssentialsSha"
+    "Launch-CodaLoader.bat": "$BatSha"
   }
 }
 "@ | Set-Content -Encoding UTF8 dist/update-manifest.json
