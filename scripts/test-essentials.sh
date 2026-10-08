@@ -20,7 +20,7 @@ javac --release 21 -encoding UTF-8 -cp dist/CodaLoader.jar -d out/api-classes "$
 
 # Compile command bridge and menu fixtures
 mapfile -d '' TEST_SOURCES < <(find tests/src -name '*.java' -print0)
-javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar -d out/test-classes "${TEST_SOURCES[@]}"
+javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/CodaLoader.jar:dist/hw-essentials.jar:out/test-libraries/brigadier.jar -d out/test-classes "${TEST_SOURCES[@]}"
 
 # On Java 25, also test transformation of class files compiled for Minecraft's runtime.
 if [[ -n "${MENU_FIXTURE_RELEASE:-}" ]]; then
@@ -46,6 +46,7 @@ jar --create --file out/server-tick-test-agent.jar --manifest out/server-tick-te
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ServerTickLifecycleTest
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.WorldInventoryTickTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.NativeRegistryTransformerTest
 
 # Verify the same new-world ASM hook that the real Minecraft agent installs.
 # This is a named JVM fixture, not a live Snapshot 3 world-creation test.
