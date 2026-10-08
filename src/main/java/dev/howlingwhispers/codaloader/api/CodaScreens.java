@@ -18,6 +18,9 @@ public final class CodaScreens {
     public static final String PAUSE = "minecraft:pause";
     public static final String SETTINGS = "minecraft:settings";
     public static final String WORLD_SELECT = "minecraft:world_select";
+    private static final CodaScreens GLOBAL = new CodaScreens();
+    public static CodaScreens global() { return GLOBAL; }
+
     private static final Set<String> RESERVED = Set.of(TITLE, PAUSE, SETTINGS, WORLD_SELECT);
 
     @FunctionalInterface
