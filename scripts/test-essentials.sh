@@ -37,3 +37,9 @@ java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.HowlSplashesTest
 printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.MenuTestAgent\n\n' > out/menu-test-manifest.mf
 jar --create --file out/menu-test-agent.jar --manifest out/menu-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/MenuTestAgent.class
 java -javaagent:out/menu-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MenuLifecycleTest
+
+# This runs the real production ASM transformer against a named server fixture.
+# It does NOT claim that Snapshot 3's live server has been tested.
+printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.ServerTickTestAgent\n\n' > out/server-tick-test-manifest.mf
+jar --create --file out/server-tick-test-agent.jar --manifest out/server-tick-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/ServerTickTestAgent.class
+java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ServerTickLifecycleTest
