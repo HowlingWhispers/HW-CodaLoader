@@ -71,7 +71,24 @@ public final class NativeMinecraftSmoke {
         Object tab = creative.getClass().getMethod("getValue", idClass).invoke(creative, name);
         if (tab == null) throw new AssertionError("BuildCraft Creative tab not registered");
         checked++;
+        // Engine-powered routing needs these exact native methods. Verify
+        // before publishing nightlies instead of discovering wrong signatures
+        // after players load their worlds.
+        Class<?> posType = Class.forName("net.minecraft.core.BlockPos",true,loader);
+        Class.forName("net.minecraft.world.level.Level",true,loader)
+            .getMethod("hasNeighborSignal",posType);
+        checked++;
+        Class<?> nativeStack = Class.forName("net.minecraft.world.item.ItemStack",true,loader);
+        nativeStack.getMethod("getCount");
+        nativeStack.getMethod("copyWithCount",int.class);
+        nativeStack.getMethod("isSameItemSameComponents",nativeStack,nativeStack);
+        checked += 3;
+        Class<?> chest = Class.forName("net.minecraft.world.level.block.entity.ChestBlockEntity",true,loader);
+        chest.getMethod("getContainerSize");
+        chest.getMethod("getItem",int.class);
+        chest.getMethod("setItem",int.class,nativeStack);
+        checked += 3;
         System.out.println("PASS: " + checked
-                + " actual Mojang Snapshot 3 BuildCraft native block, item and Creative registry entries");
+                + " actual Mojang Snapshot 3 native BuildCraft registry and transfer interface checks");
     }
 }
