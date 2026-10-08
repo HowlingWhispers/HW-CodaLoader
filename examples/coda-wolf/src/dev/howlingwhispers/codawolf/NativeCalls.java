@@ -1,6 +1,7 @@
 package dev.howlingwhispers.codawolf;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -31,7 +32,14 @@ final class NativeCalls {
             if (matches) { found = candidate; break; }
         }
         if (found == null) throw new NoSuchMethodException(klass.getName() + "." + name + "/" + args.length);
-        return found.invoke(receiver instanceof Class<?> ? null : receiver, args);
+        try {
+            return found.invoke(receiver instanceof Class<?> ? null : receiver, args);
+        } catch (InvocationTargetException failure) {
+            Throwable original = failure.getCause();
+            if (original instanceof Exception exception) throw exception;
+            if (original instanceof Error error) throw error;
+            throw failure;
+        }
     }
     static Object construct(Class<?> klass, Object... args) throws Exception {
         for (Constructor<?> c : klass.getConstructors()) {
