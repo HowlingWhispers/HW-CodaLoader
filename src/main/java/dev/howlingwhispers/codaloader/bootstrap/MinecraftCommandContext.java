@@ -2,6 +2,7 @@ package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.api.CodaCommandContext;
 import dev.howlingwhispers.codaloader.api.CodaPosition;
+import dev.howlingwhispers.codaloader.api.CodaSingleplayerWorld;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Set;
