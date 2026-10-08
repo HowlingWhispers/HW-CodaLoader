@@ -7,11 +7,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 
 /** No anonymous CodaPlayer fallback. Online credentials are verified independently. */
-public record LaunchIdentity(String name, String uuid, String token, String clientId, boolean offline) {
+public record LaunchIdentity(String name, String uuid, String token, String clientId, boolean offline, boolean localOnly) {
     public static LaunchIdentity fromEnvironment(Map<String, String> env) {
         String name = env.getOrDefault("CODA_PLAYER_NAME", "");
         String uuid = env.getOrDefault("CODA_PLAYER_UUID", "");
@@ -19,15 +21,25 @@ public record LaunchIdentity(String name, String uuid, String token, String clie
         String token = env.getOrDefault("CODA_ACCESS_TOKEN", "");
         if (!"CodaLauncher".equals(env.get("CODA_LAUNCHED_BY")) ||
                 !name.matches("[A-Za-z0-9_]{1,16}") || !uuid.matches("[0-9a-fA-F]{32}") ||
-                !(mode.equals("online") || mode.equals("offline")))
+                !(mode.equals("online") || mode.equals("offline") || mode.equals("local")))
             throw new IllegalStateException("Open CodaLauncher Profile and verify your Minecraft account before playing.");
-        boolean offline = mode.equals("offline");
+        boolean localOnly = mode.equals("local");
+        boolean offline = localOnly || mode.equals("offline");
+        if (localOnly) {
+            // Match the original CodaPlayer UUID to preserve existing singleplayer saves.
+            String legacyUuid = UUID.nameUUIDFromBytes("OfflinePlayer:CodaPlayer"
+                    .getBytes(StandardCharsets.UTF_8)).toString().replace("-", "");
+            if (!"CodaPlayer".equals(name) || !legacyUuid.equalsIgnoreCase(uuid)
+                    || (!token.isBlank() && !"0".equals(token))
+                    || !env.getOrDefault("CODA_AUTH_CLIENT_ID", "").isBlank())
+                throw new IllegalStateException("Invalid local singleplayer identity.");
+        }
         if (!offline && (token.isBlank() || token.equals("0")))
             throw new IllegalStateException("Online play requires a valid Minecraft access token.");
         // Offline authorization belongs to the launcher's OS-protected ownership cache.
         // Environment flags are local launch metadata, never proof for a remote service.
         return new LaunchIdentity(name, uuid, offline ? "0" : token,
-                env.getOrDefault("CODA_AUTH_CLIENT_ID", ""), offline);
+                env.getOrDefault("CODA_AUTH_CLIENT_ID", ""), offline, localOnly);
     }
     public void verifyOnline() throws Exception {
         if (offline) return;
@@ -49,5 +61,5 @@ public record LaunchIdentity(String name, String uuid, String token, String clie
         if (!(result instanceof Map<?, ?> map)) throw new IOException("Invalid Minecraft verification response.");
         return map;
     }
-    @Override public String toString() { return name + " (" + (offline ? "offline" : "verified online") + ")"; }
+    @Override public String toString() { return name + " (" + (localOnly ? "local singleplayer, unverified" : offline ? "verified offline" : "verified online") + ")"; }
 }
