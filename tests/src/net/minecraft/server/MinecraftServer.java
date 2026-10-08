@@ -28,6 +28,7 @@ public class MinecraftServer {
 
     public record Dimension(String name) {
         public String location() { return name; }
+        public String identifier() { return name; }
     }
 
     public static final class Level {
