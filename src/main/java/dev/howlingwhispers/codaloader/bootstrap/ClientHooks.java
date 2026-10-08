@@ -14,13 +14,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.lang.reflect.Array;
 
 /**
- * Tiny reflection-only client hook proof.
+ * Reflection-only CML client hooks and Coda-flavoured title/pause menus.
  *
  * This intentionally avoids Fabric/Forge/Mixin. It waits for the readable Mojang client
- * classes, updates the window title, and adds one CodaLoader button to TitleScreen.
+ * classes, updates the window title, and tailors the native title/pause controls.
  */
 final class ClientHooks {
     private static volatile boolean titleFailureReported;
@@ -35,6 +36,8 @@ final class ClientHooks {
     private static volatile boolean firstTitleSceneSeen;
     private static volatile boolean sceneReloadFailureReported;
     private static int nullScreenPolls;
+    private static final AtomicBoolean menuTaskPending = new AtomicBoolean();
+    private static volatile boolean codaMenuFailureReported;
 
     private ClientHooks() {}
 
@@ -70,6 +73,23 @@ final class ClientHooks {
                     Object screen = findActiveScreen(minecraft, screenClass);
                     boolean isTitleScreen = screen != null
                             && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
+
+                    boolean isPauseScreen = screen != null
+                            && "net.minecraft.client.gui.screens.PauseScreen".equals(screen.getClass().getName());
+                    if ((isTitleScreen || isPauseScreen) && menuTaskPending.compareAndSet(false, true)) {
+                        Object target = screen;
+                        schedule(minecraft, () -> {
+                            try {
+                                if (findActiveScreen(minecraft, screenClass) == target)
+                                    CodaMenus.apply(target, isTitleScreen);
+                            } catch (Throwable ex) {
+                                if (!codaMenuFailureReported) {
+                                    codaMenuFailureReported = true;
+                                    System.err.println("[CodaLoader] Coda menu customization warning: " + ex);
+                                }
+                            } finally { menuTaskPending.set(false); }
+                        });
+                    }
 
                     if (screen == null) {
                         nullScreenPolls++;
@@ -229,12 +249,12 @@ final class ClientHooks {
             int screenWidth = readIntMember(screen, "width", 320);
             int screenHeight = readIntMember(screen, "height", 240);
             int centerX = screenWidth / 2;
-            int iconY = screenHeight / 4 + 120;
+            int iconY = screenHeight / 4 + 72;
 
             String modWord = modCount == 1 ? "mod" : "mods";
             Object cml = createButton(
                     buttonClass, onPressClass, builderMethod, literal,
-                    "CML | " + modCount + " " + modWord,
+                    "Coda | " + modCount + " " + modWord,
                     4, Math.max(4, screenHeight - 36), 138, 16,
                     "CMLStatus",
                     clicked -> System.out.println("[CodaLoader] CML status button clicked: "
@@ -248,7 +268,7 @@ final class ClientHooks {
                         centerX - 58, iconY,
                         "codaloader:social/discord",
                         "CMLDiscord",
-                        clicked -> System.out.println("[CodaLoader] Discord button clicked. Community link is not configured yet."));
+                        clicked -> System.out.println("[CodaLoader] Coda: The community invite is still on my clipboard. Check the launcher for now."));
 
                 youtube = createSocialImageButton(
                         loader, componentClass, onPressClass, literal,
@@ -558,9 +578,9 @@ final class ClientHooks {
 
         if (!schedulerReported) {
             schedulerReported = true;
-            System.err.println("[CodaLoader] No Minecraft Runnable scheduler found; using hook thread fallback.");
+            System.err.println("[CodaLoader] No Minecraft Runnable scheduler found; menu task skipped to protect the GUI thread.");
         }
-        task.run();
+        menuTaskPending.set(false);
     }
 
     private static Object readField(Object target, String name) throws Exception {

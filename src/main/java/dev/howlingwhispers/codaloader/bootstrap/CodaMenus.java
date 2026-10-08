@@ -1,0 +1,204 @@
+package dev.howlingwhispers.codaloader.bootstrap;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+
+/** Reuses native handlers while tailoring title/pause controls to CML's personal-world model. */
+final class CodaMenus {
+    private static final Map<Object, String> ORIGINAL_KEYS = new WeakHashMap<>();
+    private static final Set<String> TITLE_REMOVED = Set.of("menu.multiplayer", "menu.online", "menu.realms");
+    private static final Set<String> PAUSE_REMOVED = Set.of("menu.shareToLan", "menu.sendFeedback", "menu.reportBugs");
+    private static final Map<String, String> LABELS = Map.ofEntries(
+            Map.entry("menu.singleplayer", "My Worlds"),
+            Map.entry("menu.options", "Coda's Settings"),
+            Map.entry("menu.quit", "Clock Out"),
+            Map.entry("menu.returnToGame", "Back to Adventure"),
+            Map.entry("gui.advancements", "Pawprints"),
+            Map.entry("menu.advancements", "Pawprints"),
+            Map.entry("gui.stats", "Coda's Ledger"),
+            Map.entry("menu.stats", "Coda's Ledger"),
+            Map.entry("menu.returnToMenu", "Save & Curl Up"));
+    private CodaMenus() {}
+
+    /** Must be invoked on Minecraft's GUI thread, after this screen's widgets are initialized. */
+    static void apply(Object screen, boolean title) throws Exception {
+        List<Object> widgets = children(screen);
+        Set<String> removed = title ? TITLE_REMOVED : PAUSE_REMOVED;
+        List<Object> kept = new ArrayList<>();
+        for (Object widget : widgets) {
+            String key = key(widget);
+            if (removed.contains(key)) {
+                remove(screen, widget);
+                continue;
+            }
+            String label = LABELS.get(key);
+            if (label != null) {
+                setLabel(widget, label);
+                tooltip(widget, tooltipFor(key));
+            }
+            kept.add(widget);
+        }
+        if (title) layoutTitle(kept);
+        else layoutPause(screen, kept);
+    }
+
+    private static String tooltipFor(String key) {
+        return switch (key) {
+            case "menu.singleplayer" -> "Coda: Your worlds, filed and ready for adventure.";
+            case "menu.options" -> "Coda: Sound, sights and controls. Your paws, your preferences.";
+            case "menu.quit" -> "Coda: Clipboard closed. See you next adventure.";
+            case "menu.returnToGame" -> "Coda: Enough paperwork. Back to your world.";
+            case "menu.returnToMenu" -> "Coda: Save your world and head back to the den.";
+            case "gui.stats", "menu.stats" -> "Coda: Your adventures, counted and filed.";
+            default -> "Coda: A record of your finest pawprints.";
+        };
+    }
+
+    private static String key(Object widget) throws Exception {
+        String cached = ORIGINAL_KEYS.get(widget);
+        if (cached != null) return cached;
+        Method messageMethod = method(widget.getClass(), "getMessage");
+        if (messageMethod == null) return "";
+        Object message = messageMethod.invoke(widget);
+        if (message == null) return "";
+        Method contentsMethod = method(message.getClass(), "getContents");
+        if (contentsMethod == null) return "";
+        Object contents = contentsMethod.invoke(message);
+        if (contents == null) return "";
+        Method getKey = method(contents.getClass(), "getKey");
+        if (getKey == null) return "";
+        Object value = getKey.invoke(contents);
+        if (!(value instanceof String text)) return "";
+        ORIGINAL_KEYS.put(widget, text);
+        return text;
+    }
+
+    private static List<Object> children(Object screen) throws Exception {
+        Method children = method(screen.getClass(), "children");
+        if (children == null) throw new NoSuchMethodException("Screen.children()");
+        Object value = children.invoke(screen);
+        List<Object> result = new ArrayList<>();
+        if (value instanceof Iterable<?> iterable) for (Object widget : iterable) result.add(widget);
+        else throw new IllegalStateException("Screen.children() is not iterable");
+        return result;
+    }
+
+    private static void remove(Object screen, Object widget) throws Exception {
+        Method remove = compatibleMethod(screen.getClass(), "removeWidget", widget);
+        if (remove != null) remove.invoke(screen, widget);
+        else {
+            // If Snapshot 3 has changed removal, hide and disable without mutating unknown containers.
+            boolean hidden = booleanField(widget, "visible", false);
+            boolean disabled = booleanField(widget, "active", false);
+            if (!hidden || !disabled) throw new NoSuchMethodException("Cannot safely hide unsupported menu widget");
+        }
+    }
+
+    private static void setLabel(Object widget, String label) throws Exception {
+        Method getMessage = method(widget.getClass(), "getMessage");
+        Class<?> component = getMessage.getReturnType();
+        Method literal = method(component, "literal", String.class);
+        if (literal == null) throw new NoSuchMethodException("Component.literal(String)");
+        Object message = getMessage.invoke(widget);
+        Method getString = method(message.getClass(), "getString");
+        if (getString != null && label.equals(getString.invoke(message))) return;
+        Method set = compatibleMethod(widget.getClass(), "setMessage", message);
+        if (set == null) throw new NoSuchMethodException("Widget.setMessage(Component)");
+        set.invoke(widget, literal.invoke(null, label));
+    }
+
+    private static void tooltip(Object widget, String text) {
+        try {
+            Class<?> component = method(widget.getClass(), "getMessage").getReturnType();
+            Class<?> tooltip = Class.forName("net.minecraft.client.gui.components.Tooltip", true, widget.getClass().getClassLoader());
+            Object label = method(component, "literal", String.class).invoke(null, text);
+            Object hint = method(tooltip, "create", component).invoke(null, label);
+            Method set = compatibleMethod(widget.getClass(), "setTooltip", hint);
+            if (set != null) set.invoke(widget, hint);
+        } catch (ReflectiveOperationException | NullPointerException unavailable) {
+            // Captions and native narration still work if the optional tooltip API changed.
+        }
+    }
+
+    private static void layoutTitle(List<Object> widgets) throws Exception {
+        Object worlds = find(widgets, "menu.singleplayer");
+        if (worlds == null) return;
+        int worldY = number(worlds, "getY", -1000);
+        if (worldY < 0) return;
+        int row = worldY + 24;
+        for (Object widget : widgets) {
+            String key = key(widget);
+            int y = number(widget, "getY", -1000);
+            if (key.equals("menu.options") || key.equals("menu.quit")
+                    || (number(widget, "getHeight", 0) == 20 && number(widget, "getWidth", 1000) <= 40
+                        && y >= row && y <= row + 96))
+                coordinate(widget, "setY", row);
+        }
+    }
+
+    private static void layoutPause(Object screen, List<Object> widgets) throws Exception {
+        Object resume = find(widgets, "menu.returnToGame");
+        if (resume == null) return;
+        int y = number(resume, "getY", -1000);
+        int x = number(resume, "getX", -1000);
+        if (y < 0 || x < 0) return;
+        Object advancements = findEither(widgets, "gui.advancements", "menu.advancements");
+        Object stats = findEither(widgets, "gui.stats", "menu.stats");
+        if (advancements != null && stats != null) {
+            coordinate(advancements, "setY", y + 24);
+            coordinate(stats, "setY", y + 24);
+        }
+        Object options = find(widgets, "menu.options");
+        Object quit = find(widgets, "menu.returnToMenu");
+        for (Object widget : new Object[]{options, quit}) {
+            if (widget == null) continue;
+            coordinate(widget, "setX", x);
+            coordinate(widget, "setWidth", number(resume, "getWidth", 200));
+            coordinate(widget, "setY", y + (widget == options ? 48 : 72));
+        }
+    }
+
+    private static Object find(List<Object> widgets, String key) throws Exception {
+        for (Object widget : widgets) if (key.equals(key(widget))) return widget;
+        return null;
+    }
+    private static Object findEither(List<Object> widgets, String a, String b) throws Exception {
+        Object result = find(widgets, a); return result == null ? find(widgets, b) : result;
+    }
+    private static int number(Object target, String name, int fallback) throws Exception {
+        Method method = method(target.getClass(), name);
+        return method == null ? fallback : ((Number) method.invoke(target)).intValue();
+    }
+    private static void coordinate(Object widget, String name, int value) throws Exception {
+        Method method = method(widget.getClass(), name, int.class);
+        if (method != null) method.invoke(widget, value);
+    }
+    private static boolean booleanField(Object target, String name, boolean value) throws Exception {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field field = type.getDeclaredField(name); field.setAccessible(true); field.setBoolean(target, value); return true; }
+            catch (NoSuchFieldException ignored) {}
+        }
+        return false;
+    }
+    private static Method compatibleMethod(Class<?> type, String name, Object argument) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass())
+            for (Method method : current.getDeclaredMethods())
+                if (method.getName().equals(name) && method.getParameterCount() == 1
+                        && method.getParameterTypes()[0].isInstance(argument)) {
+                    method.setAccessible(true); return method;
+                }
+        return null;
+    }
+    private static Method method(Class<?> type, String name, Class<?>... params) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            try { Method method = current.getDeclaredMethod(name, params); method.setAccessible(true); return method; }
+            catch (NoSuchMethodException ignored) {}
+        }
+        return null;
+    }
+}

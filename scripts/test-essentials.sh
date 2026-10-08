@@ -24,3 +24,4 @@ javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/hw-essentials.jar:ou
 
 TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CommandBridgeTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaMenusTest

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish v0.0.20 bundle
+    name: Publish v0.0.21 bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -42,28 +42,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="v0.0.20"
-          ZIP="dist/CodaLoader-v0.0.20-win64.zip"
+          TAG="v0.0.21"
+          ZIP="dist/CodaLoader-v0.0.21-win64.zip"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists; bump the version for a new build." >&2
             exit 1
           fi
           cat > release-notes.md <<'EOF'
-          # CodaLoader 0.0.20
+          # CodaLoader 0.0.21
 
           Pinned to Minecraft Java 26.4 Snapshot 3.
 
-          - HW Essentials 0.2.0 adds /back for safe session return trips after /home.
-          - Return points are isolated per world/player; refused teleports preserve them.
-          - Mod source, storage tests and releases live in HW-Mods.
-          - CodaLoader fetches HW Essentials from GitHub Releases and embeds it for automatic profile installation.
-          - CML command API (CodaMod, CodaContext, CodaCommand, CodaCommandContext, CodaPosition, CodaCommands) and server-thread bridge remain in CodaLoader.
-          - Homes, settings and manually changed conflicting mod files are preserved during updates.
+          - Main menu focuses on personal worlds: My Worlds, Coda's Settings and Clock Out.
+          - Realms and traditional Multiplayer controls are removed.
+          - Pause menu offers Back to Adventure, Pawprints, Coda's Ledger, Coda's Settings and Save & Curl Up.
+          - Open to LAN and vanilla feedback/report-bug shortcuts are removed from the pause menu.
+          - Buttons reuse native world, settings, progress, resume and save handlers.
+          - Coda's wording extends to world selection, resource packs and settings through the UI language pack.
+          - HW Essentials 0.2.0 remains bundled automatically; homes and settings are preserved.
 
-          Download the Windows bundle for the complete loader. The standalone hw-essentials.jar requires CodaLoader 0.0.20+.
-
-          CI covers compilation, loading, persistence, command parsing with real Brigadier and adapter fixtures. Live Snapshot 3 registration and teleportation still require an in-game playtest.
+          CI checks GUI adapter fixtures and the command bridge. Actual Snapshot 3 menu layout, keyboard navigation and gameplay still require an in-game playtest.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar \
-            --target "$GITHUB_SHA" --title "CodaLoader 0.0.20" \
+            --target "$GITHUB_SHA" --title "CodaLoader 0.0.21" \
             --notes-file release-notes.md --prerelease

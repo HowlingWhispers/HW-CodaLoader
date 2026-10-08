@@ -187,8 +187,11 @@ public final class MinecraftBootstrap {
         copyBundledResource("/codaloader/ui/discord.png", social.resolve("discord.png"));
         copyBundledResource("/codaloader/ui/youtube.png", social.resolve("youtube.png"));
 
+        Path language = pack.resolve("assets/minecraft/lang/en_us.json");
+        copyBundledResource("/codaloader/ui/en_us.json", language);
+
         enableGeneratedPack("file/CodaLoader-UI");
-        System.out.println("[CodaLoader] CodaLoader UI sprite pack enabled: Discord + YouTube.");
+        System.out.println("[CodaLoader] CodaLoader UI pack enabled: Coda menu wording + Discord/YouTube.");
     }
 
     private void copyBundledResource(String resource, Path target) throws IOException {
