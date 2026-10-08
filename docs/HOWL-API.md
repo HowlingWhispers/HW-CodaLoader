@@ -15,6 +15,7 @@ and retest against new releases.
 | `context.registerCommand(name, description, command)` | Registers a player command. The integrated-server bridge executes it on the server thread. |
 | `CodaCommandContext` | Player UUID, world directory, position, replies and checked teleports. Store world/player state using these identities. |
 | `context.registerScreen(id, priority, factory)` | Registers a native-screen factory; the Minecraft GUI bridge constructs/opens it on the GUI thread when requested. Registration alone does not open a screen. |
+| `context.registerServerTick(id, callback)` | Registers an authoritative server-thread callback after each native `MinecraftServer.tickServer(BooleanSupplier)` return. Server sessions have opaque IDs and 1-based tick counters; handlers are isolated and disabled after three consecutive errors. Early integration, requires live Snapshot 3 mapping verification. |
 | `coda.mod.json` schema 1 | Exact Minecraft target, unique mod ID, entrypoint and required mod IDs. Missing dependencies, duplicates and dependency cycles are rejected. |
 
 The public Java namespace remains `dev.howlingwhispers.codaloader.api`.
@@ -37,6 +38,26 @@ context.registerCommand("hellohowl", "A greeting from my mod",
 Use a unique command name. The bridge preserves an existing command collision
 and reports it rather than replacing it. Keep command work short and store
 world data under `player.worldDirectory()` with your own mod namespace.
+
+## Native server ticks (development API)
+
+```java
+context.registerServerTick("machine_tick", tick -> {
+    // This callback runs on the integrated server thread, not the client.
+    // tick.sessionId() distinguishes new server/world instances.
+    // tick.tick() is a monotonically increasing tick callback counter.
+});
+```
+
+The H.O.W.L. agent instruments **only** the exact named Snapshot 3 server method
+`MinecraftServer.tickServer(BooleanSupplier)`. If the method name or descriptor
+does not match, it logs the mismatch and **does not guess another hook**. There
+is no fallback polling thread, no client tick masquerading as a server tick,
+and no direct Minecraft world or inventory references in the callback yet.
+Callbacks must never block the server or assume they have item/block APIs.
+The automated fixture tests cover callback timing, fault isolation, repeated
+ticks and new-server isolation. These tests do **not** establish live Snapshot 3
+mapping compatibility.
 
 ## What revival mods still need
 

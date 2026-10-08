@@ -15,6 +15,7 @@ public final class CodaAgent {
 
     public static void premain(String agentArgs, Instrumentation instrumentation) {
         CodaMenuTransformer.install(instrumentation);
+        CodaServerTickTransformer.install(instrumentation);
 
         Path root = agentArgs == null || agentArgs.isBlank()
                 ? Path.of("run")

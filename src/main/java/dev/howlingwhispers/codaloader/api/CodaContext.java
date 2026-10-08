@@ -24,4 +24,12 @@ public record CodaContext(
     public void registerCommand(String name, String description, CodaCommand command) {
         CodaCommands.register(modId, name, description, command);
     }
+
+    /**
+     * Server-thread callback. Registered during mod initialization and driven by
+     * the strict Snapshot 3 tickServer hook. Not a client/render-thread callback.
+     */
+    public void registerServerTick(String listenerId, CodaServerTick callback) {
+        CodaServerTicks.register(modId, listenerId, callback);
+    }
 }
