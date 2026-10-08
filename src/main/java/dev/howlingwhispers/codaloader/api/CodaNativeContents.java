@@ -30,14 +30,20 @@ public final class CodaNativeContents {
         return id;
     }
 
+    private static String requireOwner(String owner) {
+        if (owner == null || !owner.matches("[a-z0-9_.-]{1,64}"))
+            throw new IllegalArgumentException("Invalid H.O.W.L. mod id " + owner);
+        return owner;
+    }
+
     public static synchronized void registerBlock(String owner, String id, float hardness) {
-        add(new Definition(requireId(owner), requireId(id), Kind.BLOCK, hardness));
         if (!Float.isFinite(hardness) || hardness < 0 || hardness > 100)
             throw new IllegalArgumentException("Block hardness out of range");
+        add(new Definition(requireOwner(owner), requireId(id), Kind.BLOCK, hardness));
     }
 
     public static synchronized void registerItem(String owner, String id) {
-        add(new Definition(requireId(owner), requireId(id), Kind.ITEM, 0));
+        add(new Definition(requireOwner(owner), requireId(id), Kind.ITEM, 0));
     }
 
     private static void add(Definition def) {
@@ -49,7 +55,7 @@ public final class CodaNativeContents {
     public static synchronized void registerTab(String owner, String id, String title,
                                                 String icon, List<String> items) {
         if (sealed) throw new IllegalStateException("Native registry declarations closed");
-        requireId(owner);
+        requireOwner(owner);
         requireId(id);
         if (title == null || title.isBlank() || title.length() > 64)
             throw new IllegalArgumentException("Creative tab requires title");
