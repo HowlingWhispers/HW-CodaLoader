@@ -74,7 +74,9 @@ final class BuildCraftResourceInstaller {
                     if (!paths.add(name)) throw new IOException("Duplicate BuildCraft asset " + name);
                     if (++count > MAX_ENTRIES || entry.getSize() > MAX_BYTES)
                         throw new IOException("BuildCraft source resource limit exceeded");
-                    dest.putNextEntry(new ZipEntry(name));
+                    ZipEntry outputEntry = new ZipEntry(name);
+                    outputEntry.setTime(0L);
+                    dest.putNextEntry(outputEntry);
                     try (InputStream stream = original.getInputStream(entry)) {
                         byte[] buf = new byte[8192];
                         for (int n; (n = stream.read(buf)) >= 0;) {
@@ -136,7 +138,9 @@ final class BuildCraftResourceInstaller {
             // Legacy entries MUST NOT be emitted earlier with the same path.
             throw new IOException("Original BuildCraft asset conflicts with generated 26.4 resource: " + path);
         }
-        output.putNextEntry(new ZipEntry(path));
+        ZipEntry newEntry = new ZipEntry(path);
+        newEntry.setTime(0L);
+        output.putNextEntry(newEntry);
         output.write(text.getBytes(StandardCharsets.UTF_8));
         output.closeEntry();
     }
