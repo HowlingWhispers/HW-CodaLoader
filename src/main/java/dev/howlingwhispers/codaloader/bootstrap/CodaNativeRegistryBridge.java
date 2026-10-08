@@ -146,19 +146,12 @@ public final class CodaNativeRegistryBridge {
             Class<?> component = type("net.minecraft.network.chat.Component");
             Class<?> itemStack = type("net.minecraft.world.item.ItemStack");
 
-            // Find a truly free bottom-row position so BuildCraft never hides
-            // vanilla tabs. Fail loudly if Mojang exhausts tab space.
-            int column = 0;
-            Object all = registry.getClass().getMethod("stream").invoke(registry);
-            try (java.util.stream.Stream<?> stream = (java.util.stream.Stream<?>)all) {
-                for (Object tab : stream.toList()) {
-                    Object row = creativeTab.getMethod("row").invoke(tab);
-                    if (row.toString().equals("BOTTOM")) {
-                        int index = (Integer)creativeTab.getMethod("column").invoke(tab);
-                        column = Math.max(column, index + 1);
-                    }
-                }
-            }
+            // During Mojang's CREATIVE_MODE_TAB bootstrap, vanilla holders
+            // exist but remain UNBOUND until the registry finishes loading.
+            // Registry.stream() here crashes the game. Snapshot 3's stock
+            // tabs occupy bottom columns 0-6. Append at column 7; no vanilla
+            // values are touched while still unbound.
+            int column = 7;
             Object bottom = rowClass.getField("BOTTOM").get(null);
             for (CodaNativeContents.Tab spec : CodaNativeContents.tabs()) {
                 if (column >= 10) throw new IllegalStateException(
