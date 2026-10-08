@@ -54,6 +54,7 @@ public final class MinecraftBootstrap {
     private final Path officialMinecraft;
     private final Path basePack;
     private final HttpClient http;
+    private LaunchIdentity identity;
 
     public MinecraftBootstrap(Path root, Path basePack) {
         this.root = root.toAbsolutePath().normalize();
@@ -72,6 +73,8 @@ public final class MinecraftBootstrap {
     }
 
     public int launch() throws Exception {
+        identity = LaunchIdentity.fromEnvironment(System.getenv());
+        identity.verifyOnline();
         int java = Runtime.version().feature();
         if (java < CodaTarget.MINECRAFT_MINIMUM_JAVA) {
             throw new IllegalStateException(
@@ -96,17 +99,20 @@ public final class MinecraftBootstrap {
             System.out.println("[CodaLoader] Reuse source: " + officialMinecraft);
         }
 
-        Map<String, Object> manifest = object(readJson(VERSION_MANIFEST));
-        Map<String, Object> versionRef = findVersion(manifest, CodaTarget.MINECRAFT_VERSION);
-        String versionUrl = string(versionRef, "url");
-        String versionSha1 = optionalString(versionRef, "sha1");
-
         Path versionDir = versions.resolve(CodaTarget.MINECRAFT_VERSION);
         Files.createDirectories(versionDir);
         Path versionJson = versionDir.resolve(CodaTarget.MINECRAFT_VERSION + ".json");
-        Path officialVersionJson = officialPath("versions", CodaTarget.MINECRAFT_VERSION,
-                CodaTarget.MINECRAFT_VERSION + ".json");
-        ensureFile(versionJson, officialVersionJson, URI.create(versionUrl), versionSha1, -1);
+        if (identity.offline()) {
+            if (!Files.isRegularFile(versionJson)) throw new IOException("Install this Minecraft version while online before using offline play.");
+        } else {
+            Map<String, Object> manifest = object(readJson(VERSION_MANIFEST));
+            Map<String, Object> versionRef = findVersion(manifest, CodaTarget.MINECRAFT_VERSION);
+            String versionUrl = string(versionRef, "url");
+            String versionSha1 = optionalString(versionRef, "sha1");
+            Path officialVersionJson = officialPath("versions", CodaTarget.MINECRAFT_VERSION,
+                    CodaTarget.MINECRAFT_VERSION + ".json");
+            ensureFile(versionJson, officialVersionJson, URI.create(versionUrl), versionSha1, -1);
+        }
 
         Map<String, Object> version = object(MiniJson.parse(Files.readString(versionJson, StandardCharsets.UTF_8)));
         validateJavaRequirement(version);
@@ -129,6 +135,7 @@ public final class MinecraftBootstrap {
 
         Path agentJar = currentCodaLoaderJar();
         command.add("-javaagent:" + agentJar + "=" + root);
+        command.add("-Dcoda.offline=" + identity.offline());
 
         Map<String, Object> arguments = childObject(version, "arguments");
         List<String> jvm = expandArguments(arguments.get("jvm"), vars);
@@ -149,12 +156,11 @@ public final class MinecraftBootstrap {
         System.out.println("[CodaLoader] Agent: " + agentJar.getFileName());
         System.out.println("[CodaLoader] Launching Minecraft with CodaLoader hooks...");
         System.out.println("[CodaLoader] Game directory: " + game);
-        System.out.println("[CodaLoader] Identity: CodaPlayer (offline bootstrap test)");
+        System.out.println("[CodaLoader] Identity: " + identity);
 
-        Process process = new ProcessBuilder(command)
-                .directory(game.toFile())
-                .inheritIO()
-                .start();
+        ProcessBuilder builder = new ProcessBuilder(command).directory(game.toFile()).inheritIO();
+        builder.environment().remove("CODA_ACCESS_TOKEN");
+        Process process = builder.start();
         return process.waitFor();
     }
 
@@ -878,9 +884,8 @@ public final class MinecraftBootstrap {
     }
 
     private Map<String, String> launchVariables(Map<String, Object> version, List<Path> classpath) {
-        String player = "CodaPlayer";
-        String uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + player).getBytes(StandardCharsets.UTF_8))
-                .toString().replace("-", "");
+        String player = identity.name();
+        String uuid = identity.uuid();
         String assetIndexName = string(childObject(version, "assetIndex"), "id");
 
         Map<String, String> vars = new HashMap<>();
@@ -898,10 +903,10 @@ public final class MinecraftBootstrap {
         vars.put("assets_index_name", assetIndexName);
         vars.put("game_assets", assets.toString());
         vars.put("auth_uuid", uuid);
-        vars.put("auth_access_token", "0");
-        vars.put("clientid", "");
+        vars.put("auth_access_token", identity.token());
+        vars.put("clientid", identity.clientId());
         vars.put("auth_xuid", "");
-        vars.put("user_type", "legacy");
+        vars.put("user_type", "msa");
         vars.put("version_type", optionalString(version, "type") == null ? "snapshot" : optionalString(version, "type"));
         vars.put("user_properties", "{}");
         vars.put("resolution_width", "1280");
@@ -1015,6 +1020,8 @@ public final class MinecraftBootstrap {
             }
         }
 
+        if (identity != null && identity.offline())
+            throw new IOException("Offline play needs a missing or damaged file: " + target.getFileName() + ". Repair the installation while online.");
         Path temp = target.resolveSibling(target.getFileName() + ".part");
         Files.deleteIfExists(temp);
         System.out.println("[CodaLoader] Downloading " + target.getFileName());

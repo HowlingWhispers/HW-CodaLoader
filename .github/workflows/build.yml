@@ -28,6 +28,10 @@ jobs:
       - name: Build distribution
         run: ./scripts/build-dist.sh
 
+      - name: Test verified launch identity
+        run: |
+          javac -cp dist/CodaLoader.jar -d out/identity-tests tests/identity/LaunchIdentityTest.java
+          java -cp dist/CodaLoader.jar:out/identity-tests LaunchIdentityTest
       - name: Test HW Essentials and command bridge
         run: bash scripts/test-essentials.sh
 

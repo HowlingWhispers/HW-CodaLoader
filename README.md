@@ -242,3 +242,9 @@ CodaLoader generates a resource pack for them inside the isolated game profile.
 
 Java 25+ is required by Minecraft 26.4 Snapshot 3. Java 26 is supported.
 
+
+## Verified account launch (source development)
+
+The source now requires a CodaLauncher account handoff for normal Minecraft launches. Online launches independently verify Java entitlements and the account UUID/name against Minecraft services; the old CodaPlayer test identity is removed. Offline launches preserve the verified UUID, contain no online token and use cached metadata/files. Missing assets require online repair. Direct loader-only/agent test paths are unchanged.
+
+This is not in release 0.0.24 yet. Publish it together with the launcher's configured and live-tested authentication release. `coda.offline=true` is a local mod hint, not a remote authentication credential. Shared services must validate their own online credentials when implemented.
