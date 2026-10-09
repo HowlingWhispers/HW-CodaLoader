@@ -100,6 +100,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          report_failure() {
+            python3 - <<'PY'
+          from pathlib import Path
+          message = Path('inspection/native-smoke.log').read_text()[-10000:]
+          print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PY
+          }
+          trap report_failure ERR
+          exec > >(tee inspection/native-smoke.log) 2>&1
           bash scripts/build-dist.sh
           mkdir -p inspection/test-classes inspection/maven
           javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
@@ -131,4 +140,5 @@ jobs:
             inspection/snapshot-api.txt
             inspection/version.json
             inspection/creative-inventory-bytecode.txt
+            inspection/native-smoke.log
           retention-days: 14
