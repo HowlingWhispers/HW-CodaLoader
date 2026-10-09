@@ -71,6 +71,12 @@ public final class NativeMinecraftSmoke {
         Object tab = creative.getClass().getMethod("getValue", idClass).invoke(creative, name);
         if (tab == null) throw new AssertionError("BuildCraft Creative tab not registered");
         checked++;
+        // Link the transformed real screen without initializing graphics.
+        // Combined with CreativeInventoryTest's execution fixture, this
+        // checks the exact renderer's bytecode and JVM verification.
+        Class.forName("net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen",
+                false, loader).getDeclaredMethods();
+        checked++;
         // Engine-powered routing needs these exact native methods. Verify
         // before publishing nightlies instead of discovering wrong signatures
         // after players load their worlds.

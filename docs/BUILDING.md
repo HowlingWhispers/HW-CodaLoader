@@ -30,3 +30,26 @@ source-only changes never replace a published version.
 
 Automated fixtures do not exercise the actual Minecraft GUI, Windows login
 handoff or gameplay. Those still require a live target-version game test.
+
+The BuildCraft creative-inventory regression test runs the production bytecode
+transformer and reproduces the reported column-7 sprite-array crash before
+checking the correction. The Snapshot API workflow also verifies the patch
+against Mojang's checksum-verified 26.4 Snapshot 3 client and links the actual
+screen class without starting graphics. Its `buildcraft-creative-inventory-fix`
+artifact contains a test loader bundle; it does not publish a release.
+
+The BuildCraft resource-pack test checks explicit modern atlas entries,
+original texture bytes, exclusion of unsupported Forge expression models,
+repeatable generation and preservation of player-edited packs. To use a real
+BuildCraft H.O.W.L. mod JAR instead of fixture assets, after the normal tests:
+
+```sh
+java -cp out/test-classes:out/api-classes:dist/CodaLoader.jar \
+  dev.howlingwhispers.codaloader.bootstrap.BuildCraftResourceInstallerTest \
+  /path/to/buildcraft-cml-0.1.0-dev.jar
+```
+
+For live validation, open and reopen creative inventory in a throwaway world,
+select BuildCraft's tab, and check the pipe, engine and wrench icons. The fix
+keeps tab positions and item IDs unchanged, so existing worlds require no
+migration.

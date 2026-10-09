@@ -5,6 +5,8 @@ on:
       - .github/workflows/snapshot-api-inspection.yml
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryTransformer.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeInventoryTransformer.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
   workflow_dispatch:
 
@@ -56,6 +58,7 @@ jobs:
             'net.minecraft.world.item.CreativeModeTab$Row'
             'net.minecraft.world.item.CreativeModeTab$Output'
             'net.minecraft.world.item.CreativeModeTab$DisplayItemsGenerator'
+            net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen
             net.minecraft.world.item.Items
             net.minecraft.world.level.block.Blocks
             net.minecraft.world.item.context.BlockPlaceContext
@@ -65,6 +68,9 @@ jobs:
             net.minecraft.world.level.Level
             net.minecraft.server.MinecraftServer
           )
+          javap -c -p -classpath inspection/client.jar \
+            net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen \
+            > inspection/creative-inventory-bytecode.txt
           for cls in "${classes[@]}"; do
             echo ""
             echo "=============== $cls ================"
@@ -82,7 +88,11 @@ jobs:
           mkdir -p inspection/test-classes inspection/maven
           javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \
-            tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java \
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
+          java -cp inspection/test-classes:dist/CodaLoader.jar \
+            dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest inspection/client.jar
+          bash scripts/test-essentials.sh
           printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.NativeGameTestAgent\n\n' > inspection/agent.mf
           jar --create --file inspection/test-agent.jar --manifest inspection/agent.mf \
             -C inspection/test-classes dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.class
@@ -102,4 +112,12 @@ jobs:
           path: |
             inspection/snapshot-api.txt
             inspection/version.json
+            inspection/creative-inventory-bytecode.txt
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buildcraft-creative-inventory-fix
+          path: |
+            dist/CodaLoader-v*-win64.zip
+            dist/update-manifest.json
           retention-days: 14

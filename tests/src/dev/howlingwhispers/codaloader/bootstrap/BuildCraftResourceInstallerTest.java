@@ -2,6 +2,11 @@ package dev.howlingwhispers.codaloader.bootstrap;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import dev.howlingwhispers.codaloader.core.MiniJson;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -40,8 +45,46 @@ public final class BuildCraftResourceInstallerTest {
                     "assets/buildcrafttransport/items/wood_item.json",
                     "assets/buildcrafttransport/models/item/cobblestone_item.json",
                     "assets/buildcraftcore/models/item/engine_redstone.json",
-                    "assets/buildcraftcore/items/wrench.json"}) {
+                    "assets/buildcraftcore/items/wrench.json",
+                    "assets/buildcraftcore/models/item/wrench.json",
+                    "assets/minecraft/atlases/blocks.json",
+                    "assets/minecraft/atlases/items.json"}) {
                 check(zip.getEntry(filename) != null, "required model or ORIGINAL texture: " + filename);
+            }
+            try (ZipFile source = new ZipFile(jar.toFile())) {
+                for (String texture : List.of(
+                        "assets/buildcrafttransport/textures/pipes/wood_item_clear.png",
+                        "assets/buildcrafttransport/textures/pipes/cobblestone_item.png",
+                        "assets/buildcraftcore/textures/items/wrench.png",
+                        "assets/buildcraftcore/textures/blocks/engine/wood/side.png")) {
+                    check(Arrays.equals(source.getInputStream(source.getEntry(texture)).readAllBytes(),
+                            zip.getInputStream(zip.getEntry(texture)).readAllBytes()), "original texture bytes preserved: " + texture);
+                }
+            }
+            for (String atlas : List.of("blocks", "items")) {
+                Map<?,?> json = (Map<?,?>) MiniJson.parse(new String(zip.getInputStream(
+                        zip.getEntry("assets/minecraft/atlases/" + atlas + ".json")).readAllBytes(), StandardCharsets.UTF_8));
+                List<?> sources = (List<?>) json.get("sources");
+                check(sources.size() == 4, "all four registered sprites added to " + atlas + " atlas");
+                for (Object entry : sources) {
+                    Map<?,?> single = (Map<?,?>) entry;
+                    check(single.get("type").equals("minecraft:single"), "native atlas source type");
+                    String[] id = single.get("resource").toString().split(":", 2);
+                    check(zip.getEntry("assets/" + id[0] + "/textures/" + id[1] + ".png") != null,
+                            "atlas sprite resolves to original image");
+                }
+            }
+            for (String unsupported : List.of(
+                    "assets/buildcraftlib/models/block/engine_base.json",
+                    "assets/buildcraftcore/models/block/marker.json",
+                    "assets/buildcraftcore/models/block/centeredTorch.json")) {
+                check(zip.getEntry(unsupported) == null, "legacy model excluded from active pack: " + unsupported);
+            }
+            for (var entries = zip.entries(); entries.hasMoreElements();) {
+                ZipEntry entry = entries.nextElement();
+                if (entry.getName().endsWith(".json"))
+                    check(MiniJson.parse(new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8)) instanceof Map,
+                            "native adapter JSON parses: " + entry.getName());
             }
         }
         String before = Files.readString(game.resolve("resourcepacks/HOWL-BuildCraft-8.0.0.zip.sha256"));
@@ -60,6 +103,9 @@ public final class BuildCraftResourceInstallerTest {
             asset(zip, "assets/buildcraftcore/textures/items/wrench.png");
             asset(zip, "assets/buildcraftcore/textures/blocks/engine/wood/side.png");
             asset(zip, "assets/buildcraftcore/models/item/engine_redstone.json");
+            asset(zip, "assets/buildcraftlib/models/block/engine_base.json");
+            asset(zip, "assets/buildcraftcore/models/block/marker.json");
+            asset(zip, "assets/buildcraftcore/models/block/centeredTorch.json");
         }
     }
 }
