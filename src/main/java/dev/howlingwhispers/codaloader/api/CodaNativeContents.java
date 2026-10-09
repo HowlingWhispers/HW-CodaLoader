@@ -17,8 +17,19 @@ public final class CodaNativeContents {
     public record Tab(String owner, String id, String title, String icon, List<String> items) {
         public Tab { items = List.copyOf(items); }
     }
+
+    /**
+     * Native Minecraft block-entity type, not a parallel virtual inventory.
+     * Multiple BuildCraft pipe blocks share the same original pipe-holder type.
+     */
+    public record BlockEntityDefinition(String owner, String id, List<String> blocks) {
+        public BlockEntityDefinition {
+            blocks = List.copyOf(blocks);
+        }
+    }
     private static final Map<String, Definition> DEFINITIONS = new LinkedHashMap<>();
     private static final Map<String, Tab> TABS = new LinkedHashMap<>();
+    private static final Map<String, BlockEntityDefinition> BLOCK_ENTITIES = new LinkedHashMap<>();
     private static boolean sealed;
 
     private CodaNativeContents() {}
@@ -63,6 +74,33 @@ public final class CodaNativeContents {
         for (String item : items) requireId(item);
         if (TABS.putIfAbsent(id, new Tab(owner, id, title, icon, items)) != null)
             throw new IllegalStateException("Duplicate Creative tab " + id);
+    }
+
+    public static synchronized void registerBlockEntityType(String owner, String id, List<String> blocks) {
+        requireOwner(owner);
+        requireId(id);
+        Objects.requireNonNull(blocks, "blocks");
+        if (sealed) throw new IllegalStateException("Block entity declarations closed after bootstrap");
+        if (blocks.isEmpty() || blocks.size() > 64 || blocks.stream().distinct().count() != blocks.size())
+            throw new IllegalArgumentException("Block entity requires unique owned block IDs");
+        for (String block : blocks) {
+            requireId(block);
+            Definition def = DEFINITIONS.get(block);
+            if (def == null || def.kind() != Kind.BLOCK || !def.owner().equals(owner))
+                throw new IllegalArgumentException("Block entity requires an owned registered block: " + block);
+            if (BLOCK_ENTITIES.values().stream().anyMatch(other -> other.blocks().contains(block)))
+                throw new IllegalArgumentException("Block already has a native block entity type: " + block);
+        }
+        if (BLOCK_ENTITIES.putIfAbsent(id, new BlockEntityDefinition(owner, id, blocks)) != null)
+            throw new IllegalArgumentException("Duplicate block entity type " + id);
+    }
+
+    public static synchronized boolean hasBlockEntity(String blockId) {
+        return BLOCK_ENTITIES.values().stream().anyMatch(type -> type.blocks().contains(blockId));
+    }
+
+    public static synchronized List<BlockEntityDefinition> blockEntityTypes() {
+        return List.copyOf(BLOCK_ENTITIES.values());
     }
 
     public static synchronized List<Definition> blocks() {

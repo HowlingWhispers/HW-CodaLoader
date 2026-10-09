@@ -25,6 +25,15 @@ public record CodaContext(
         CodaNativeContents.registerBlock(modId, namespacedId, hardness);
     }
 
+    /**
+     * Declare a genuine Snapshot 3 EntityBlock/BlockEntityType association
+     * before native registries freeze. H.O.W.L. supplies the loader boundary;
+     * BuildCraft still owns the eventual TilePipeHolder behavior.
+     */
+    public void registerBlockEntityType(String typeId, List<String> blocks) {
+        CodaNativeContents.registerBlockEntityType(modId, typeId, blocks);
+    }
+
     public void registerItem(String namespacedId) {
         CodaNativeContents.registerItem(modId, namespacedId);
     }
