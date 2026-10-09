@@ -94,16 +94,16 @@ jobs:
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
 
-          - Fix BuildCraft block placement disconnects: native block states now receive
-            network IDs and initialized shape caches before gameplay starts.
-          - Fix creative-inventory tab rendering with the extra BuildCraft tab.
-          - Restore original BuildCraft/BCCE pipe and engine artwork: unique texture
-            atlas registrations, original pipe dimensions and engine face textures.
-          - Keep the existing Nightly installation and single mods folder.
+          - Add UUID-bound custom wolf appearance support for Coda Companion.
+          - Generate exclusive icy-white/cyan normal and angry Coda skins
+            from the exact vanilla Snowy Wolf 64x32 texture UV mapping.
+          - Keep ordinary wolves unchanged and preserve existing wolf AI.
+          - Reapply Coda's skin after world reload and successful respawn.
+          - Leave BuildCraft gameplay Nightlies gated behind explicit approval.
 
-          CI checks cover Java 21/25 fixtures and actual Snapshot 3 block-state
-          IDs, rendering shape caches and creative-inventory bytecode.
-          In-game pipe placement and appearance still require a player playtest.
+          CI checks Java 21/25, the companion's public API build,
+          and Mojang's exact Snapshot 3 WolfRenderer bytecode / texture atlas.
+          A disposable-world visual test is still required to approve the look.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
             --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \

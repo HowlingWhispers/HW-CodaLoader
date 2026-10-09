@@ -10,7 +10,7 @@ Default combat behavior: **DEFENSIVE**. Vanilla tame wolf, mortal, one per playe
 - Death detection relies on previously tracked live wolf state. If the game removes a dead wolf before the next callback, the module might not detect it; a future public entity death event is preferable.
 - If a known wolf is simply in an unloaded chunk or another dimension, do **not** spawn a duplicate.
 - Sleep return requires an observed completed night skip. Sleeping without a night skip does not qualify. First spawn occurs when the player first enters a new world, not during character creation.
-- White custom fur and Coda's voice/eyes are future steps; the current mod uses a vanilla wolf and optional cyan collar.
+- Coda now gets a **Coda-only icy-white/cyan custom fur pack** (generated from the original Snapshot 3 64x32 Snowy Wolf UV, normal and angry states), selected by her verified persisted wolf UUID through H.O.W.L. No other wolves are recolored. This is a first UV-safe look, not a pixel-exact recreation of the illustrative concept atlas. Bespoke blue-eye/face pixels, voice and custom wolf geometry remain future steps.
 
 ## Build
 Obtain the SDK's **real** `howl-api.jar` matching H.O.W.L. and run:

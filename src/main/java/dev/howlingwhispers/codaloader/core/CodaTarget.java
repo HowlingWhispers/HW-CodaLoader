@@ -2,7 +2,7 @@ package dev.howlingwhispers.codaloader.core;
 
 /** Compatibility constants deliberately pinned for the first Minecraft bootstrap target. */
 public final class CodaTarget {
-    public static final String LOADER_VERSION = "0.0.29";
+    public static final String LOADER_VERSION = "0.0.30";
     public static final String LOADER_DISPLAY_NAME = "H.O.W.L.";
     public static final String LOADER_FULL_NAME = "Howling Open Works Loader";
     public static final String MINECRAFT_VERSION = "26.4-snapshot-3";
