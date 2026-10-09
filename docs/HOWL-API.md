@@ -142,3 +142,21 @@ For bug reports, include the loader version, mod version, exact Minecraft
 target, launch mode, steps to reproduce and redacted Copy All Logs output.
 Loader-only initialization tests complement a live Snapshot 3 game test;
 they do not establish gameplay or networking compatibility.
+
+## Native BlockEntity registration for original BuildCraft (experimental)
+
+Before Minecraft's block registries freeze, mods can call
+`context.registerBlockEntityType("buildcrafttransport:pipe_holder", List.of(
+    "buildcrafttransport:wood_item", "buildcrafttransport:cobblestone_item"))`
+after registering their blocks. H.O.W.L. creates genuine Snapshot 3
+`EntityBlock` instances and a shared native `BlockEntityType`, with Minecraft
+rather than a mod-side virtual network owning chunk block-entity identities.
+Duplicate, missing and cross-owner blocks are rejected at initialization.
+
+This currently installs a **minimal native compatibility holder**, not the
+upstream `TilePipeHolder` implementation itself. It does not store travelling
+stacks, consume MJ, implement BCCE-specific NBT, render cargo or tick pipe flows.
+These remain original BCCE code to port into the native lifecycle. It must
+pass both the real Snapshot 3 headless bootstrap test and a separate in-game
+single-player placement/save/reload test before a Nightly announcement.
+Existing worlds must not be migrated automatically.
