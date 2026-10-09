@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "#material",
+    "material": "minecraft:block/oak_planks",
+    "detail": "hw_buildcraft_lite:block/wood_item",
+    "end": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        11,
+        6,
+        6
+      ],
+      "to": [
+        16,
+        10,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#material"
+        },
+        "south": {
+          "texture": "#material"
+        },
+        "east": {
+          "texture": "#end"
+        },
+        "west": {
+          "texture": "#material"
+        },
+        "up": {
+          "texture": "#material"
+        },
+        "down": {
+          "texture": "#material"
+        }
+      }
+    }
+  ]
+}

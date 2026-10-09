@@ -19,6 +19,7 @@ public final class BuildCraftLiteTransportTest {
     private static final CodaBlockPos STONE1 = new CodaBlockPos(2, 64, 0);
     private static final CodaBlockPos STONE2 = new CodaBlockPos(3, 64, 0);
     private static final CodaBlockPos DST = new CodaBlockPos(4, 64, 0);
+    private static final CodaBlockPos ENGINE = new CodaBlockPos(1, 64, -1);
     private static int checks;
 
     private static void check(boolean yes, String message) {
@@ -30,12 +31,14 @@ public final class BuildCraftLiteTransportTest {
         final Map<CodaBlockPos, String> blocks = new HashMap<>();
         final Map<CodaBlockPos, Integer> chests = new HashMap<>();
         boolean destinationFull;
+        boolean enginePowered;
         int moves;
 
         FakeWorld() {
             blocks.put(WOOD, BuildCraftLiteMod.WOOD);
             blocks.put(STONE1, BuildCraftLiteMod.STONE);
             blocks.put(STONE2, BuildCraftLiteMod.STONE);
+            blocks.put(ENGINE, BuildCraftLiteMod.ENGINE);
             chests.put(SRC, 20);
             chests.put(DST, 0);
         }
@@ -44,6 +47,9 @@ public final class BuildCraftLiteTransportTest {
         public boolean isChunkLoaded(String d, CodaBlockPos pos) { return DIM.equals(d); }
         public boolean isBlock(String d, CodaBlockPos p, String id) {
             return DIM.equals(d) && id.equals(blocks.get(p));
+        }
+        public boolean hasNeighborSignal(String d, CodaBlockPos p) {
+            return DIM.equals(d) && ENGINE.equals(p) && enginePowered;
         }
         public Optional<CodaInventoryView> inventory(String d, CodaBlockPos p) {
             if (!DIM.equals(d) || !chests.containsKey(p)) return Optional.empty();
@@ -77,8 +83,12 @@ public final class BuildCraftLiteTransportTest {
     public static void main(String[] args) throws Exception {
         var world = new FakeWorld();
         var mod = new BuildCraftLiteTransport();
-        run(mod, world, 1, 64);
-        check(world.moves > 0, "Complete pipe route must deliver items");
+        run(mod, world, 1, 32);
+        check(world.moves == 0, "Unpowered engine must not extract");
+        check(mod.diagnosis().contains("powered Redstone Engine"), "Coda identifies unpowered engine");
+        world.enginePowered = true;
+        run(mod, world, 33, 64);
+        check(world.moves > 0, "Powered engine must deliver items");
         check(world.chests.get(SRC) + world.chests.get(DST) == 20,
                 "No duplication or deletion");
         check(mod.diagnosis().contains("verified route"),

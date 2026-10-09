@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "#side",
+    "side": "hw_buildcraft_lite:block/engine_wood_side",
+    "back": "hw_buildcraft_lite:block/engine_wood_back",
+    "trunk": "hw_buildcraft_lite:block/engine_trunk"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        1,
+        1
+      ],
+      "to": [
+        15,
+        15,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#side"
+        },
+        "south": {
+          "texture": "#side"
+        },
+        "east": {
+          "texture": "#side"
+        },
+        "west": {
+          "texture": "#side"
+        },
+        "up": {
+          "texture": "#trunk"
+        },
+        "down": {
+          "texture": "#back"
+        }
+      }
+    }
+  ]
+}

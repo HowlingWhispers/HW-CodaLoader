@@ -30,6 +30,30 @@ try {
         $sha = [BitConverter]::ToString(([Security.Cryptography.SHA1]::Create()).ComputeHash($sum)).Replace("-", "").ToLowerInvariant()
         if ($sha -ne $textures[$name]) { throw "Refusing changed BCCE texture: $name" }
     }
+
+    # Original BuildCraft engine and wrench textures, Git blob pinned.
+    $core = "https://raw.githubusercontent.com/BCCE-team/BuildCraft/$ref/source-shared/src/main/resources/assets/buildcraftcore/textures"
+    $art = @(
+        @("engine_wood_back", "blocks/engine/wood/back", "ff4b486887c26bb3bd2d75f611e0227bce0763c3"),
+        @("engine_wood_side", "blocks/engine/wood/side", "4ee76ebc5350d130fe8fea7db224223ecde2866f"),
+        @("engine_trunk", "blocks/engine/trunk", "cb390c7b92646ac959cf962a1ecff0951a6be871"),
+        @("wrench", "items/wrench", "f3c25782bb74fea4466ea88298e50c19740f2423")
+    )
+    New-Item -ItemType Directory -Force out/buildcraft-lite-classes/assets/hw_buildcraft_lite/textures/item | Out-Null
+    foreach ($spec in $art) {
+        $name = $spec[0]; $original = $spec[1]; $expected = $spec[2]
+        $folder = if ($name -eq "wrench") { "item" } else { "block" }
+        $dest = "out/buildcraft-lite-classes/assets/hw_buildcraft_lite/textures/$folder/$name.png"
+        Invoke-WebRequest -Uri "$core/$original.png" -OutFile $dest
+        $raw = [IO.File]::ReadAllBytes((Resolve-Path $dest))
+        $header = [Text.Encoding]::ASCII.GetBytes("blob $($raw.Length)" + [char]0)
+        $bytes = New-Object byte[] ($header.Length + $raw.Length)
+        [Array]::Copy($header,0,$bytes,0,$header.Length)
+        [Array]::Copy($raw,0,$bytes,$header.Length,$raw.Length)
+        $sha = [BitConverter]::ToString(([Security.Cryptography.SHA1]::Create()).ComputeHash($bytes)).Replace("-", "").ToLowerInvariant()
+        if ($sha -ne $expected) { throw "Bad BuildCraft art $name" }
+    }
+
     $licenseDir = "out/buildcraft-lite-classes/META-INF/licenses"
     New-Item -ItemType Directory -Force $licenseDir | Out-Null
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/BCCE-team/BuildCraft/$ref/LICENSE.txt" -OutFile "$licenseDir/BCCE-MPL-2.0.txt"

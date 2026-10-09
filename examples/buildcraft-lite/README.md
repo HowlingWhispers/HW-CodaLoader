@@ -11,13 +11,13 @@ full BuildCraft port. Work only on `main`.
   `hw_buildcraft_lite:stone_transport_pipe`.
 - Actual Minecraft-managed pipe block entities and server-thread native tickers.
 - Source chest -> wooden pipe -> one or more stone pipes -> target chest/barrel.
-- Automatic wooden extraction **without engines in Lite**; 1 item per pulse
+- A powered Redstone Engine adjacent to the wooden pipe drives extraction; 1 item per pulse
   with a route-length dependent delay, capped at 64 pipe nodes and 16 sources.
 - Single-player vanilla single chest/barrel transport using H.O.W.L.'s
   component-preserving native `ItemStack` transaction. Never loads chunks.
 - Coda diagnostic command: **`/bclite`**. Detects broken routes, absent source,
   and full target. No fictitious statuses or screenshots.
-- Thin cross-arm block and item models. The original BCCE 8.0.23
+- Real six-way native pipe states with multipart models for connected arms. A Redstone Engine and wrench appear in the Creative tab (wrench click interactions still need a native H.O.W.L. item interaction API). The original BCCE 8.0.23
   `wood_item.png` and `stone_item.png` textures are fetched byte-for-byte
   from pinned upstream commit `23c6af3`, Git blob SHA checked, and packaged
   with the upstream MPL 2.0 notice. H.O.W.L. automatically installs and
@@ -47,12 +47,12 @@ loader. It is not bundled as a required player add-on.
    disposable profile so their identities cannot be confused.
 2. Launch **Minecraft 26.4 Snapshot 3** using H.O.W.L., with Java 25+.
    Look for `BuildCraft Lite` in Creative inventory. H.O.W.L. should prepare
-   `HOWL-BuildCraft-Lite.zip` with the two original pipe textures.
+   `HOWL-BuildCraft-Lite.zip` with original pipe textures and licensed engine and wrench art.
 3. Place a vanilla **single chest** at `(0,64,0)` and another at `(4,64,0)`.
    Put 10 iron ingots in the first.
 4. Place one **Wooden Transport Pipe** at `(1,64,0)` and two **Stone
    Transport Pipes** at `(2,64,0)` and `(3,64,0)`. The second chest must be
-   distinct from the source. No command, glass marker or engine is required.
+   distinct from the source. Place a Redstone Engine next to the wooden pipe and power it using a lever or redstone torch.
 5. Watch the destination chest inventory. It should accumulate ingots.
    Run `/bclite` to have Coda report routes and delivery count.
 6. Break the stone pipe at `(2,64,0)`; movement must stop.
@@ -66,10 +66,9 @@ loader. It is not bundled as a required player add-on.
   are green, but they are NOT a substitute for playing Minecraft.
 - Cargo currently moves through an authoritative chest-to-chest transaction
   after a route-dependent wait. **Intermediate moving item sprites, original
-  BCCE collision geometry, engine activation, multi-way sorting, recipes,
+  BCCE collision geometry, engine piston animation, wrench click behavior, multi-way sorting, recipes,
   and all other machines are NOT implemented.**
-- Static six-arm pipe models and no-collision temporary blocks are intentional
-  Lite placeholders until exact source-native shapes and connections are ported.
+- Pipes use server-synced connection states; temporary no-collision geometry still needs source-native collision shapes.
 - Coda's `/bclite` fault diagnostics work; automatic colored **in-world
   highlighting** still needs the supported client overlay/particle bridge.
 - Supports only already-loaded chunks, single-player integrated server,

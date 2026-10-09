@@ -26,6 +26,7 @@ import org.objectweb.asm.Opcodes;
 public final class CodaNativeBlockEntityBridge implements Opcodes {
     private static final String PACKAGE = "dev/howlingwhispers/codaloader/bootstrap/";
     private static final String BLOCK = "net/minecraft/world/level/block/Block";
+    private static final String PIPE_BLOCK = "net/minecraft/world/level/block/PipeBlock";
     private static final String PROPERTIES =
             "net/minecraft/world/level/block/state/BlockBehaviour$Properties";
     private static final String STATE = "net/minecraft/world/level/block/state/BlockState";
@@ -36,11 +37,13 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
     private static final String TICKER = "net/minecraft/world/level/block/entity/BlockEntityTicker";
     private static final String LEVEL = "net/minecraft/world/level/Level";
     private static final String BLOCK_CLASS = PACKAGE + "HowlNativeEntityBlock";
+    private static final String PIPE_BLOCK_CLASS = PACKAGE + "HowlNativePipeEntityBlock";
     private static final String ENTITY_CLASS = PACKAGE + "HowlNativeBlockEntity";
 
     private static final Map<Object, Object> BLOCK_TYPES = new IdentityHashMap<>();
     private static final Map<Object, String> TYPE_IDS = new IdentityHashMap<>();
     private static volatile Class<?> nativeBlock;
+    private static volatile Class<?> nativePipeBlock;
     private static volatile Constructor<?> nativeEntityCtor;
     private static boolean registered;
 
@@ -110,6 +113,66 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
             writer.visitEnd();
             nativeBlock = MethodHandles.lookup().defineClass(writer.toByteArray());
             return nativeBlock;
+        } catch (Throwable error) {
+            throw new IllegalStateException("Snapshot 3 native EntityBlock class unavailable", error);
+        }
+    }
+
+    public static synchronized Class<?> pipeEntityBlockClass() {
+        if (nativePipeBlock != null) return nativePipeBlock;
+        try {
+            minecraft(PIPE_BLOCK);
+            minecraft(ENTITY_BLOCK);
+            minecraft(ENTITY);
+            ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+            writer.visit(V17, ACC_PUBLIC | ACC_FINAL, PIPE_BLOCK_CLASS, null,
+                    PIPE_BLOCK, new String[]{ENTITY_BLOCK});
+            MethodVisitor ctor = writer.visitMethod(ACC_PUBLIC, "<init>",
+                    "(L" + PROPERTIES + ";)V", null, null);
+            ctor.visitCode();
+            ctor.visitVarInsn(ALOAD, 0);
+            ctor.visitLdcInsn(0.1875f);
+            ctor.visitVarInsn(ALOAD, 1);
+            ctor.visitMethodInsn(INVOKESPECIAL, PIPE_BLOCK, "<init>",
+                    "(FL" + PROPERTIES + ";)V", false);
+            ctor.visitInsn(RETURN);
+            ctor.visitMaxs(0, 0);
+            ctor.visitEnd();
+
+            MethodVisitor factory = writer.visitMethod(ACC_PUBLIC, "newBlockEntity",
+                    "(L" + POS + ";L" + STATE + ";)L" + ENTITY + ";", null, null);
+            factory.visitCode();
+            factory.visitVarInsn(ALOAD, 1);
+            factory.visitVarInsn(ALOAD, 2);
+            factory.visitMethodInsn(INVOKESTATIC, PACKAGE + "CodaNativeBlockEntityBridge",
+                    "create", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+            factory.visitTypeInsn(CHECKCAST, ENTITY);
+            factory.visitInsn(ARETURN);
+            factory.visitMaxs(0, 0);
+            factory.visitEnd();
+
+            // Mojang's EntityBlock.getTicker drives pipe updates only while
+            // Minecraft owns a loaded server-side block entity. Do not run a
+            // global polling loop or synthesize travelling items.
+            MethodVisitor ticker = writer.visitMethod(ACC_PUBLIC, "getTicker",
+                    "(L" + LEVEL + ";L" + STATE + ";L" + TYPE + ";)L" + TICKER + ";",
+                    null, null);
+            ticker.visitCode();
+            ticker.visitVarInsn(ALOAD, 1);
+            ticker.visitVarInsn(ALOAD, 2);
+            ticker.visitVarInsn(ALOAD, 3);
+            ticker.visitMethodInsn(INVOKESTATIC, PACKAGE + "CodaNativeBlockEntityBridge",
+                    "createTicker",
+                    "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                    false);
+            ticker.visitTypeInsn(CHECKCAST, TICKER);
+            ticker.visitInsn(ARETURN);
+            ticker.visitMaxs(0, 0);
+            ticker.visitEnd();
+
+            writer.visitEnd();
+            nativePipeBlock = MethodHandles.lookup().defineClass(writer.toByteArray());
+            return nativePipeBlock;
         } catch (Throwable error) {
             throw new IllegalStateException("Snapshot 3 native EntityBlock class unavailable", error);
         }
@@ -198,12 +261,67 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                                 ((Number)pos.getClass().getMethod("getX").invoke(pos)).intValue(),
                                 ((Number)pos.getClass().getMethod("getY").invoke(pos)).intValue(),
                                 ((Number)pos.getClass().getMethod("getZ").invoke(pos)).intValue());
+                        if (nativePipeBlock != null && nativePipeBlock.isInstance(
+                                stateAtPos.getClass().getMethod("getBlock").invoke(stateAtPos))) {
+                            refreshPipeConnections(world, pos, stateAtPos);
+                        }
                         CodaNativeContents.dispatchBlockEntityTick(
                                 new CodaBlockEntityTick(typeId, dimensionId, position));
                         return null;
                     });
         } catch (ReflectiveOperationException ex) {
             throw new IllegalStateException("Native Minecraft pipe ticker mapping unavailable", ex);
+        }
+    }
+
+
+    /**
+     * Reflect real connected faces into PipeBlock's six vanilla BooleanProperty
+     * blockstates. Only loaded adjacent blocks are inspected. Client multipart
+     * rendering follows ordinary server-synced vanilla block states.
+     */
+    private static void refreshPipeConnections(Object world, Object pos, Object state)
+            throws ReflectiveOperationException {
+        Class<?> posType = minecraft(POS), stateType = minecraft(STATE);
+        Class<?> propType = minecraft("net/minecraft/world/level/block/state/properties/Property");
+        Class<?> properties = minecraft("net/minecraft/world/level/block/state/properties/BlockStateProperties");
+        Object registry = CodaNativeRegistryBridge.registry("BLOCK");
+        String[] faces = {"EAST","WEST","UP","DOWN","SOUTH","NORTH"};
+        int[][] offsets = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+        int x=((Number)posType.getMethod("getX").invoke(pos)).intValue();
+        int y=((Number)posType.getMethod("getY").invoke(pos)).intValue();
+        int z=((Number)posType.getMethod("getZ").invoke(pos)).intValue();
+        Object updated = state;
+        boolean dirty = false;
+        for (int i=0;i<faces.length;i++) {
+            Object neighbor = posType.getConstructor(int.class,int.class,int.class)
+                    .newInstance(x+offsets[i][0],y+offsets[i][1],z+offsets[i][2]);
+            boolean connected = false;
+            // Never call getBlockState on an unloaded chunk.
+            if ((Boolean)world.getClass().getMethod("hasChunkAt",posType).invoke(world,neighbor)) {
+                Object neighborState = world.getClass().getMethod("getBlockState",posType)
+                        .invoke(world,neighbor);
+                Object block = stateType.getMethod("getBlock").invoke(neighborState);
+                String id=registry.getClass().getMethod("getKey",Object.class)
+                        .invoke(registry,block).toString();
+                connected = id.equals("hw_buildcraft_lite:wooden_transport_pipe")
+                        || id.equals("hw_buildcraft_lite:stone_transport_pipe")
+                        || id.equals("hw_buildcraft_lite:redstone_engine")
+                        || id.equals("minecraft:chest") || id.equals("minecraft:trapped_chest")
+                        || id.equals("minecraft:barrel") || id.equals("minecraft:hopper");
+            }
+            Object prop = properties.getField(faces[i]).get(null);
+            boolean previous=(Boolean)stateType.getMethod("getValue",propType).invoke(updated,prop);
+            if (previous!=connected) {
+                updated=stateType.getMethod("setValue",propType,Comparable.class)
+                        .invoke(updated,prop,Boolean.valueOf(connected));
+                dirty=true;
+            }
+        }
+        if (dirty) {
+            // Flag 2 synchronizes the same block's updated visual state to clients.
+            world.getClass().getMethod("setBlock",posType,stateType,int.class)
+                    .invoke(world,pos,updated,2);
         }
     }
 

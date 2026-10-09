@@ -88,6 +88,10 @@ public final class BuildCraftLiteTransport {
                     continue;
                 }
                 Route route = path.orElseThrow();
+                if (!enginePowered(world, node)) {
+                    issue = "Wooden pipe needs an adjacent powered Redstone Engine.";
+                    continue;
+                }
                 routes++;
                 // Allow at least four ticks per pipe and a 12-tick minimum.
                 // This is NOT instantaneous long-distance chest teleporting.
@@ -158,6 +162,16 @@ public final class BuildCraftLiteTransport {
             }
         }
         return Optional.empty();
+    }
+
+    /** Engine must actually exist beside the wooden pipe and receive redstone. */
+    private static boolean enginePowered(CodaWorldView world, Node wooden) throws Exception {
+        for (CodaBlockPos side : neighbors(wooden.pos())) {
+            if (world.isChunkLoaded(wooden.dimension(), side)
+                    && world.isBlock(wooden.dimension(), side, BuildCraftLiteMod.ENGINE)
+                    && world.hasNeighborSignal(wooden.dimension(), side)) return true;
+        }
+        return false;
     }
 
     private static boolean stone(CodaWorldView world, String dim, CodaBlockPos pos)

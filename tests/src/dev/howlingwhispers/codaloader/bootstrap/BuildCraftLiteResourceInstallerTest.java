@@ -32,7 +32,11 @@ public final class BuildCraftLiteResourceInstallerTest {
                         "assets/hw_buildcraft_lite/items/wooden_transport_pipe.json",
                         "assets/hw_buildcraft_lite/items/stone_transport_pipe.json",
                         "assets/hw_buildcraft_lite/textures/block/wood_item.png",
-                        "assets/hw_buildcraft_lite/textures/block/stone_item.png")) {
+                        "assets/hw_buildcraft_lite/textures/block/stone_item.png",
+                        "assets/hw_buildcraft_lite/blockstates/redstone_engine.json",
+                        "assets/hw_buildcraft_lite/items/redstone_engine.json",
+                        "assets/hw_buildcraft_lite/items/wrench.json",
+                        "assets/hw_buildcraft_lite/textures/item/wrench.png")) {
                     check(z.getEntry(required) != null, "Missing pack resource: " + required);
                 }
             }

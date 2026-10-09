@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "#material",
+    "material": "minecraft:block/stone",
+    "detail": "hw_buildcraft_lite:block/stone_item",
+    "end": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        6,
+        11,
+        6
+      ],
+      "to": [
+        10,
+        16,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#material"
+        },
+        "south": {
+          "texture": "#material"
+        },
+        "east": {
+          "texture": "#material"
+        },
+        "west": {
+          "texture": "#material"
+        },
+        "up": {
+          "texture": "#end"
+        },
+        "down": {
+          "texture": "#material"
+        }
+      }
+    }
+  ]
+}

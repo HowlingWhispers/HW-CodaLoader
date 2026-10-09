@@ -27,6 +27,22 @@ for spec in 'wood_item dd7d51cc65539ddf6aa30067e6f0edd8ab872fef' \
     echo "Refusing modified BuildCraft texture: $name" >&2; exit 1;
   }
 done
+
+BCCE_CORE=https://raw.githubusercontent.com/BCCE-team/BuildCraft/${BCCE_REF}/source-shared/src/main/resources/assets/buildcraftcore/textures
+mkdir -p out/buildcraft-lite-classes/assets/hw_buildcraft_lite/textures/item
+while read -r output original expected; do
+  [[ -z "$output" ]] && continue
+  folder=block; [[ "$output" == "wrench" ]] && folder=item
+  dest="out/buildcraft-lite-classes/assets/hw_buildcraft_lite/textures/$folder/${output}.png"
+  curl --fail --location --retry 3 --silent --show-error "$BCCE_CORE/$original.png" -o "$dest"
+  [[ "$(git hash-object "$dest")" == "$expected" ]] || { echo "Bad BuildCraft art $output" >&2; exit 1; }
+done <<'BCCE_ART'
+engine_wood_back blocks/engine/wood/back ff4b486887c26bb3bd2d75f611e0227bce0763c3
+engine_wood_side blocks/engine/wood/side 4ee76ebc5350d130fe8fea7db224223ecde2866f
+engine_trunk blocks/engine/trunk cb390c7b92646ac959cf962a1ecff0951a6be871
+wrench items/wrench f3c25782bb74fea4466ea88298e50c19740f2423
+BCCE_ART
+
 mkdir -p out/buildcraft-lite-classes/META-INF/licenses
 curl --fail --location --retry 3 --silent --show-error \
   "https://raw.githubusercontent.com/BCCE-team/BuildCraft/${BCCE_REF}/LICENSE.txt" \

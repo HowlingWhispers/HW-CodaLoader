@@ -116,7 +116,10 @@ public final class CodaNativeRegistryBridge {
                                 "Native block factory returned a non-Minecraft Block: " + def.id());
                 } else {
                     Class<?> nativeClass = CodaNativeContents.hasBlockEntity(def.id())
-                            ? CodaNativeBlockEntityBridge.entityBlockClass() : blockClass;
+                            ? (def.id().startsWith("hw_buildcraft_lite:")
+                                && def.id().endsWith("_transport_pipe")
+                                ? CodaNativeBlockEntityBridge.pipeEntityBlockClass()
+                                : CodaNativeBlockEntityBridge.entityBlockClass()) : blockClass;
                     block = nativeClass.getConstructor(properties).newInstance(p);
                 }
                 register(registry, def.id(), block);

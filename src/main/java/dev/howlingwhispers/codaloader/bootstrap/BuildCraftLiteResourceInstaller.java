@@ -83,7 +83,10 @@ public final class BuildCraftLiteResourceInstaller {
             if (source.getEntry(ASSET_ROOT + "textures/block/wood_item.png") == null
                     || source.getEntry(ASSET_ROOT + "textures/block/stone_item.png") == null
                     || source.getEntry(ASSET_ROOT + "blockstates/wooden_transport_pipe.json") == null
-                    || source.getEntry(ASSET_ROOT + "blockstates/stone_transport_pipe.json") == null)
+                    || source.getEntry(ASSET_ROOT + "blockstates/stone_transport_pipe.json") == null
+                    || source.getEntry(ASSET_ROOT + "blockstates/redstone_engine.json") == null
+                    || source.getEntry(ASSET_ROOT + "items/wrench.json") == null
+                    || source.getEntry(ASSET_ROOT + "textures/item/wrench.png") == null)
                 throw new IOException("BuildCraft Lite is missing required models/textures");
 
             try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(temp))) {

@@ -1,7 +1,57 @@
 {
-  "variants": {
-    "": {
-      "model": "hw_buildcraft_lite:block/wooden_transport_pipe"
+  "multipart": [
+    {
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_core"
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_east"
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_west"
+      }
+    },
+    {
+      "when": {
+        "up": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_up"
+      }
+    },
+    {
+      "when": {
+        "down": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_down"
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_south"
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "hw_buildcraft_lite:block/wooden_pipe_north"
+      }
     }
-  }
+  ]
 }

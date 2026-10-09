@@ -1,5 +1,7 @@
 {
   "block.hw_buildcraft_lite.wooden_transport_pipe": "Wooden Transport Pipe",
   "block.hw_buildcraft_lite.stone_transport_pipe": "Stone Transport Pipe",
+  "block.hw_buildcraft_lite.redstone_engine": "Redstone Engine",
+  "item.hw_buildcraft_lite.wrench": "BuildCraft Wrench",
   "itemGroup.hw_buildcraft_lite.transport": "BuildCraft Lite"
 }
