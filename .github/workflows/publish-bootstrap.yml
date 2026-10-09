@@ -125,9 +125,12 @@ jobs:
           - Verify packaged mod SHA-256 against its known-good release.
           - Keep environmental awareness and other experimental addons
             separate from the bundled stable companion.
-          - Add optional BuildCraft Lite 0.1.0-dev as a standalone mod JAR:
-            original wooden/stone pipe artwork, native server-tick chest
-            transport, and Coda diagnostics. No automatic mod installation.
+          - BuildCraft Lite 0.1.0-dev remains an optional standalone mod JAR:
+            correct directional wooden/stone pipe models without dangling arms,
+            verified original BuildCraft material, engine and wrench art,
+            a redstone-powered extraction engine, and Coda route diagnostics.
+            The wrench is visible but its right-click action is not yet implemented.
+            No automatic gameplay mod installation.
           - BuildCraft Lite is an experimental human playtest. Real Snapshot 3
             bootstrap and JVM transport fixtures pass; gameplay still needs
             a disposable-world test before any Stable designation.
@@ -138,7 +141,7 @@ jobs:
           - Verify BOTH normal/angry identifiers resolve to real files
             inside the generated exclusive resource pack.
           - Keep Coda Wolf 0.1.2 compatible; no mod reinstall required.
-          - Vanilla wolves, saves, Stable, and BuildCraft remain untouched.
+          - Vanilla wolves, existing saves and required Stable mods remain untouched.
 
           Verified by headless Java tests and exact Minecraft Snapshot 3
           renderer tests. Player visual confirmation remains the final gate.
