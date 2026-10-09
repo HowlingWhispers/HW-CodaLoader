@@ -171,6 +171,35 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
             ticker.visitMaxs(0, 0);
             ticker.visitEnd();
 
+            // PipeBlock computes six-way voxel shapes in its own constructor.
+            // Its subclass MUST declare all six properties while Block builds
+            // the state definition, before that superclass constructor runs.
+            MethodVisitor defineStates = writer.visitMethod(ACC_PROTECTED,
+                    "createBlockStateDefinition",
+                    "(Lnet/minecraft/world/level/block/state/StateDefinition$Builder;)V",
+                    null, null);
+            defineStates.visitCode();
+            defineStates.visitVarInsn(ALOAD, 1);
+            defineStates.visitIntInsn(BIPUSH, 6);
+            defineStates.visitTypeInsn(ANEWARRAY,
+                    "net/minecraft/world/level/block/state/properties/Property");
+            String[] faces = {"NORTH", "SOUTH", "EAST", "WEST", "UP", "DOWN"};
+            for (int i = 0; i < faces.length; i++) {
+                defineStates.visitInsn(DUP);
+                defineStates.visitIntInsn(BIPUSH, i);
+                defineStates.visitFieldInsn(GETSTATIC, PIPE_BLOCK, faces[i],
+                        "Lnet/minecraft/world/level/block/state/properties/BooleanProperty;");
+                defineStates.visitInsn(AASTORE);
+            }
+            defineStates.visitMethodInsn(INVOKEVIRTUAL,
+                    "net/minecraft/world/level/block/state/StateDefinition$Builder",
+                    "add", "([Lnet/minecraft/world/level/block/state/properties/Property;)"
+                            + "Lnet/minecraft/world/level/block/state/StateDefinition$Builder;", false);
+            defineStates.visitInsn(POP);
+            defineStates.visitInsn(RETURN);
+            defineStates.visitMaxs(0, 0);
+            defineStates.visitEnd();
+
             writer.visitEnd();
             nativePipeBlock = MethodHandles.lookup().defineClass(writer.toByteArray());
             return nativePipeBlock;
