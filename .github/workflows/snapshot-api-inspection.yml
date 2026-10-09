@@ -11,6 +11,10 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstaller.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstallerTest.java
       - src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java
+      - src/main/java/dev/howlingwhispers/codaloader/api/CodaRegistryFactories.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaRegistryFactoryBridge.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeFactoryDeclarationsTest.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeFactoryMinecraftSmoke.java
   workflow_dispatch:
 
 jobs:
@@ -101,6 +105,7 @@ jobs:
           javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java \
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeFactoryMinecraftSmoke.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
           java -cp inspection/test-classes:dist/CodaLoader.jar \
             dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest inspection/client.jar

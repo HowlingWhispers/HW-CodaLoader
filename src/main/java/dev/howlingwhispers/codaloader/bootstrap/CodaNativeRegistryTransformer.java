@@ -38,6 +38,10 @@ public final class CodaNativeRegistryTransformer implements ClassFileTransformer
                 descriptor = "(Lnet/minecraft/core/Registry;)Lnet/minecraft/world/item/CreativeModeTab;";
                 handler = "registerCreativeTabs"; callDesc = "(Ljava/lang/Object;)V";
             }
+            case "net/minecraft/core/registries/BuiltInRegistries" -> {
+                method = "freeze"; descriptor = "()V";
+                handler = "registerNativeFactories"; callDesc = "()V";
+            }
             default -> { return null; }
         }
         try {
@@ -53,6 +57,13 @@ public final class CodaNativeRegistryTransformer implements ClassFileTransformer
                             || (access & Opcodes.ACC_ABSTRACT) != 0) return original;
                     seen[0]++;
                     return new MethodVisitor(Opcodes.ASM9, original) {
+                        @Override public void visitCode() {
+                            super.visitCode();
+                            if (method.equals("freeze")) {
+                                super.visitMethodInsn(Opcodes.INVOKESTATIC, HOOK, handler, callDesc, false);
+                                calls[0]++;
+                            }
+                        }
                         @Override public void visitInsn(int opcode) {
                             if ((method.equals("<clinit>") && opcode == Opcodes.RETURN)
                                 || (method.equals("bootstrap") && opcode == Opcodes.ARETURN)) {

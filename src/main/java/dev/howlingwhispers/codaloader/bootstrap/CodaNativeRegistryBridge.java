@@ -23,6 +23,11 @@ public final class CodaNativeRegistryBridge {
 
     private CodaNativeRegistryBridge() {}
 
+    /** Hook: immediately before BuiltInRegistries.freeze() executes. */
+    public static void registerNativeFactories() {
+        CodaRegistryFactoryBridge.registerAll();
+    }
+
     private static Class<?> type(String name) throws ClassNotFoundException {
         return Class.forName(name, true, CodaNativeRegistryBridge.class.getClassLoader());
     }

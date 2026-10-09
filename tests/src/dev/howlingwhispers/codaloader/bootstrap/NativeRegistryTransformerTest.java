@@ -66,6 +66,8 @@ public final class NativeRegistryTransformerTest {
         verify("net/minecraft/world/item/CreativeModeTabs", "bootstrap",
                 "(Lnet/minecraft/core/Registry;)Lnet/minecraft/world/item/CreativeModeTab;",
                 Opcodes.ARETURN, "registerCreativeTabs");
+        verify("net/minecraft/core/registries/BuiltInRegistries", "freeze", "()V",
+                Opcodes.RETURN, "registerNativeFactories");
         System.out.println("PASS: " + checks + " native Minecraft registry bytecode hook checks");
     }
 }

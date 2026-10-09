@@ -10,6 +10,7 @@ import java.util.List;
  */
 public final class NativeMinecraftSmoke {
     public static void main(String[] args) throws Exception {
+        NativeFactoryMinecraftSmoke.declare();
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:wood_item", 0.7f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:cobblestone_item", 1.4f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcraftcore:engine_redstone", 1.5f);
@@ -33,7 +34,7 @@ public final class NativeMinecraftSmoke {
                 "net.minecraft.core.registries.BuiltInRegistries", true, loader);
         Class<?> idClass = Class.forName("net.minecraft.resources.Identifier", true, loader);
         Method parse = idClass.getMethod("parse", String.class);
-        int checked = 0;
+        int checked = NativeFactoryMinecraftSmoke.verify();
         for (String name : List.of("buildcrafttransport:wood_item",
                 "buildcrafttransport:cobblestone_item", "buildcraftcore:engine_redstone")) {
             Object blocks = registries.getField("BLOCK").get(null);

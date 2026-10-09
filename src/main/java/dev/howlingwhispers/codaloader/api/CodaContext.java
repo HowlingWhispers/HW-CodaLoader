@@ -29,6 +29,17 @@ public record CodaContext(
         CodaNativeContents.registerItem(modId, namespacedId);
     }
 
+    /**
+     * Register a mod's original Minecraft-native implementation at bootstrap.
+     * Factories execute before built-in registry freeze, in declaration order.
+     * Block items, block entities and other entries are declared explicitly;
+     * the loader never substitutes generic classes or creates implicit items.
+     */
+    public <T> CodaRegistryFactories.Entry<T> registerNativeRegistry(
+            String registry, String id, CodaRegistryFactories.Factory<T> factory) {
+        return CodaRegistryFactories.register(modId, registry, id, factory);
+    }
+
     public void registerCreativeTab(String id, String title, String icon, List<String> entries) {
         CodaNativeContents.registerTab(modId, id, title, icon, entries);
     }
