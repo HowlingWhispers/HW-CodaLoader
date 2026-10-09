@@ -30,6 +30,8 @@ public final class CodaNativeContents {
     private static final Map<String, Definition> DEFINITIONS = new LinkedHashMap<>();
     private static final Map<String, Tab> TABS = new LinkedHashMap<>();
     private static final Map<String, BlockEntityDefinition> BLOCK_ENTITIES = new LinkedHashMap<>();
+    private static final Map<String, java.util.function.Consumer<CodaBlockEntityTick>> BLOCK_ENTITY_TICKS =
+            new LinkedHashMap<>();
     private static boolean sealed;
 
     private CodaNativeContents() {}
@@ -93,6 +95,35 @@ public final class CodaNativeContents {
         }
         if (BLOCK_ENTITIES.putIfAbsent(id, new BlockEntityDefinition(owner, id, blocks)) != null)
             throw new IllegalArgumentException("Duplicate block entity type " + id);
+    }
+
+    /** Hook the vanilla BlockEntityTicker for an already-declared owned type. */
+    public static synchronized void registerBlockEntityTick(String owner, String typeId,
+            java.util.function.Consumer<CodaBlockEntityTick> callback) {
+        requireOwner(owner);
+        requireId(typeId);
+        Objects.requireNonNull(callback, "callback");
+        if (sealed) throw new IllegalStateException("Block entity tick registrations closed");
+        BlockEntityDefinition declaration = BLOCK_ENTITIES.get(typeId);
+        if (declaration == null || !declaration.owner().equals(owner))
+            throw new IllegalArgumentException("Cannot tick missing or foreign block entity " + typeId);
+        if (BLOCK_ENTITY_TICKS.putIfAbsent(typeId, callback) != null)
+            throw new IllegalArgumentException("Duplicate block entity ticker " + typeId);
+    }
+
+    public static synchronized boolean hasBlockEntityTick(String typeId) {
+        return BLOCK_ENTITY_TICKS.containsKey(typeId);
+    }
+
+    public static void dispatchBlockEntityTick(CodaBlockEntityTick event) {
+        Objects.requireNonNull(event, "event");
+        java.util.function.Consumer<CodaBlockEntityTick> callback;
+        synchronized (CodaNativeContents.class) {
+            callback = BLOCK_ENTITY_TICKS.get(event.typeId());
+        }
+        if (callback == null)
+            throw new IllegalStateException("No registered block entity ticker: " + event.typeId());
+        callback.accept(event);
     }
 
     public static synchronized boolean hasBlockEntity(String blockId) {

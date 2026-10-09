@@ -34,6 +34,16 @@ public record CodaContext(
         CodaNativeContents.registerBlockEntityType(modId, typeId, blocks);
     }
 
+    /**
+     * Called by Minecraft's native server-side BlockEntityTicker for the
+     * specified registered type. No client ticks, fake packets or loaded
+     * chunk scans. Original machine logic remains the mod's responsibility.
+     */
+    public void registerBlockEntityTick(String typeId,
+            java.util.function.Consumer<CodaBlockEntityTick> callback) {
+        CodaNativeContents.registerBlockEntityTick(modId, typeId, callback);
+    }
+
     public void registerItem(String namespacedId) {
         CodaNativeContents.registerItem(modId, namespacedId);
     }
