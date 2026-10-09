@@ -76,7 +76,11 @@ jobs:
           printf '%s\n' "$output"
 
           grep -F "[HelloCoda] Pawprint confirmed. CodaLoader can load me." <<< "$output"
-          grep -F "[CodaLoader] Ready. 2 mod(s) initialized." <<< "$output"
+          grep -F "[CodaLoader] Ready. 3 mod(s) initialized." <<< "$output"
+          grep -F "[CodaLoader] Loading coda_wolf 0.1.2-dev" <<< "$output"
+          grep -F "[CodaLoader] Loading hw_essentials 0.2.0" <<< "$output"
+          test -f run/mods/coda-wolf-0.1.0-dev.jar
+          test -f run/mods/hw-essentials.jar
 
       - name: Smoke-test Java agent and in-JVM mod loading
         shell: bash
