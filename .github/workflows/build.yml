@@ -28,6 +28,21 @@ jobs:
       - name: Build distribution
         run: ./scripts/build-dist.sh
 
+      - name: Exercise BuildCraft Lite chest transport and Coda diagnostics
+        shell: bash
+        run: |
+          test -f dist/buildcraft-lite-0.1.0-dev.jar
+          mkdir -p out/buildcraft-lite-tests
+          javac --release 21 -cp dist/CodaLoader.jar:dist/buildcraft-lite-0.1.0-dev.jar \
+            -d out/buildcraft-lite-tests \
+            tests/src/dev/howlingwhispers/buildcraftlite/BuildCraftLiteTransportTest.java
+          java -cp out/buildcraft-lite-tests:dist/buildcraft-lite-0.1.0-dev.jar:dist/CodaLoader.jar \
+            dev.howlingwhispers.buildcraftlite.BuildCraftLiteTransportTest
+          mkdir -p out/buildcraft-lite-run/mods
+          cp dist/buildcraft-lite-0.1.0-dev.jar out/buildcraft-lite-run/mods/
+          java -jar dist/CodaLoader.jar --loader-only out/buildcraft-lite-run \
+            | grep -F 'Native wooden/stone chest transport enabled'
+
       - name: Test verified launch identity
         run: |
           javac -cp dist/CodaLoader.jar -d out/identity-tests tests/identity/LaunchIdentityTest.java
@@ -135,6 +150,7 @@ jobs:
             dist/update-manifest.json
             dist/CodaLoader.jar
             dist/hello-coda.jar
+            dist/buildcraft-lite-0.1.0-dev.jar
             dist/hw-essentials.jar
             dist/Launch-CodaLoader.bat
             dist/HOWL-SDK-v*.zip
@@ -164,6 +180,7 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path dist/CodaLoader.jar)) { throw "CodaLoader.jar missing" }
+          if (!(Test-Path dist/buildcraft-lite-0.1.0-dev.jar)) { throw "BuildCraft Lite mod missing" }
           if (!(Test-Path dist/Launch-CodaLoader.bat)) { throw "BAT missing" }
           $version = (Get-Content -Raw dist/update-manifest.json | ConvertFrom-Json).version
           if (!(Test-Path "dist/CodaLoader-v$version-win64.zip")) { throw "ZIP missing" }
