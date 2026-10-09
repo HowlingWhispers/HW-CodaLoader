@@ -15,6 +15,8 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaRegistryFactoryBridge.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeFactoryDeclarationsTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeFactoryMinecraftSmoke.java
+      - compat/bcce/**
+      - scripts/prepare-bcce-registry-test.py
   workflow_dispatch:
 
 jobs:
@@ -103,7 +105,7 @@ jobs:
           report_failure() {
             python3 - <<'PY'
           from pathlib import Path
-          message = Path('inspection/native-smoke.log').read_text()[-10000:]
+          message = Path('inspection/native-smoke.log').read_text()[-3200:]
           print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
           PY
           }
@@ -111,6 +113,7 @@ jobs:
           exec > >(tee inspection/native-smoke.log) 2>&1
           bash scripts/build-dist.sh
           mkdir -p inspection/test-classes inspection/maven
+          python3 scripts/prepare-bcce-registry-test.py
           javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java \
@@ -130,8 +133,12 @@ jobs:
           done < inspection/libs.txt
           CLASSPATH="inspection/test-classes:dist/CodaLoader.jar:inspection/client.jar"
           while IFS= read -r jar; do CLASSPATH="$CLASSPATH:$jar"; done < <(find inspection/maven -type f -name '*.jar')
+          javac --release 25 -cp "$CLASSPATH" -d inspection/test-classes \
+            inspection/bcce/mapped/buildcraft/lib/platform/registry/*.java \
+            compat/bcce/src/main/java/buildcraft/lib/platform/registry/RegistryBinding.java \
+            compat/bcce/test/dev/howlingwhispers/codaloader/bootstrap/BCCERegistryMinecraftSmoke.java
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
-            -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
+            -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke --bcce
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -10,6 +10,9 @@ import java.util.List;
  */
 public final class NativeMinecraftSmoke {
     public static void main(String[] args) throws Exception {
+        boolean bcce = java.util.Arrays.asList(args).contains("--bcce");
+        if (bcce) Class.forName("dev.howlingwhispers.codaloader.bootstrap.BCCERegistryMinecraftSmoke")
+                .getMethod("declare").invoke(null);
         NativeFactoryMinecraftSmoke.declare();
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:wood_item", 0.7f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:cobblestone_item", 1.4f);
@@ -29,6 +32,8 @@ public final class NativeMinecraftSmoke {
         Class<?> bootstrap = Class.forName("net.minecraft.server.Bootstrap", true, loader);
         System.out.println("Bootstrapping EXACT Mojang Snapshot 3 registries...");
         bootstrap.getMethod("bootStrap").invoke(null);
+        if (bcce) Class.forName("dev.howlingwhispers.codaloader.bootstrap.BCCERegistryMinecraftSmoke")
+                .getMethod("verify").invoke(null);
 
         Class<?> registries = Class.forName(
                 "net.minecraft.core.registries.BuiltInRegistries", true, loader);
