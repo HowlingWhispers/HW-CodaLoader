@@ -44,6 +44,7 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
     private static final Map<Object, String> TYPE_IDS = new IdentityHashMap<>();
     private static volatile Class<?> nativeBlock;
     private static volatile Class<?> nativePipeBlock;
+    private static volatile boolean pipeAppearanceWarningLogged;
     private static volatile Constructor<?> nativeEntityCtor;
     private static boolean registered;
 
@@ -261,9 +262,19 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                                 ((Number)pos.getClass().getMethod("getX").invoke(pos)).intValue(),
                                 ((Number)pos.getClass().getMethod("getY").invoke(pos)).intValue(),
                                 ((Number)pos.getClass().getMethod("getZ").invoke(pos)).intValue());
-                        if (nativePipeBlock != null && nativePipeBlock.isInstance(
-                                stateAtPos.getClass().getMethod("getBlock").invoke(stateAtPos))) {
-                            refreshPipeConnections(world, pos, stateAtPos);
+                        // A changed Minecraft rendering API must not kill the
+                        // server-side transport ticker. Report once and continue.
+                        try {
+                            if (nativePipeBlock != null && nativePipeBlock.isInstance(
+                                    stateAtPos.getClass().getMethod("getBlock").invoke(stateAtPos))) {
+                                refreshPipeConnections(world, pos, stateAtPos);
+                            }
+                        } catch (ReflectiveOperationException | RuntimeException appearanceFailure) {
+                            if (!pipeAppearanceWarningLogged) {
+                                pipeAppearanceWarningLogged = true;
+                                System.err.println("[H.O.W.L.] Pipe connection rendering unavailable: "
+                                        + appearanceFailure);
+                            }
                         }
                         CodaNativeContents.dispatchBlockEntityTick(
                                 new CodaBlockEntityTick(typeId, dimensionId, position));
