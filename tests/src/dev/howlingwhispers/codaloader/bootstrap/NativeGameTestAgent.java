@@ -6,5 +6,6 @@ import java.lang.instrument.Instrumentation;
 public final class NativeGameTestAgent {
     public static void premain(String args, Instrumentation instrumentation) {
         CodaNativeRegistryTransformer.install(instrumentation);
+        CodaCreativeInventoryTransformer.install(instrumentation);
     }
 }

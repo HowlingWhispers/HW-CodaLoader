@@ -47,6 +47,7 @@ java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhisper
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.WorldInventoryTickTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.NativeRegistryTransformerTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.BuildCraftResourceInstallerTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MinecraftVersionMetadataTest
 

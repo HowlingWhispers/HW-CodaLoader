@@ -60,17 +60,11 @@ final class BuildCraftResourceInstaller {
                         continue;
                     if (name.contains("..") || name.contains("\\") || name.length() > 256)
                         throw new IOException("Unsafe BuildCraft resource path");
-                    // Minecraft 26.4 uses modern item model entrypoints.
-                    // Preserve original textures, replacing only these specific
-                    // old 1.12 JSON descriptors with native-format adapters.
-                    if (name.equals("assets/buildcraftcore/models/item/engine_redstone.json")
-                        || name.equals("assets/buildcraftcore/models/block/engine_redstone.json")
-                        || name.equals("assets/buildcraftcore/blockstates/engine_redstone.json")
-                        || name.equals("assets/buildcraftcore/lang/en_us.json")
-                        || name.equals("assets/buildcrafttransport/lang/en_us.json"))
+                    // Original files remain intact in the mod JAR. The active
+                    // pack contains original PNGs and native JSON adapters,
+                    // not Forge's expression models or uppercase identifiers.
+                    if (!name.matches("assets/[a-z0-9_.-]+/textures/[a-z0-9_./-]+\\.png(?:\\.mcmeta)?"))
                         continue;
-                    // 1.12 models are preserved except for the explicitly
-                    // translated 26.4 block/item definitions below.
                     if (!paths.add(name)) throw new IOException("Duplicate BuildCraft asset " + name);
                     if (++count > MAX_ENTRIES || entry.getSize() > MAX_BYTES)
                         throw new IOException("BuildCraft source resource limit exceeded");
@@ -89,7 +83,8 @@ final class BuildCraftResourceInstaller {
                 }
                 if (!paths.contains("assets/buildcrafttransport/textures/pipes/wood_item_clear.png")
                     || !paths.contains("assets/buildcrafttransport/textures/pipes/cobblestone_item.png")
-                    || !paths.contains("assets/buildcraftcore/textures/items/wrench.png"))
+                    || !paths.contains("assets/buildcraftcore/textures/items/wrench.png")
+                    || !paths.contains("assets/buildcraftcore/textures/blocks/engine/wood/side.png"))
                     throw new IOException("Original BuildCraft 8.0.0 art was not embedded");
 
                 put(dest, paths, "pack.mcmeta", "{\"pack\":{\"description\":\"BuildCraft 8.0.0 original resources, H.O.W.L. 26.4 adapter\",\"min_format\":["
@@ -104,7 +99,19 @@ final class BuildCraftResourceInstaller {
                 pipe(dest, paths, "buildcrafttransport", "cobblestone_item",
                         "buildcrafttransport:pipes/cobblestone_item");
                 engine(dest, paths);
+                put(dest, paths, "assets/buildcraftcore/models/item/wrench.json",
+                        "{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\"buildcraftcore:items/wrench\"}}");
                 itemDefinition(dest, paths, "buildcraftcore", "wrench");
+                // Vanilla scans block/ and item/, whereas original BuildCraft
+                // uses pipes/, blocks/ and items/. Explicit singles preserve
+                // those original paths and pixel bytes in both modern atlases.
+                String atlas = "{\"sources\":["
+                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcrafttransport:pipes/wood_item_clear\"},"
+                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcrafttransport:pipes/cobblestone_item\"},"
+                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcraftcore:blocks/engine/wood/side\"},"
+                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcraftcore:items/wrench\"}]}";
+                put(dest, paths, "assets/minecraft/atlases/blocks.json", atlas);
+                put(dest, paths, "assets/minecraft/atlases/items.json", atlas);
                 put(dest, paths, "assets/buildcraftcore/lang/en_us.json",
                         "{\"item.buildcraftcore.wrench\":\"BuildCraft Wrench\","
                         + "\"block.buildcraftcore.engine_redstone\":\"Redstone Engine\","
