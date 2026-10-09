@@ -44,6 +44,14 @@ public final class NativeMinecraftSmoke {
                 List.of("buildcrafttransport:wood_item", "buildcrafttransport:cobblestone_item",
                         "buildcraftcore:engine_redstone", "buildcraftcore:wrench"));
 
+        // Also initialize the actual optional BuildCraft Lite mod entrypoint
+        // before real Mojang registries freeze. No fake registry declarations.
+        new dev.howlingwhispers.buildcraftlite.BuildCraftLiteMod().onInitialize(
+                new dev.howlingwhispers.codaloader.api.CodaContext(
+                        "snapshot-test", "26.4-snapshot-3",
+                        java.nio.file.Path.of("."), java.nio.file.Path.of("config"),
+                        "hw_buildcraft_lite", List.of("hw_buildcraft_lite")));
+
         ClassLoader loader = NativeMinecraftSmoke.class.getClassLoader();
         // Mojang's real launcher sets the current version before bootstrapping.
         // The headless test must do the same or DataFixers fails with
@@ -62,7 +70,9 @@ public final class NativeMinecraftSmoke {
         Method parse = idClass.getMethod("parse", String.class);
         int checked = 0;
         for (String name : List.of("buildcrafttransport:wood_item",
-                "buildcrafttransport:cobblestone_item", "buildcraftcore:engine_redstone")) {
+                "buildcrafttransport:cobblestone_item", "buildcraftcore:engine_redstone",
+                "hw_buildcraft_lite:wooden_transport_pipe",
+                "hw_buildcraft_lite:stone_transport_pipe")) {
             Object blocks = registries.getField("BLOCK").get(null);
             Object id = parse.invoke(null, name);
             Object value = blocks.getClass().getMethod("getValue", idClass).invoke(blocks, id);
@@ -160,7 +170,9 @@ public final class NativeMinecraftSmoke {
 
         for (String name : List.of("buildcrafttransport:wood_item",
                 "buildcrafttransport:cobblestone_item", "buildcraftcore:engine_redstone",
-                "buildcraftcore:wrench")) {
+                "buildcraftcore:wrench",
+                "hw_buildcraft_lite:wooden_transport_pipe",
+                "hw_buildcraft_lite:stone_transport_pipe")) {
             Object items = registries.getField("ITEM").get(null);
             Object id = parse.invoke(null, name);
             Object value = items.getClass().getMethod("getValue", idClass).invoke(items, id);
@@ -173,6 +185,10 @@ public final class NativeMinecraftSmoke {
         Object name = parse.invoke(null, "buildcraftcore:buildcraft");
         Object tab = creative.getClass().getMethod("getValue", idClass).invoke(creative, name);
         if (tab == null) throw new AssertionError("BuildCraft Creative tab not registered");
+        checked++;
+        Object liteTab = creative.getClass().getMethod("getValue",idClass)
+                .invoke(creative,parse.invoke(null,"hw_buildcraft_lite:transport"));
+        if (liteTab == null) throw new AssertionError("BuildCraft Lite Creative tab unregistered");
         checked++;
         // Link the transformed real screen without initializing graphics.
         // Combined with CreativeInventoryTest's execution fixture, this
