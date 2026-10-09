@@ -17,6 +17,8 @@ public final class NativeMinecraftSmoke {
                 "buildcrafttransport:pipe_holder", List.of(
                         "buildcrafttransport:wood_item",
                         "buildcrafttransport:cobblestone_item"));
+        CodaNativeContents.registerBlockEntityTick("buildcraft_cml",
+                "buildcrafttransport:pipe_holder",event -> {});
         CodaNativeContents.registerItem("buildcraft_cml", "buildcraftcore:wrench");
         CodaNativeContents.registerTab("buildcraft_cml", "buildcraftcore:buildcraft",
                 "BuildCraft", "buildcrafttransport:wood_item",
@@ -121,7 +123,18 @@ public final class NativeMinecraftSmoke {
                     "net.minecraft.world.level.block.entity.BlockEntityType",true,loader);
             if (!(Boolean) entityTypeClass.getMethod("isValid",stateClass).invoke(pipeHolder,state))
                 throw new AssertionError("Native pipe-holder type rejects its block state: " + pipeId);
-            checked += 4;
+            // Genuine Mojang EntityBlock getter must return the loader-backed
+            // native BlockEntityTicker for a matching pipe-holder state.
+            Class<?> worldClass = Class.forName("net.minecraft.world.level.Level",true,loader);
+            Class<?> beTypeClass = Class.forName(
+                    "net.minecraft.world.level.block.entity.BlockEntityType",true,loader);
+            Class<?> nativeTickerClass = Class.forName(
+                    "net.minecraft.world.level.block.entity.BlockEntityTicker",true,loader);
+            Object ticker = entityBlockInterface.getMethod("getTicker",
+                    worldClass,stateClass,beTypeClass).invoke(block,null,state,pipeHolder);
+            if (!nativeTickerClass.isInstance(ticker))
+                throw new AssertionError("Native Minecraft ticker unavailable for "+pipeId);
+            checked += 5;
         }
 
         for (String name : List.of("buildcrafttransport:wood_item",
