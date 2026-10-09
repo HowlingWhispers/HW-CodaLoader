@@ -1,7 +1,7 @@
 name: Coda Wolf experimental module
 on:
   push:
-    branches: [feature/coda-wolf-companion]
+    branches: [feature/coda-wolf-companion, main]
     paths:
       - 'examples/coda-wolf/**'
       - '.github/workflows/coda-wolf-experimental.yml'
@@ -39,7 +39,7 @@ jobs:
               assert m['schema']==1
               assert m['id']=='coda_wolf'
               assert m['name']=='Coda Wolf Companion'
-              assert m['version']=='0.1.0-dev'
+              assert m['version']=='0.1.1-dev'
               assert m['minecraft']=='26.4-snapshot-3'
               assert m['entrypoint'].replace('.','/')+'.class' in z.namelist()
           print('PASS: launcher-recognizable mod metadata and entrypoint')
