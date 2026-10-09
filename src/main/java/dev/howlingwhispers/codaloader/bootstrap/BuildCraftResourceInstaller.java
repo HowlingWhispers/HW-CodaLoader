@@ -102,16 +102,17 @@ final class BuildCraftResourceInstaller {
                 put(dest, paths, "assets/buildcraftcore/models/item/wrench.json",
                         "{\"parent\":\"minecraft:item/generated\",\"textures\":{\"layer0\":\"buildcraftcore:items/wrench\"}}");
                 itemDefinition(dest, paths, "buildcraftcore", "wrench");
-                // Vanilla scans block/ and item/, whereas original BuildCraft
-                // uses pipes/, blocks/ and items/. Explicit singles preserve
-                // those original paths and pixel bytes in both modern atlases.
-                String atlas = "{\"sources\":["
-                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcrafttransport:pipes/wood_item_clear\"},"
-                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcrafttransport:pipes/cobblestone_item\"},"
-                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcraftcore:blocks/engine/wood/side\"},"
-                        + "{\"type\":\"minecraft:single\",\"resource\":\"buildcraftcore:items/wrench\"}]}";
-                put(dest, paths, "assets/minecraft/atlases/blocks.json", atlas);
-                put(dest, paths, "assets/minecraft/atlases/items.json", atlas);
+                // A sprite ID belongs to ONE atlas. Duplicating it across
+                // items and blocks makes Snapshot 3 reject block models.
+                String blocksAtlas = "{\"sources\":["
+                        + single("buildcrafttransport:pipes/wood_item_clear") + ","
+                        + single("buildcrafttransport:pipes/cobblestone_item") + ","
+                        + single("buildcraftcore:blocks/engine/wood/side") + ","
+                        + single("buildcraftcore:blocks/engine/wood/back") + ","
+                        + single("buildcraftlib:blocks/engine/trunk_blue") + "]}";
+                put(dest, paths, "assets/minecraft/atlases/blocks.json", blocksAtlas);
+                put(dest, paths, "assets/minecraft/atlases/items.json",
+                        "{\"sources\":[" + single("buildcraftcore:items/wrench") + "]}");
                 put(dest, paths, "assets/buildcraftcore/lang/en_us.json",
                         "{\"item.buildcraftcore.wrench\":\"BuildCraft Wrench\","
                         + "\"block.buildcraftcore.engine_redstone\":\"Redstone Engine\","
@@ -172,10 +173,10 @@ final class BuildCraftResourceInstaller {
                              String ns, String id, String texture) throws IOException {
         String model = "{\"textures\":{\"pipe\":\"" + texture + "\",\"particle\":\""
                 + texture + "\"},\"elements\":["
-                + element(5,5,5,11,11,11) + ","
-                + element(0,6,6,5,10,10) + "," + element(11,6,6,16,10,10) + ","
-                + element(6,0,6,10,5,10) + "," + element(6,11,6,10,16,10) + ","
-                + element(6,6,0,10,10,5) + "," + element(6,6,11,10,10,16)
+                + element(4,4,4,12,12,12) + ","
+                + element(0,4,4,4,12,12) + "," + element(12,4,4,16,12,12) + ","
+                + element(4,0,4,12,4,12) + "," + element(4,12,4,12,16,12) + ","
+                + element(4,4,0,12,12,4) + "," + element(4,4,12,12,12,16)
                 + "]}";
         put(zip, paths, "assets/" + ns + "/models/block/" + id + ".json", model);
         put(zip, paths, "assets/" + ns + "/blockstates/" + id + ".json",
@@ -187,11 +188,17 @@ final class BuildCraftResourceInstaller {
 
     private static void engine(ZipOutputStream zip, Set<String> paths) throws IOException {
         String ns = "buildcraftcore", id = "engine_redstone";
-        String texture = "buildcraftcore:blocks/engine/wood/side";
-        String model = "{\"textures\":{\"pipe\":\"" + texture + "\",\"particle\":\""
-                + texture + "\"},\"elements\":["
-                + element(2,0,2,14,3,14) + "," + element(4,3,4,12,12,12)
-                + "," + element(6,12,6,10,16,10) + "]}";
+        // Original 8.0.0 engine_base dimensions and UVs, evaluated at
+        // rest (progress=0, stage=blue). Do not stretch the side texture
+        // over the piston trunk or replace the original back texture.
+        String model = "{\"textures\":{"
+                + "\"side\":\"buildcraftcore:blocks/engine/wood/side\","
+                + "\"back\":\"buildcraftcore:blocks/engine/wood/back\","
+                + "\"trunk\":\"buildcraftlib:blocks/engine/trunk_blue\","
+                + "\"particle\":\"buildcraftcore:blocks/engine/wood/side\"},\"elements\":["
+                + engineBase(0,4) + "," + engineBase(4,8) + ","
+                + "{\"from\":[4,4,4],\"to\":[12,16,12],\"faces\":"
+                + engineFaces("trunk", "trunk", "[8,0,16,12]", "[0,0,8,8]") + "}]}";
         put(zip, paths, "assets/" + ns + "/models/block/" + id + ".json", model);
         put(zip, paths, "assets/" + ns + "/blockstates/" + id + ".json",
             "{\"variants\":{\"\":{\"model\":\"" + ns + ":block/" + id + "\"}}}");
@@ -200,6 +207,21 @@ final class BuildCraftResourceInstaller {
         put(zip, paths, "assets/" + ns + "/models/item/" + id + ".json",
             "{\"parent\":\"" + ns + ":block/" + id + "\"}");
         itemDefinition(zip, paths, ns, id);
+    }
+
+    private static String single(String texture) {
+        return "{\"type\":\"minecraft:single\",\"resource\":\"" + texture + "\"}";
+    }
+    private static String engineBase(int bottom, int top) {
+        return "{\"from\":[0," + bottom + ",0],\"to\":[16," + top
+                + ",16],\"faces\":" + engineFaces("side", "back", "[0,0,16,4]", "[0,0,16,16]") + "}";
+    }
+    private static String engineFaces(String side, String end, String sideUv, String endUv) {
+        String lateral = "{\"texture\":\"#" + side + "\",\"uv\":" + sideUv + "}";
+        String cap = "{\"texture\":\"#" + end + "\",\"uv\":" + endUv + "}";
+        return "{\"north\":" + lateral + ",\"south\":" + lateral
+                + ",\"east\":" + lateral + ",\"west\":" + lateral
+                + ",\"up\":" + cap + ",\"down\":" + cap + "}";
     }
 
     private static String hash(Path file) throws IOException {

@@ -43,6 +43,29 @@ public final class NativeMinecraftSmoke {
                     .toString().equals(name) == false) {
                 throw new AssertionError("Native Block missing: " + name);
             }
+            Class<?> blockClass = Class.forName("net.minecraft.world.level.block.Block", true, loader);
+            Class<?> stateClass = Class.forName("net.minecraft.world.level.block.state.BlockState", true, loader);
+            Object definition = blockClass.getMethod("getStateDefinition").invoke(value);
+            Object states = definition.getClass().getMethod("getPossibleStates").invoke(definition);
+            Object stateIds = blockClass.getField("BLOCK_STATE_REGISTRY").get(null);
+            for (Object state : (Iterable<?>) states) {
+                // The packet codec uses this exact IdMapper; exercise both
+                // directions rather than only checking BLOCK registration.
+                int stateId = (Integer) stateIds.getClass().getMethod("getId", Object.class)
+                        .invoke(stateIds, state);
+                if (stateId < 0 || stateIds.getClass().getMethod("byId", int.class)
+                        .invoke(stateIds, stateId) != state)
+                    throw new AssertionError("Block state has no packet ID: " + name);
+                checked++;
+                // Chunk rendering dereferences this initialized shape array.
+                Class<?> direction = Class.forName("net.minecraft.core.Direction", true, loader);
+                for (Object face : direction.getEnumConstants()) {
+                    if (stateClass.getMethod("getFaceOcclusionShape", direction)
+                            .invoke(state, face) == null)
+                        throw new AssertionError("Block face shape cache missing: " + name);
+                    checked++;
+                }
+            }
             // Real BlockItem must also be findable by Minecraft's
             // Item.byBlock registry, not just ITEM key lookups.
             Object nativeItem = Class.forName("net.minecraft.world.item.Item",true,loader)

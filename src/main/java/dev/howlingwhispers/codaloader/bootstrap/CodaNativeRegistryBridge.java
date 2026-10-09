@@ -88,6 +88,17 @@ public final class CodaNativeRegistryBridge {
                 }
                 Object block = blockClass.getConstructor(properties).newInstance(p);
                 register(registry, def.id(), block);
+                // Blocks.<clinit> has already populated vanilla state IDs and
+                // shape caches by this return hook. Registry.register alone
+                // leaves added blocks unusable by packets and chunk rendering.
+                Object states = invoke(invoke(block, "getStateDefinition", new Class<?>[0]),
+                        "getPossibleStates", new Class<?>[0]);
+                Object stateIds = blockClass.getField("BLOCK_STATE_REGISTRY").get(null);
+                Method addState = stateIds.getClass().getMethod("add", Object.class);
+                for (Object state : (Iterable<?>) states) {
+                    invoke(state, "initCache", new Class<?>[0]);
+                    addState.invoke(stateIds, state);
+                }
                 BLOCKS.put(def.id(), block);
                 System.out.println("[H.O.W.L.] Native block registered: " + def.id());
             }

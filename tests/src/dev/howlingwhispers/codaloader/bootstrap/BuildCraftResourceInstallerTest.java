@@ -56,24 +56,41 @@ public final class BuildCraftResourceInstallerTest {
                         "assets/buildcrafttransport/textures/pipes/wood_item_clear.png",
                         "assets/buildcrafttransport/textures/pipes/cobblestone_item.png",
                         "assets/buildcraftcore/textures/items/wrench.png",
-                        "assets/buildcraftcore/textures/blocks/engine/wood/side.png")) {
+                        "assets/buildcraftcore/textures/blocks/engine/wood/side.png",
+                        "assets/buildcraftcore/textures/blocks/engine/wood/back.png",
+                        "assets/buildcraftlib/textures/blocks/engine/trunk_blue.png")) {
                     check(Arrays.equals(source.getInputStream(source.getEntry(texture)).readAllBytes(),
                             zip.getInputStream(zip.getEntry(texture)).readAllBytes()), "original texture bytes preserved: " + texture);
                 }
             }
+            java.util.Set<String> spriteIds = new java.util.HashSet<>();
             for (String atlas : List.of("blocks", "items")) {
                 Map<?,?> json = (Map<?,?>) MiniJson.parse(new String(zip.getInputStream(
                         zip.getEntry("assets/minecraft/atlases/" + atlas + ".json")).readAllBytes(), StandardCharsets.UTF_8));
                 List<?> sources = (List<?>) json.get("sources");
-                check(sources.size() == 4, "all four registered sprites added to " + atlas + " atlas");
+                check(sources.size() == (atlas.equals("blocks") ? 5 : 1), "sprites use their correct " + atlas + " atlas");
                 for (Object entry : sources) {
                     Map<?,?> single = (Map<?,?>) entry;
                     check(single.get("type").equals("minecraft:single"), "native atlas source type");
-                    String[] id = single.get("resource").toString().split(":", 2);
+                    String resource = single.get("resource").toString();
+                    check(spriteIds.add(resource), "sprite is not duplicated across atlases: " + resource);
+                    check(resource.endsWith("items/wrench") == atlas.equals("items"),
+                            "block sprites never resolve to the items atlas");
+                    String[] id = resource.split(":", 2);
                     check(zip.getEntry("assets/" + id[0] + "/textures/" + id[1] + ".png") != null,
                             "atlas sprite resolves to original image");
                 }
             }
+            Map<?,?> engine = (Map<?,?>) MiniJson.parse(new String(zip.getInputStream(
+                    zip.getEntry("assets/buildcraftcore/models/block/engine_redstone.json")).readAllBytes(), StandardCharsets.UTF_8));
+            Map<?,?> textures = (Map<?,?>) engine.get("textures");
+            check(textures.get("back").equals("buildcraftcore:blocks/engine/wood/back"), "engine uses original back texture");
+            check(textures.get("trunk").equals("buildcraftlib:blocks/engine/trunk_blue"), "engine uses original piston texture");
+            Map<?,?> pipe = (Map<?,?>) MiniJson.parse(new String(zip.getInputStream(
+                    zip.getEntry("assets/buildcrafttransport/models/block/wood_item.json")).readAllBytes(), StandardCharsets.UTF_8));
+            Map<?,?> center = (Map<?,?>) ((List<?>) pipe.get("elements")).getFirst();
+            check(center.get("from").toString().equals("[4, 4, 4]")
+                    && center.get("to").toString().equals("[12, 12, 12]"), "original eight-pixel pipe body and UV bounds");
             for (String unsupported : List.of(
                     "assets/buildcraftlib/models/block/engine_base.json",
                     "assets/buildcraftcore/models/block/marker.json",
@@ -102,6 +119,8 @@ public final class BuildCraftResourceInstallerTest {
             asset(zip, "assets/buildcrafttransport/textures/pipes/cobblestone_item.png");
             asset(zip, "assets/buildcraftcore/textures/items/wrench.png");
             asset(zip, "assets/buildcraftcore/textures/blocks/engine/wood/side.png");
+            asset(zip, "assets/buildcraftcore/textures/blocks/engine/wood/back.png");
+            asset(zip, "assets/buildcraftlib/textures/blocks/engine/trunk_blue.png");
             asset(zip, "assets/buildcraftcore/models/item/engine_redstone.json");
             asset(zip, "assets/buildcraftlib/models/block/engine_base.json");
             asset(zip, "assets/buildcraftcore/models/block/marker.json");

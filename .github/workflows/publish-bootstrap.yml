@@ -94,28 +94,16 @@ jobs:
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
 
-          - New H.O.W.L. display branding, preserving existing CodaLoader filenames,
-            mod metadata, Java API namespaces, configuration and update paths.
-          - Coda's yellow splash: COWL?! ...no. *huff* H.O.W.L.!
-            Included with older shipped base packs; user splash overrides remain intact.
-          - HOWL SDK: compile-only API JAR, public API sources, editable starter,
-            cross-platform build scripts and current API/BuildCraft revival limits.
-          - HOWL-owned layouts for the title and Escape menus, with retained native game actions.
-          - Consistent Coda-flavoured labels, tooltips and icon spacing.
-          - GUI-thread lifecycle, menu rebuild and duplicate injection protection.
-          - Safe fallback to the legacy menu layout on incompatible screens.
-          - Official Minecraft Launcher profile integration via CodaLauncher 0.7.1:
-            the official launcher authenticates Minecraft and passes game identity
-            to Minecraft; the CodaLoader Java agent supplies menus, mods, scenes,
-            menu music, and shared base resources.
-          - Settings Local Test Mode uses an explicit unverified CodaPlayer local
-            identity (not a credential for online CML services).
-          - Pre-0.7.1 CodaLauncher compatibility is retained for existing local
-            CodaPlayer saves.
-          - HW Essentials and existing worlds remain supported.
+          - Fix BuildCraft block placement disconnects: native block states now receive
+            network IDs and initialized shape caches before gameplay starts.
+          - Fix creative-inventory tab rendering with the extra BuildCraft tab.
+          - Restore original BuildCraft 8.0.0 pipe and engine artwork: unique texture
+            atlas registrations, original pipe dimensions and engine face textures.
+          - Keep the existing Nightly installation and single mods folder.
 
-          Tested by CI with command, menu and Java-agent fixtures on Java 21 and 25.
-          **Live Snapshot 3 menu verification is still required.**
+          CI checks cover Java 21/25 fixtures and actual Snapshot 3 block-state
+          IDs, rendering shape caches and creative-inventory bytecode.
+          In-game pipe placement and appearance still require a player playtest.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
             --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \
