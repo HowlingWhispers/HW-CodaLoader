@@ -87,6 +87,11 @@ Copy-Item examples/hello-coda/resources/coda.mod.json out/example-classes/
 & jar --create --file "dist/hello-coda.jar" -C out/example-classes .
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+# Optional developer playtest, deliberately not bundled as a required mod.
+& examples/buildcraft-lite/build-mod.ps1
+if ($LASTEXITCODE -ne 0) { throw "BuildCraft Lite failed" }
+
+
 # Compile-only API and editable starter for third-party HOWL mods.
 & jar --create --file "dist/howl-api-$LoaderVersion.jar" -C out/classes dev/howlingwhispers/codaloader/api
 if ($LASTEXITCODE -ne 0) { throw "API packaging failed" }
@@ -142,3 +147,5 @@ Write-Host "  dist/$BundleName"
 Write-Host "  dist/update-manifest.json"
 Write-Host "  dist/HOWL-SDK-v$LoaderVersion.zip"
 Write-Host "  dist/howl-api-$LoaderVersion.jar"
+
+Write-Host "  dist/buildcraft-lite-0.1.0-dev.jar (optional developer playtest)"
