@@ -17,7 +17,7 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Uses the unchanged assets from BuildCraft 8.0.0's verified Nightly JAR.
+ * Uses the unchanged BCCE assets from the verified Nightly mod JAR.
  * Generates ONLY the modern Minecraft 26.4 item-definition and geometric
  * model adapter required to display them. No substitute painted textures.
  * Writes one owned ZIP under resourcepacks, no second mods directory.
@@ -84,10 +84,12 @@ final class BuildCraftResourceInstaller {
                 if (!paths.contains("assets/buildcrafttransport/textures/pipes/wood_item_clear.png")
                     || !paths.contains("assets/buildcrafttransport/textures/pipes/cobblestone_item.png")
                     || !paths.contains("assets/buildcraftcore/textures/items/wrench.png")
-                    || !paths.contains("assets/buildcraftcore/textures/blocks/engine/wood/side.png"))
+                    || !paths.contains("assets/buildcraftcore/textures/blocks/engine/wood/side.png")
+                    || !paths.contains("assets/buildcraftcore/textures/blocks/engine/wood/back.png")
+                    || !paths.contains("assets/buildcraftlib/textures/blocks/engine/trunk_blue.png"))
                     throw new IOException("Original BuildCraft 8.0.0 art was not embedded");
 
-                put(dest, paths, "pack.mcmeta", "{\"pack\":{\"description\":\"BuildCraft 8.0.0 original resources, H.O.W.L. 26.4 adapter\",\"min_format\":["
+                put(dest, paths, "pack.mcmeta", "{\"pack\":{\"description\":\"BuildCraft Community Edition original resources, H.O.W.L. 26.4 adapter\",\"min_format\":["
                     + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ",0],\"max_format\":["
                     + CodaTarget.MINECRAFT_RESOURCE_PACK_FORMAT + ",0]}}");
 
@@ -133,7 +135,7 @@ final class BuildCraftResourceInstaller {
             }
             Files.move(stage, output, StandardCopyOption.REPLACE_EXISTING);
             Files.writeString(marker, hash, StandardCharsets.UTF_8);
-            System.out.println("[H.O.W.L.] Original BuildCraft 8.0.0 art pack prepared: " + output);
+            System.out.println("[H.O.W.L.] Original BCCE art pack prepared: " + output);
             return true;
         } finally { Files.deleteIfExists(stage); }
     }

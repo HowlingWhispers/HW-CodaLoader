@@ -97,7 +97,7 @@ jobs:
           - Fix BuildCraft block placement disconnects: native block states now receive
             network IDs and initialized shape caches before gameplay starts.
           - Fix creative-inventory tab rendering with the extra BuildCraft tab.
-          - Restore original BuildCraft 8.0.0 pipe and engine artwork: unique texture
+          - Restore original BuildCraft/BCCE pipe and engine artwork: unique texture
             atlas registrations, original pipe dimensions and engine face textures.
           - Keep the existing Nightly installation and single mods folder.
 
