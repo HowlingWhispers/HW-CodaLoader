@@ -95,8 +95,27 @@ public final class CreativeInventoryTest {
         if (args.length > 0) {
             try (JarFile client = new JarFile(Path.of(args[0]).toFile())) {
                 byte[] actual = client.getInputStream(client.getJarEntry(CodaCreativeInventoryTransformer.SCREEN + ".class")).readAllBytes();
+                StringBuilder mapping = new StringBuilder();
+                new ClassReader(actual).accept(new ClassVisitor(Opcodes.ASM9) {
+                    @Override public MethodVisitor visitMethod(int access, String name, String desc,
+                            String signature, String[] exceptions) {
+                        if (!name.equals("extractTabButton")) return null;
+                        mapping.append(name).append(desc).append("; ");
+                        return new MethodVisitor(Opcodes.ASM9) {
+                            @Override public void visitInsn(int opcode) {
+                                if (opcode == Opcodes.ARRAYLENGTH) mapping.append("ARRAYLENGTH; ");
+                                if (opcode == Opcodes.AALOAD) mapping.append("AALOAD; ");
+                            }
+                            @Override public void visitMethodInsn(int opcode, String owner, String name,
+                                    String desc, boolean itf) {
+                                if (name.equals("clamp") || name.equals("column"))
+                                    mapping.append(owner).append('.').append(name).append(desc).append("; ");
+                            }
+                        };
+                    }
+                }, 0);
                 check(transformer.transform(null, CodaCreativeInventoryTransformer.SCREEN, null, null, actual) != null,
-                        "EXACT Mojang Snapshot 3 renderer has the recognized sprite boundary");
+                        "EXACT Mojang Snapshot 3 renderer not recognized: " + mapping);
             }
         }
         System.out.println("PASS: " + checks + " creative inventory rendering checks");
