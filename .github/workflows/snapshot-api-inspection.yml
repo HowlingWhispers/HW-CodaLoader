@@ -63,6 +63,11 @@ jobs:
             echo "== $cls ==";
             javap -p -classpath inspection/client.jar "$cls" 2>&1 | grep -iE 'time|day|sleep|clock|tick' | head -n 85 || true;
           done
+          echo "Coda Companion read-only world awareness API (actual Snapshot 3):"
+          for cls in net.minecraft.core.BlockPos net.minecraft.server.level.ServerLevel net.minecraft.world.level.Level net.minecraft.world.level.block.state.BlockState net.minecraft.world.level.block.Block net.minecraft.core.Registry net.minecraft.core.Holder net.minecraft.core.Holder\$Reference net.minecraft.core.registries.BuiltInRegistries net.minecraft.server.level.ServerPlayer; do
+            echo "=== Coda awareness $cls ==="
+            javap -p -classpath inspection/client.jar "$cls" 2>&1 | grep -E 'public|protected' | grep -E 'getBlockState|isLoaded|hasChunk|BlockPos\(|getBlock\(|getKey\(|getTags\(|tags\(|getTag\(|wrapAsHolder|sendSystemMessage|sendSuccess|isAir\(|getX\(|getY\(|getZ\(|getBlockHolder|Holder|class ' | head -n 70 || true
+          done
           echo "Wolf renderer bytecode:"
           javap -c -p -classpath inspection/client.jar net.minecraft.client.renderer.entity.WolfRenderer | head -n 260
           classes=(
