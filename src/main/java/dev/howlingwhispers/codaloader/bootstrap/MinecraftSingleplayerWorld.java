@@ -10,7 +10,7 @@ import java.util.Objects;
  * Experimental Snapshot 3 SINGLE-PLAYER inventory bridge.
  *
  * Only pre-loaded, ordinary chests and barrels are supported, never double
- * chest union containers or inventory wrappers. Only marker block: glass.
+ * chest union containers or inventory wrappers. Only vanilla marker: glass; plus registered H.O.W.L. native blocks.
  * No client/network use, and no chunk loading or world generation.
  */
 final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
@@ -64,10 +64,12 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         checkThread();
         // Exact Snapshot 3 native block IDs. An unrecognized mod ID cannot
         // be assumed to be vanilla glass or a valid BuildCraft pipe.
-        if (!java.util.Set.of("minecraft:glass", "buildcrafttransport:wood_item",
-                "buildcrafttransport:cobblestone_item",
+        boolean registeredModBlock = dev.howlingwhispers.codaloader.api.CodaNativeContents
+                .blocks().stream().anyMatch(def -> def.id().equals(blockId));
+        if (!registeredModBlock && !java.util.Set.of("minecraft:glass",
+                "buildcrafttransport:wood_item", "buildcrafttransport:cobblestone_item",
                 "buildcraftcore:engine_redstone").contains(blockId))
-            throw new IllegalArgumentException("Unknown H.O.W.L. test block: " + blockId);
+            throw new IllegalArgumentException("Unregistered H.O.W.L. block lookup: " + blockId);
         Object loaded = chunk(Objects.requireNonNull(pos, "pos"));
         if (loaded == null) return false;
         Object state = CommandReflection.call(loaded, "getBlockState", nativePos(pos));
