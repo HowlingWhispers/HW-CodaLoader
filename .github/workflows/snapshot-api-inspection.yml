@@ -3,6 +3,9 @@ on:
   push:
     paths:
       - .github/workflows/snapshot-api-inspection.yml
+      - 'examples/buildcraft-lite/**'
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftLiteResourceInstaller.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftWorldInventoryView.java
       - src/main/java/dev/howlingwhispers/codaloader/api/CodaWorldView.java
@@ -131,7 +134,7 @@ jobs:
           set -euo pipefail
           bash scripts/build-dist.sh
           mkdir -p inspection/test-classes inspection/maven
-          javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
+          javac --release 25 -cp dist/CodaLoader.jar:dist/buildcraft-lite-0.1.0-dev.jar -d inspection/test-classes \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java \
@@ -150,7 +153,7 @@ jobs:
             curl -fsSL --retry 3 "$url" -o "inspection/maven/$path"
             [[ "$(sha1sum "inspection/maven/$path" | cut -d' ' -f1)" == "$checksum" ]] || exit 1
           done < inspection/libs.txt
-          CLASSPATH="inspection/test-classes:dist/CodaLoader.jar:inspection/client.jar"
+          CLASSPATH="inspection/test-classes:dist/CodaLoader.jar:dist/buildcraft-lite-0.1.0-dev.jar:inspection/client.jar"
           while IFS= read -r jar; do CLASSPATH="$CLASSPATH:$jar"; done < <(find inspection/maven -type f -name '*.jar')
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
