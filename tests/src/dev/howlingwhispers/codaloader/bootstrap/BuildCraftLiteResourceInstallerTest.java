@@ -40,6 +40,26 @@ public final class BuildCraftLiteResourceInstallerTest {
                     check(z.getEntry(required) != null, "Missing pack resource: " + required);
                 }
             }
+            // A base model with baked six arms would render dangling stubs
+            // regardless of which neighboring blocks actually exist.
+            try (ZipFile zip = new ZipFile(pack.toFile())) {
+                for (String kind : java.util.List.of("wooden", "stone")) {
+                    String blockstatePath = "assets/hw_buildcraft_lite/blockstates/"
+                            + kind + "_transport_pipe.json";
+                    String model = new String(zip.getInputStream(zip.getEntry(blockstatePath))
+                            .readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    check(model.contains("multipart"), "Pipe states must be conditional");
+                    for (String direction : java.util.List.of(
+                            "east", "west", "up", "down", "south", "north")) {
+                        check(model.contains(direction), "Missing connection face " + direction);
+                        check(zip.getEntry("assets/hw_buildcraft_lite/models/block/"
+                                + kind + "_pipe_" + direction + ".json") != null,
+                                "Missing conditional arm " + direction);
+                    }
+                }
+                check(zip.getEntry("assets/hw_buildcraft_lite/textures/block/engine_wood_side.png") != null,
+                        "Missing original Redstone Engine art");
+            }
             byte[] initial = Files.readAllBytes(pack);
             Files.writeString(pack, "PLAYER EDITED PACK");
             check(!BuildCraftLiteResourceInstaller.prepare(root),
