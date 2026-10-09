@@ -41,7 +41,7 @@ jobs:
           mkdir -p out/buildcraft-lite-run/mods
           cp dist/buildcraft-lite-0.1.0-dev.jar out/buildcraft-lite-run/mods/
           java -jar dist/CodaLoader.jar --loader-only out/buildcraft-lite-run \
-            | grep -F 'Native wooden/stone chest transport enabled'
+            | grep -F 'Powered Redstone Engine extraction and wooden/stone chest transport enabled'
 
       - name: Test verified launch identity
         run: |
