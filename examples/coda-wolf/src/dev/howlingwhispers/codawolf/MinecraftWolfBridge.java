@@ -38,15 +38,11 @@ final class MinecraftWolfBridge {
     }
     Object level(Object player) throws Exception { return NativeCalls.call(player,"level"); }
     long dayTime(Object level) throws Exception {
-        // Snapshot 3's ServerLevel does not expose getDayTime() directly.
-        // The level-data object is the authoritative daylight clock used
-        // for night skipping; game time is NOT interchangeable here.
-        try {
-            return ((Number) NativeCalls.call(level, "getDayTime")).longValue();
-        } catch (NoSuchMethodException notOnLevel) {
-            Object levelData = NativeCalls.call(level, "getLevelData");
-            return ((Number) NativeCalls.call(levelData, "getDayTime")).longValue();
-        }
+        // Verified against Mojang 26.4 Snapshot 3 named client:
+        // Level.getOverworldClockTime():long replaces the deleted
+        // ServerLevel.getDayTime()/PrimaryLevelData.getDayTime() API.
+        // Bed-based recovery requires this clock, NOT getGameTime().
+        return ((Number) NativeCalls.call(level, "getOverworldClockTime")).longValue();
     }
     boolean sleeping(Object player) throws Exception { return (Boolean) NativeCalls.call(player,"isSleeping"); }
     /** The only source of this tag is Coda's verified saved companion. */
