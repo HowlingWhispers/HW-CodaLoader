@@ -38,6 +38,35 @@
           "texture": "#material"
         }
       }
+    },
+    {
+      "from": [
+        5.98,
+        5.98,
+        0
+      ],
+      "to": [
+        10.02,
+        10.02,
+        5.02
+      ],
+      "faces": {
+        "south": {
+          "texture": "#detail"
+        },
+        "east": {
+          "texture": "#detail"
+        },
+        "west": {
+          "texture": "#detail"
+        },
+        "up": {
+          "texture": "#detail"
+        },
+        "down": {
+          "texture": "#detail"
+        }
+      }
     }
   ]
 }
