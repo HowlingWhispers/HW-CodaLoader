@@ -27,11 +27,11 @@ public final class CodaWolfClientTextures {
                                    : registration.get().tameTexture();
             ClassLoader loader = wolf.getClass().getClassLoader();
             Class<?> idType = Class.forName("net.minecraft.resources.Identifier",true,loader);
-            Object id = idType.getMethod("parse",String.class).invoke(null,texture);
+            Object textureId = idType.getMethod("parse",String.class).invoke(null,texture);
             Field field = wolfRenderState.getClass().getField("texture");
             if (!idType.isAssignableFrom(field.getType()))
                 throw new IllegalStateException("Snapshot 3 wolf render-state texture type changed");
-            field.set(wolfRenderState,id);
+            field.set(wolfRenderState,textureId);
         } catch (ReflectiveOperationException | RuntimeException ex) {
             if (!mappingWarning) {
                 mappingWarning = true;
