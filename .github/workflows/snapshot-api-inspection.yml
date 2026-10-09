@@ -7,6 +7,7 @@ on:
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftLiteResourceInstaller.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeBlockEntityBridge.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftWorldInventoryView.java
       - src/main/java/dev/howlingwhispers/codaloader/api/CodaWorldView.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryTransformer.java
