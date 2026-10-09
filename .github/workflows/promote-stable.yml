@@ -1,0 +1,43 @@
+name: Approve H.O.W.L. 0.0.32 Stable
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/promote-stable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'Approve HOWL 0.0.32 Stable promotion'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download immutable approved H.O.W.L. release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release download v0.0.32 -p 'CodaLoader-v0.0.32-win64.zip' -D .
+          test -f CodaLoader-v0.0.32-win64.zip
+          unzip -p CodaLoader-v0.0.32-win64.zip bundled-mods/coda-wolf-0.1.0-dev.jar |
+            sha256sum | grep -F '18d13b3e6bb22f8d21a0911ae112d655cea735f19f2d166b8075bee379ff027a'
+          unzip -p CodaLoader-v0.0.32-win64.zip CodaLoader.jar > CodaLoader.jar
+          unzip -l CodaLoader.jar | grep -F 'codaloader/mods/coda-wolf-0.1.0-dev.jar'
+          unzip -l CodaLoader.jar | grep -F 'codaloader/mods/hw-essentials.jar'
+          unzip -p CodaLoader.jar codaloader/mods/coda-wolf-0.1.0-dev.jar |
+            sha256sum | grep -F '18d13b3e6bb22f8d21a0911ae112d655cea735f19f2d166b8075bee379ff027a'
+          java -jar CodaLoader.jar --version | grep -Fx '0.0.32'
+          echo 'Both required mods bundled; verified Coda 0.1.2-dev binary unchanged.'
+
+      - name: Promote existing release metadata, not binary assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release edit v0.0.32 --prerelease=false --latest
+          gh release view v0.0.32 --json isPrerelease --jq '.isPrerelease' | grep -Fx false
+          echo 'Approved H.O.W.L. 0.0.32 Stable; source-only later commits cannot mutate this release.'
