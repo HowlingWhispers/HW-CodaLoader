@@ -71,6 +71,15 @@ jobs:
           javap -c -p -classpath inspection/client.jar \
             net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen \
             > inspection/creative-inventory-bytecode.txt
+          python3 - <<'PY'
+          import os, re
+          text = open('inspection/creative-inventory-bytecode.txt').read()
+          match = re.search(r'^  .*extractTabButton\(.*?(?=\n\n|\Z)', text, re.M | re.S)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('### Actual Snapshot 3 tab renderer\n\n```text\n')
+              summary.write(match.group(0) if match else 'Renderer method not found')
+              summary.write('\n```\n')
+          PY
           for cls in "${classes[@]}"; do
             echo ""
             echo "=============== $cls ================"
@@ -107,6 +116,7 @@ jobs:
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: snapshot3-api-evidence
           path: |
