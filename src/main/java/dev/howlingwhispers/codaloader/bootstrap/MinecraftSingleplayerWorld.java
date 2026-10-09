@@ -28,7 +28,7 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         Objects.requireNonNull(server, "server");
         Objects.requireNonNull(level, "level");
         Class<?> integrated = Class.forName(
-                "net.minecraft.server.integrated.IntegratedServer", false,
+                "net.minecraft.client.server.IntegratedServer", false,
                 server.getClass().getClassLoader());
         if (!integrated.isInstance(server))
             throw new IllegalStateException("BuildCraft transfers require integrated single-player");

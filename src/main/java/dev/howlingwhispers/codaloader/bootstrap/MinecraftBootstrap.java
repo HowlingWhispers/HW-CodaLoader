@@ -88,8 +88,12 @@ public final class MinecraftBootstrap {
             enableGeneratedPack("file/" + CodaWolfResourceInstaller.PACK);
         // The optional BuildCraft Lite mod JAR is not a vanilla resource-pack
         // root, so expose its models and licensed textures before reload.
-        if (BuildCraftLiteResourceInstaller.prepare(game))
+        if (BuildCraftLiteResourceInstaller.prepare(game)) {
+            // Retired BuildCraft visual assets may overlap with the active Lite pack.
+            // Disable only the exact historical pack entry, never delete player files.
+            disableRetiredBuildCraftPack(game);
             enableGeneratedPack("file/" + BuildCraftLiteResourceInstaller.PACK);
+        }
     }
 
     public int launch() throws Exception {
@@ -738,6 +742,33 @@ public final class MinecraftBootstrap {
                     .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".ogg"))
                     .sorted()
                     .toList();
+        }
+    }
+
+    /** Disable the retired prototype art without deleting archives or changing other packs. */
+    static void disableRetiredBuildCraftPack(Path game) throws IOException {
+        Path options = game.resolve("options.txt");
+        if (!Files.isRegularFile(options)) return;
+        List<String> lines = new ArrayList<>(Files.readAllLines(options, StandardCharsets.UTF_8));
+        boolean changed = false;
+        String retired = "\"file/HOWL-BuildCraft-8.0.0.zip\"";
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (!line.startsWith("resourcePacks:")) continue;
+            int open = line.indexOf('['), close = line.lastIndexOf(']');
+            if (open < 0 || close < open) continue;
+            List<String> entries = new ArrayList<>(List.of(line.substring(open + 1, close).split(",", -1)));
+            int before = entries.size();
+            entries.removeIf(entry -> entry.trim().equals(retired));
+            if (before != entries.size()) {
+                lines.set(i, line.substring(0, open + 1) + String.join(",", entries)
+                        + line.substring(close));
+                changed = true;
+            }
+        }
+        if (changed) {
+            Files.write(options, lines, StandardCharsets.UTF_8);
+            System.out.println("[H.O.W.L.] Disabled obsolete BuildCraft prototype resource pack; user files preserved.");
         }
     }
 

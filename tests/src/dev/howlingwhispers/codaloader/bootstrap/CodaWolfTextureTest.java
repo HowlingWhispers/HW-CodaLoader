@@ -115,7 +115,19 @@ public final class CodaWolfTextureTest {
                 .equals("codawolf:entity/coda_angry"),"Coda UUID picks both skin states");
         check(CodaEntityAppearance.wolfSkin(ordinary).isEmpty(),
                 "Other wolf UUID keeps original skin");
+        // The same world can replace Coda after bed sleep with a *different*
+        // vanilla Wolf UUID. Only the new entity may receive her registered skin.
+        UUID respawned=UUID.randomUUID();
         CodaEntityAppearance.clearWolfSkin(coda);
+        CodaEntityAppearance.setWolfSkin(respawned,
+                "codawolf:entity/coda_tame", "codawolf:entity/coda_angry");
+        check(CodaEntityAppearance.wolfSkin(coda).isEmpty(),
+                "Old dead wolf UUID no longer owns the skin");
+        check(CodaEntityAppearance.wolfSkin(respawned).isPresent(),
+                "New Coda UUID is eligible for her appearance");
+        check(CodaEntityAppearance.wolfSkin(ordinary).isEmpty(),
+                "Respawn does not recolor unrelated vanilla wolves");
+        CodaEntityAppearance.clearWolfSkin(respawned);
         check(CodaEntityAppearance.wolfSkin(coda).isEmpty(),
                 "World exit removes Coda-specific registration");
 

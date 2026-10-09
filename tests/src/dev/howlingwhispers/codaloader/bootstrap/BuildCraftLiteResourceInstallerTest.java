@@ -60,6 +60,23 @@ public final class BuildCraftLiteResourceInstallerTest {
                 check(zip.getEntry("assets/hw_buildcraft_lite/textures/block/engine_wood_side.png") != null,
                         "Missing original Redstone Engine art");
             }
+            // An older retired BuildCraft pack may still be selected by options.txt.
+            // The Lite pack must own the active visuals without deleting player files.
+            Path options = root.resolve("options.txt");
+            Files.writeString(options, "lang:en_us\nresourcePacks:[\"vanilla\","
+                    + "\"file/HOWL-BuildCraft-8.0.0.zip\","
+                    + "\"file/HOWL-BuildCraft-Lite.zip\",\"file/Personal.zip\"]\n");
+            MinecraftBootstrap.disableRetiredBuildCraftPack(root);
+            String selected = Files.readString(options);
+            check(!selected.contains("file/HOWL-BuildCraft-8.0.0.zip"),
+                    "Retired BuildCraft pack no longer selected");
+            check(selected.contains("file/HOWL-BuildCraft-Lite.zip"),
+                    "Lite pack remains enabled");
+            check(selected.contains("file/Personal.zip") && selected.contains("lang:en_us"),
+                    "Unrelated player options and packs preserved");
+            MinecraftBootstrap.disableRetiredBuildCraftPack(root);
+            check(Files.readString(options).equals(selected),
+                    "Repeated cleanup does not change player settings");
             byte[] initial = Files.readAllBytes(pack);
             Files.writeString(pack, "PLAYER EDITED PACK");
             check(!BuildCraftLiteResourceInstaller.prepare(root),

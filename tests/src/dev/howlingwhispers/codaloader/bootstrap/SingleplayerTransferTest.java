@@ -3,7 +3,7 @@ package dev.howlingwhispers.codaloader.bootstrap;
 import dev.howlingwhispers.codaloader.api.CodaBlockPos;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.integrated.IntegratedServer;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;

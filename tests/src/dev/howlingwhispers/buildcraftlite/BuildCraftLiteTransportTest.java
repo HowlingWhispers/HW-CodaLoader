@@ -32,6 +32,7 @@ public final class BuildCraftLiteTransportTest {
         final Map<CodaBlockPos, Integer> chests = new HashMap<>();
         boolean destinationFull;
         boolean enginePowered;
+        boolean failInventory;
         int moves;
 
         FakeWorld() {
@@ -51,7 +52,8 @@ public final class BuildCraftLiteTransportTest {
         public boolean hasNeighborSignal(String d, CodaBlockPos p) {
             return DIM.equals(d) && ENGINE.equals(p) && enginePowered;
         }
-        public Optional<CodaInventoryView> inventory(String d, CodaBlockPos p) {
+        public Optional<CodaInventoryView> inventory(String d, CodaBlockPos p) throws Exception {
+            if (failInventory) throw new ClassNotFoundException("net.minecraft.client.server.IntegratedServer");
             if (!DIM.equals(d) || !chests.containsKey(p)) return Optional.empty();
             return Optional.of(new CodaInventoryView(p,
                     List.of(new CodaInventoryView.Slot(0, chests.get(p), 64))));
@@ -113,6 +115,20 @@ public final class BuildCraftLiteTransportTest {
         check(world.moves > count, "Reconnect resumes transport");
         check(world.chests.get(SRC) + world.chests.get(DST) == 20,
                 "Inventory is conserved after interruption");
+        world.failInventory = true;
+        var failures = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream previousError = System.err;
+        try {
+            System.setErr(new java.io.PrintStream(failures, true, java.nio.charset.StandardCharsets.UTF_8));
+            run(mod, world, 257, 320);
+        } finally {
+            System.setErr(previousError);
+        }
+        String errors = failures.toString(java.nio.charset.StandardCharsets.UTF_8);
+        check(errors.split("ClassNotFoundException", -1).length == 2,
+                "Repeated mapping failure is logged once rather than on every tick");
+        check(mod.diagnosis().contains("ClassNotFoundException"),
+                "Coda still identifies the mapping failure in diagnostics");
         System.out.println("PASS: " + checks
                 + " BuildCraft Lite fixture assertions (transport, reconnection, Coda)");
     }

@@ -43,6 +43,8 @@ public final class BuildCraftLiteTransport {
     private final Set<Node> ticking = new HashSet<>();
     private final Map<Node, Long> lastDelivery = new HashMap<>();
     private String session = "";
+    private String lastLoggedTransferError = "";
+    private long lastLoggedTransferTick = Long.MIN_VALUE / 2;
     private volatile String lastStatus = "Waiting for a single-player world and pipe placement.";
     private volatile long movedItems;
     private volatile int validatedRoutes;
@@ -57,6 +59,8 @@ public final class BuildCraftLiteTransport {
         if (!session.equals(tick.sessionId())) {
             session = tick.sessionId();
             lastDelivery.clear();
+            lastLoggedTransferError = "";
+            lastLoggedTransferTick = Long.MIN_VALUE / 2;
             movedItems = 0;
             lastStatus = "Scanning loaded pipes in the current world.";
         }
@@ -111,7 +115,15 @@ public final class BuildCraftLiteTransport {
                 // entire server listener or duplicate/lose player items.
                 issue = "Coda detected an unsafe/unsupported transfer: "
                         + ex.getClass().getSimpleName();
-                System.err.println("[BuildCraft Lite] " + issue + ": " + ex.getMessage());
+                String errorKey = ex.getClass().getName() + ": " + ex.getMessage();
+                // A broken mapping can occur on every transport scan. Report the
+                // fault initially, after a change, and at most once per minute.
+                if (!errorKey.equals(lastLoggedTransferError)
+                        || tick.tick() - lastLoggedTransferTick >= 1200) {
+                    System.err.println("[BuildCraft Lite] " + issue + ": " + ex.getMessage());
+                    lastLoggedTransferError = errorKey;
+                    lastLoggedTransferTick = tick.tick();
+                }
             }
         }
         validatedRoutes = routes;
