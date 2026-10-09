@@ -86,6 +86,10 @@ public final class MinecraftBootstrap {
     public void prepareCodaWolfResources() throws IOException {
         if (CodaWolfResourceInstaller.prepare(game))
             enableGeneratedPack("file/" + CodaWolfResourceInstaller.PACK);
+        // The optional BuildCraft Lite mod JAR is not a vanilla resource-pack
+        // root, so expose its models and licensed textures before reload.
+        if (BuildCraftLiteResourceInstaller.prepare(game))
+            enableGeneratedPack("file/" + BuildCraftLiteResourceInstaller.PACK);
     }
 
     public int launch() throws Exception {
