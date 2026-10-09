@@ -43,6 +43,19 @@ jobs:
           echo "Verified actual Mojang version $VERSION, client SHA1 $CHECK, bytes $(wc -c < inspection/client.jar)"
           echo "Embedded Minecraft pack version:"
           unzip -p inspection/client.jar version.json | jq '.pack_version'
+          echo "Wolf entity art actually embedded in this Snapshot:"
+          python3 - <<'PY'
+          import struct,zipfile
+          with zipfile.ZipFile("inspection/client.jar") as jar:
+              names=[n for n in jar.namelist() if n.startswith("assets/minecraft/textures/entity/wolf/") and n.endswith((".png",".tga"))]
+              print("wolf skin paths:",names[:35])
+              for n in names:
+                  if n.endswith(".png") and ("snowy_tame" in n or n.endswith("/wolf_tame.png")):
+                      raw=jar.read(n)
+                      print(n,"png_size",struct.unpack(">II",raw[16:24]),"bytes",len(raw))
+          PY
+          echo "Wolf renderer bytecode:"
+          javap -c -p -classpath inspection/client.jar net.minecraft.client.renderer.entity.WolfRenderer | head -n 260
           classes=(
             net.minecraft.core.registries.BuiltInRegistries
             net.minecraft.core.Registry
@@ -72,6 +85,10 @@ jobs:
             net.minecraft.world.level.block.entity.ChestBlockEntity
             net.minecraft.world.level.Level
             net.minecraft.server.MinecraftServer
+            net.minecraft.client.renderer.entity.WolfRenderer
+            net.minecraft.client.renderer.entity.state.WolfRenderState
+            net.minecraft.client.renderer.entity.state.EntityRenderState
+            net.minecraft.world.entity.animal.wolf.Wolf
           )
           javap -c -p -classpath inspection/client.jar \
             net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen \
