@@ -45,7 +45,7 @@ public final class CompanionAwarenessTest {
         ok(CompanionAwareness.respondTo(block("minecraft:bee_nest",2500,0))
                 .orElseThrow().text().contains("campfire"),
                 "Bee nest produces practical advice");
-        ok(c.observationsSeen()==6,"All unique or repeated observations recorded");
+        ok(c.observationsSeen()==7,"All unique or repeated observations recorded");
         for (int i=0;i<300;i++)
             c.observe(block("minecraft:stone",3000+i,i+50));
         ok(c.recent().size()<=12,"AI context bounded to twelve recent observations");

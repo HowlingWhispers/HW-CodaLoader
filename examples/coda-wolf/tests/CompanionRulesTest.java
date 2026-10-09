@@ -28,13 +28,17 @@ public class CompanionRulesTest {
         UUID owner = UUID.randomUUID(), wolf = UUID.randomUUID();
         var saved = CompanionSave.load(temp,owner);
         check(!saved.created && saved.wolfId==null && !saved.pendingRespawn,"new world uninitialized");
-        saved.created = true; saved.wolfId=wolf; saved.persist();
+        saved.created = true; saved.wolfId=wolf;
+        saved.awarenessEnabled = false; saved.persist();
         var restored = CompanionSave.load(temp,owner);
         check(restored.created && wolf.equals(restored.wolfId),"wolf identity persists");
+        check(!restored.awarenessEnabled,"owner can disable local scanning across reloads");
         restored.wolfId=null; restored.pendingRespawn=true; restored.persist();
         var awaiting = CompanionSave.load(temp,owner);
         check(awaiting.pendingRespawn && awaiting.wolfId==null,"death state survives reload");
-        check(!CompanionSave.load(temp, UUID.randomUUID()).created,"owner isolation");
+        var otherOwner=CompanionSave.load(temp, UUID.randomUUID());
+        check(!otherOwner.created,"owner isolation");
+        check(otherOwner.awarenessEnabled,"other players retain their default awareness");
         System.out.println("PASS: " + assertions + " survival and persistence assertions");
     }
 }

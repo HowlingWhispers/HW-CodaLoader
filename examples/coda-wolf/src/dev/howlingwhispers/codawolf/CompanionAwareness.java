@@ -1,7 +1,6 @@
 package dev.howlingwhispers.codawolf;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +83,6 @@ public final class CompanionAwareness {
     /** Only grounded named blocks/tags get canned advice; unknown IDs stay in context. */
     public static Optional<Reaction> respondTo(Observation o) {
         String id=o.blockId();
-        String tag=o.tags().toString();
         String category, words;
         if (id.equals("minecraft:lava")) {
             category="hazard";
