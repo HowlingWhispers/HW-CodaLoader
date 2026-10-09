@@ -89,8 +89,8 @@ public final class BuildCraftResourceInstallerTest {
             Map<?,?> pipe = (Map<?,?>) MiniJson.parse(new String(zip.getInputStream(
                     zip.getEntry("assets/buildcrafttransport/models/block/wood_item.json")).readAllBytes(), StandardCharsets.UTF_8));
             Map<?,?> center = (Map<?,?>) ((List<?>) pipe.get("elements")).getFirst();
-            check(center.get("from").toString().equals("[4, 4, 4]")
-                    && center.get("to").toString().equals("[12, 12, 12]"), "original eight-pixel pipe body and UV bounds");
+            check(((List<?>)center.get("from")).stream().allMatch(n -> ((Number)n).intValue() == 4)
+                    && ((List<?>)center.get("to")).stream().allMatch(n -> ((Number)n).intValue() == 12), "original eight-pixel pipe body and UV bounds");
             for (String unsupported : List.of(
                     "assets/buildcraftlib/models/block/engine_base.json",
                     "assets/buildcraftcore/models/block/marker.json",
