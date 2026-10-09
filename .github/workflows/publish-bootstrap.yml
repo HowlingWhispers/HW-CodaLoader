@@ -88,59 +88,8 @@ jobs:
           test -s "$MOD_JAR"
           jar tf "$MOD_JAR" | grep -Fx 'coda.mod.json'
           jar tf "$MOD_JAR" | grep -Fx 'dev/howlingwhispers/buildcraftlite/BuildCraftLiteMod.class'
-          if jar tf "$MOD_JAR" | grep -Ei '\\.(zip|jar)        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION="$(java -jar dist/CodaLoader.jar --version)"
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-            echo "Invalid packaged CodaLoader version: $VERSION" >&2
-            exit 1
-          }
-          TAG="v${VERSION}"
-          ZIP="dist/CodaLoader-v${VERSION}-win64.zip"
-          test -f "$ZIP"
-          test -f dist/update-manifest.json
-          grep -F "\"version\": \"${VERSION}\"" dist/update-manifest.json
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Published $TAG is immutable. Source-only changes won't replace it; bump the version for a new release."
-            exit 0
-          fi
-          cat > release-notes.md <<EOF
-          # H.O.W.L. ${VERSION} — Howling Open Works Loader
-
-          Minecraft Java 26.4 Snapshot 3 prerelease.
-
-          - Coda Companion is now a REQUIRED bundled H.O.W.L. mod.
-          - Ship the tested 0.1.2-dev wolf and exclusive icy-white fur in
-            BOTH Stable and Nightly without a separate mod download.
-          - Verify packaged mod SHA-256 against its known-good release.
-          - Keep environmental awareness and other experimental addons
-            separate from the bundled stable companion.
-          - Add optional BuildCraft Lite 0.1.0-dev as a standalone mod JAR:
-            original wooden/stone pipe artwork, native server-tick chest
-            transport, and Coda diagnostics. No automatic mod installation.
-          - BuildCraft Lite is an experimental human playtest. Real Snapshot 3
-            bootstrap and JVM transport fixtures pass; gameplay still needs
-            a disposable-world test before any Stable designation.
-
-          - Fix Coda Companion's magenta-and-black missing texture.
-          - Translate the legacy Coda wolf sprite ID into the direct PNG
-            resource location required by WolfRenderState.texture.
-          - Verify BOTH normal/angry identifiers resolve to real files
-            inside the generated exclusive resource pack.
-          - Keep Coda Wolf 0.1.2 compatible; no mod reinstall required.
-          - Vanilla wolves, saves, Stable, and BuildCraft remain untouched.
-
-          Verified by headless Java tests and exact Minecraft Snapshot 3
-          renderer tests. Player visual confirmation remains the final gate.
-          EOF
-          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar dist/buildcraft-lite-0.1.0-dev.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
-            --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \
-            --notes-file release-notes.md --prerelease
-; then
-            echo "::error::Mod JAR contains a nested archive. Publish the bare mod JAR only."
+          if jar tf "$MOD_JAR" | grep -E '\.(zip|jar)$'; then
+            echo "::error::Nested archive found in mod JAR."
             exit 1
           fi
           test ! -e dist/buildcraft-lite-0.1.0-dev.zip
