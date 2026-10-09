@@ -88,7 +88,7 @@ Copy-Item examples/hello-coda/resources/coda.mod.json out/example-classes/
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # Optional developer playtest, deliberately not bundled as a required mod.
-& examples/buildcraft-lite/build-mod.ps1
+& ./examples/buildcraft-lite/build-mod.ps1
 if ($LASTEXITCODE -ne 0) { throw "BuildCraft Lite failed" }
 
 
