@@ -142,6 +142,37 @@ public final class CodaWolfTextureTest {
                     "assets/minecraft/textures/entity/wolf/wolf_snowy_angry.png");
                 check(angry!=null,"Original angry wolf variant available");
             }
+            Path world=Files.createTempDirectory("coda-exclusive-skin-");
+            check(!CodaWolfResourceInstaller.prepare(world),
+                  "No Coda Companion mod means no generated resourcepack");
+            Path mods=world.resolve("mods"); Files.createDirectories(mods);
+            try(ZipOutputStream zip=new ZipOutputStream(Files.newOutputStream(
+                    mods.resolve("coda-wolf-0.1.0-dev.jar")))){
+                zip.putNextEntry(new ZipEntry("coda.mod.json"));
+                zip.write("{\"schema\":1,\"id\":\"coda_wolf\"}".getBytes(
+                        java.nio.charset.StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+            check(CodaWolfResourceInstaller.prepare(world),
+                  "Coda-exclusive texture pack generated only with installed mod");
+            Path pack=world.resolve("resourcepacks/HOWL-Coda-Wolf.zip");
+            try(ZipFile contents=new ZipFile(pack.toFile())) {
+                check(contents.getEntry("assets/codawolf/textures/entity/coda_tame.png")!=null,
+                    "Coda tame art gets its own namespace");
+                check(contents.getEntry("assets/codawolf/textures/entity/coda_angry.png")!=null,
+                    "Coda angry art gets its own namespace");
+                check(contents.getEntry("assets/minecraft/textures/entity/wolf/wolf_tame.png")==null,
+                    "Ordinary vanilla wolf skin is not replaced");
+                check(contents.getEntry("pack.mcmeta")!=null,
+                    "Modern Snapshot 3 pack metadata included");
+            }
+            check(CodaWolfResourceInstaller.prepare(world),
+                  "Coda pack can be refreshed idempotently from original Mojang UV");
+            Files.writeString(pack,"PLAYER-EDITED");
+            check(!CodaWolfResourceInstaller.prepare(world),
+                  "Modified cosmetic resourcepack is not overwritten");
+            check(Files.readString(pack).equals("PLAYER-EDITED"),
+                  "Player-edited resourcepack remains intact");
         }
         System.out.println("PASS: "+checks+" Coda wolf exclusive texture and UV tests");
     }
