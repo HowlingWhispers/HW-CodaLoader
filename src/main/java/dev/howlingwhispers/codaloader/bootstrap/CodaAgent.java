@@ -20,6 +20,7 @@ public final class CodaAgent {
         CodaNativeRegistryTransformer.install(instrumentation);
         CodaCreativeInventoryTransformer.install(instrumentation);
         CodaBlockPlacementTransformer.install(instrumentation);
+        CodaWolfTextureTransformer.install(instrumentation);
 
         Path root = agentArgs == null || agentArgs.isBlank()
                 ? Path.of("run")
@@ -64,6 +65,13 @@ public final class CodaAgent {
         } catch (Throwable ex) {
             System.err.println("[CodaLoader] In-game mod initialization failed:");
             ex.printStackTrace(System.err);
+        }
+
+        try {
+            new MinecraftBootstrap(root, root.resolve("cml-base-resources"))
+                    .prepareCodaWolfResources();
+        } catch (Exception error) {
+            System.err.println("[H.O.W.L.] Coda cosmetic pack unavailable: " + error);
         }
 
         ClientHooks.start(modCount);
