@@ -2,6 +2,7 @@ package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.api.CodaRegistryFactories;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
 /** Registers the mod's own native classes, without constructing generic replacement blocks. */
@@ -22,17 +23,13 @@ final class CodaRegistryFactoryBridge {
             Class<?> identifier = type("net.minecraft.resources.Identifier");
             Class<?> resourceKey = type("net.minecraft.resources.ResourceKey");
             Class<?> registryType = type("net.minecraft.core.Registry");
-            Object root = type("net.minecraft.core.registries.BuiltInRegistries").getField("REGISTRY").get(null);
             Method parse = identifier.getMethod("parse", String.class);
             Method createKey = resourceKey.getMethod("create", resourceKey, identifier);
             Method register = registryType.getMethod("register", registryType, resourceKey, Object.class);
             for (CodaRegistryFactories.Entry<?> entry : entries) {
-                Object registryId = parse.invoke(null, entry.registry());
                 // Only built-in, writable registries. World-specific dynamic
                 // registries require a separate data-loading integration.
-                if (!(Boolean) registryType.getMethod("containsKey", identifier).invoke(root, registryId))
-                    throw new IllegalStateException("Unsupported built-in registry: " + entry.registry());
-                Object registry = registryType.getMethod("getValue", identifier).invoke(root, registryId);
+                Object registry = builtInRegistry(entry.registry(), registryType, resourceKey);
                 Object id = parse.invoke(null, entry.id());
                 if ((Boolean) registryType.getMethod("containsKey", identifier).invoke(registry, id))
                     throw new IllegalStateException("Refusing occupied native id: " + entry.id());
@@ -44,6 +41,19 @@ final class CodaRegistryFactoryBridge {
         } catch (Throwable failure) {
             throw new IllegalStateException("H.O.W.L. native factory registration failed before registry freeze", failure);
         }
+    }
+
+    private static Object builtInRegistry(String id, Class<?> registryType, Class<?> keyType) throws Exception {
+        // Snapshot 3's root registry holders are not bound until freeze starts.
+        // Resolve the declared registry instances without reading those holders
+        // or freezing the root early. Match the real registry key, not field names.
+        for (var field : type("net.minecraft.core.registries.BuiltInRegistries").getFields()) {
+            if (!Modifier.isStatic(field.getModifiers()) || !registryType.isAssignableFrom(field.getType())) continue;
+            Object registry = field.get(null);
+            Object key = registryType.getMethod("key").invoke(registry);
+            if (keyType.getMethod("identifier").invoke(key).toString().equals(id)) return registry;
+        }
+        throw new IllegalStateException("Unsupported built-in registry: " + id);
     }
 
     private static <T> void registerEntry(CodaRegistryFactories.Entry<T> entry, Object registry,
