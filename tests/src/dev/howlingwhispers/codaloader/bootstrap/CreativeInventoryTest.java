@@ -9,8 +9,8 @@ import org.objectweb.asm.*;
 public final class CreativeInventoryTest {
     private static int checks;
     private static final String TAB = "net/minecraft/world/item/CreativeModeTab";
-    private static final String MTH = "net/minecraft/util/Mth";
-    private static final String DESC = "(Ljava/lang/Object;L" + TAB + ";)V";
+    private static final String GUI = "net/minecraft/client/gui/GuiGraphicsExtractor";
+    private static final String DESC = CodaCreativeInventoryTransformer.TAB_BUTTON;
     private static void check(boolean ok, String message) {
         checks++;
         if (!ok) throw new AssertionError(message);
@@ -18,19 +18,10 @@ public final class CreativeInventoryTest {
     private static byte[] simpleClass(String name) {
         ClassWriter w = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         w.visit(Opcodes.V21, Opcodes.ACC_PUBLIC, name, null, "java/lang/Object", null);
-        if (name.equals(TAB)) {
-            MethodVisitor m = w.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-            m.visitCode(); m.visitVarInsn(Opcodes.ALOAD, 0);
-            m.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-            m.visitInsn(Opcodes.RETURN); m.visitMaxs(0,0); m.visitEnd();
-        } else {
-            MethodVisitor m = w.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "clamp", "(III)I", null, null);
-            m.visitCode(); m.visitVarInsn(Opcodes.ILOAD, 1); m.visitVarInsn(Opcodes.ILOAD, 0);
-            m.visitVarInsn(Opcodes.ILOAD, 2);
-            m.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Math", "min", "(II)I", false);
-            m.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Math", "max", "(II)I", false);
-            m.visitInsn(Opcodes.IRETURN); m.visitMaxs(0,0); m.visitEnd();
-        }
+        MethodVisitor m = w.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        m.visitCode(); m.visitVarInsn(Opcodes.ALOAD, 0);
+        m.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        m.visitInsn(Opcodes.RETURN); m.visitMaxs(0,0); m.visitEnd();
         w.visitEnd(); return w.toByteArray();
     }
     private static byte[] screen(String method, boolean corrected) {
@@ -44,11 +35,12 @@ public final class CreativeInventoryTest {
         m.visitCode();
         m.visitFieldInsn(Opcodes.GETSTATIC, CodaCreativeInventoryTransformer.SCREEN, "sprites", "[Ljava/lang/String;");
         m.visitFieldInsn(Opcodes.GETSTATIC, CodaCreativeInventoryTransformer.SCREEN, "column", "I");
+        m.visitInsn(Opcodes.I2L);
         m.visitInsn(Opcodes.ICONST_0);
         m.visitFieldInsn(Opcodes.GETSTATIC, CodaCreativeInventoryTransformer.SCREEN, "sprites", "[Ljava/lang/String;");
         m.visitInsn(Opcodes.ARRAYLENGTH);
         if (corrected) { m.visitInsn(Opcodes.ICONST_1); m.visitInsn(Opcodes.ISUB); }
-        m.visitMethodInsn(Opcodes.INVOKESTATIC, MTH, "clamp", "(III)I", false);
+        m.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Math", "clamp", "(JII)I", false);
         m.visitInsn(Opcodes.AALOAD);
         m.visitFieldInsn(Opcodes.PUTSTATIC, CodaCreativeInventoryTransformer.SCREEN, "selectedSprite", "Ljava/lang/String;");
         m.visitInsn(Opcodes.RETURN); m.visitMaxs(0,0); m.visitEnd();
@@ -59,13 +51,14 @@ public final class CreativeInventoryTest {
             Class<?> define(String name, byte[] data) { return defineClass(name.replace('/', '.'), data, 0, data.length); }
         }
         FixtureLoader loader = new FixtureLoader();
-        loader.define(TAB, simpleClass(TAB)); loader.define(MTH, simpleClass(MTH));
+        loader.define(TAB, simpleClass(TAB)); loader.define(GUI, simpleClass(GUI));
         return loader.define(CodaCreativeInventoryTransformer.SCREEN, bytes);
     }
     private static void draw(Class<?> screen, int column) throws Exception {
         screen.getField("column").set(null, column);
-        screen.getMethod("extractTabButton", Object.class,
-                screen.getClassLoader().loadClass(TAB.replace('/', '.'))).invoke(null, null, null);
+        screen.getMethod("extractTabButton", screen.getClassLoader().loadClass(GUI.replace('/', '.')),
+                int.class, int.class, screen.getClassLoader().loadClass(TAB.replace('/', '.')))
+                .invoke(null, null, 0, 0, null);
     }
     public static void main(String[] args) throws Exception {
         CodaCreativeInventoryTransformer transformer = new CodaCreativeInventoryTransformer();

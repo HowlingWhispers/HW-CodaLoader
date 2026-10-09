@@ -8,6 +8,7 @@ import org.objectweb.asm.*;
 /** Correct the inclusive sprite-array upper bound in Snapshot 3's tab renderer. */
 public final class CodaCreativeInventoryTransformer implements ClassFileTransformer {
     static final String SCREEN = "net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen";
+    static final String TAB_BUTTON = "(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IILnet/minecraft/world/item/CreativeModeTab;)V";
 
     static void install(Instrumentation instrumentation) {
         instrumentation.addTransformer(new CodaCreativeInventoryTransformer(), false);
@@ -24,10 +25,7 @@ public final class CodaCreativeInventoryTransformer implements ClassFileTransfor
                 @Override public MethodVisitor visitMethod(int access, String method,
                         String desc, String signature, String[] exceptions) {
                     MethodVisitor original = super.visitMethod(access, method, desc, signature, exceptions);
-                    Type[] args = Type.getArgumentTypes(desc);
-                    if (!method.equals("extractTabButton") || args.length != 2
-                            || !args[1].getDescriptor().equals("Lnet/minecraft/world/item/CreativeModeTab;")
-                            || Type.getReturnType(desc).getSort() != Type.VOID) return original;
+                    if (!method.equals("extractTabButton") || !desc.equals(TAB_BUTTON)) return original;
                     methods[0]++;
                     return new MethodVisitor(Opcodes.ASM9, original) {
                         private boolean arrayLength;
@@ -38,9 +36,9 @@ public final class CodaCreativeInventoryTransformer implements ClassFileTransfor
                         @Override public void visitMethodInsn(int opcode, String owner, String called,
                                                                String descriptor, boolean itf) {
                             if (arrayLength && opcode == Opcodes.INVOKESTATIC
-                                    && owner.equals("net/minecraft/util/Mth")
-                                    && called.equals("clamp") && descriptor.equals("(III)I")) {
-                                // Stack: index, 0, sprites.length. Mth.clamp's
+                                    && owner.equals("java/lang/Math")
+                                    && called.equals("clamp") && descriptor.equals("(JII)I")) {
+                                // Stack: (long)index, 0, sprites.length. Math.clamp's
                                 // maximum is inclusive; the last legal index
                                 // is length - 1. Tab position stays unchanged.
                                 super.visitInsn(Opcodes.ICONST_1);
