@@ -105,6 +105,11 @@ javac --release 21 -encoding UTF-8 -cp out/classes -d out/example-classes "${EXA
 cp examples/hello-coda/resources/coda.mod.json out/example-classes/
 jar --create --file "dist/hello-coda.jar" -C out/example-classes .
 
+# Optional BuildCraft Lite stays a separate mod JAR, never bundled as a
+# required dependency or silently installed into player profiles.
+bash examples/buildcraft-lite/build-mod.sh
+
+
 # Compile-only API and editable starter for third-party HOWL mods.
 jar --create --file "dist/howl-api-${LOADER_VERSION}.jar" -C out/classes dev/howlingwhispers/codaloader/api
 mkdir -p dist/sdk/lib dist/sdk/api-src/dev/howlingwhispers/codaloader
@@ -162,6 +167,7 @@ EOF
 echo "Built:"
 echo "  dist/CodaLoader.jar"
 echo "  dist/hello-coda.jar"
+echo "  dist/buildcraft-lite-0.1.0-dev.jar (optional developer playtest)"
 echo "  dist/Launch-CodaLoader.bat"
 echo "  dist/hw-essentials.jar (from HW-Mods v${ESSENTIALS_VERSION})"
 echo "  dist/${CODAWOLF_FILE} (approved Coda Wolf 0.1.2; pinned SHA-256)"
