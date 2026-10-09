@@ -51,6 +51,10 @@ try {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptFile -LoaderDirectory (Join-Path $workspace 'missing')
     Check ($LASTEXITCODE -eq 1) 'missing managed installation refused'
     Write-Host "PASS: $checks BuildCraft Nightly patch installation checks"
+    Write-Output "::notice::PASS: $checks BuildCraft Nightly patch installation checks"
 } finally {
     Remove-Item -LiteralPath $workspace -Recurse -Force
 }
+# The last subprocess deliberately failed the negative-case test. GitHub's
+# PowerShell wrapper otherwise mistakes that expected status for suite failure.
+$global:LASTEXITCODE = 0
