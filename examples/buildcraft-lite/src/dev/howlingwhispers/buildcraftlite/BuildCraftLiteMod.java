@@ -5,16 +5,14 @@ import dev.howlingwhispers.codaloader.api.CodaMod;
 import java.util.List;
 
 /**
- * BuildCraft Lite's deliberately narrow H.O.W.L. foundation.
- *
- * This registers real Minecraft block identities and BlockItems. It does not
- * claim working transport: that requires a native pipe block entity with item
- * persistence, ticking, world inventory access and client cargo rendering.
+ * Small, independently packaged BuildCraft-derived transport feature.
+ * Coda is integrated via status and fault diagnostics on each native route.
  */
 public final class BuildCraftLiteMod implements CodaMod {
     public static final String WOOD = "hw_buildcraft_lite:wooden_transport_pipe";
     public static final String STONE = "hw_buildcraft_lite:stone_transport_pipe";
     public static final String HOLDER = "hw_buildcraft_lite:transport_pipe_holder";
+    private final BuildCraftLiteTransport transport = new BuildCraftLiteTransport();
 
     @Override
     public void onInitialize(CodaContext context) {
@@ -25,14 +23,12 @@ public final class BuildCraftLiteMod implements CodaMod {
                 "hw_buildcraft_lite:transport", "BuildCraft Lite",
                 WOOD, List.of(WOOD, STONE));
 
-        // Coda integration starts with honest diagnostics rather than invented
-        // knowledge of blocks/transactions the loader cannot yet expose.
-        context.registerCommand("bclite", "Coda reports BuildCraft Lite capabilities",
-                (player, args) -> {
-                    player.reply("[Coda] BuildCraft Lite blocks registered: wooden and stone pipes.");
-                    player.reply("[Coda] Transport is not active yet. Missing native travelling-item flow and chest interaction.");
-                    player.reply("[Coda] Red/yellow world outlines are not active until the H.O.W.L. diagnostics renderer is available.");
-                });
-        System.out.println("[BuildCraft Lite] 0.1.0-dev registered wooden and stone pipe blocks; transport not enabled.");
+        // Native block entity ticks are supplied only by Minecraft's own
+        // ticking loaded blocks. Never synthesize fake transport coordinates.
+        context.registerBlockEntityTick(HOLDER, transport::onPipeTick);
+        context.registerServerTick("buildcraft_lite_transport", transport::onServerTick);
+        context.registerCommand("bclite", "Ask Coda to check BuildCraft Lite transport",
+                (player, args) -> player.reply(transport.diagnosis()));
+        System.out.println("[BuildCraft Lite] Native wooden/stone chest transport enabled on server ticks.");
     }
 }
