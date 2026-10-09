@@ -14,6 +14,12 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'Approve HOWL 0.0.32 Stable promotion'
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Java 21 for loader verification
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Download immutable approved H.O.W.L. release
         env:
           GH_TOKEN: ${{ github.token }}
