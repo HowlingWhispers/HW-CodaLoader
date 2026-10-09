@@ -88,6 +88,24 @@ public final class CodaWolfTextureTest {
         check(hook.transform(null,RENDERER,null,null,renderer(METHOD,true))==null,
                 "Ambiguous multiple returns fail closed");
 
+        // Live wolf renderer accepts direct PNG file identifiers, never the
+        // shortened atlas-style asset IDs. Catch checkerboard regressions
+        // before publishing another loader to players.
+        check(CodaWolfClientTextures.wolfTextureLocation("codawolf:entity/coda_tame")
+                  .equals("codawolf:textures/entity/coda_tame.png"),
+                "Tamed Coda renderer uses actual resource pack PNG path");
+        check(CodaWolfClientTextures.wolfTextureLocation("codawolf:entity/coda_angry")
+                  .equals("codawolf:textures/entity/coda_angry.png"),
+                "Angry Coda renderer uses actual resource pack PNG path");
+        check(CodaWolfClientTextures.wolfTextureLocation(
+                  "codawolf:textures/entity/coda_tame.png")
+                  .equals("codawolf:textures/entity/coda_tame.png"),
+                "Already-correct entity texture identifier preserved");
+        try {
+            CodaWolfClientTextures.wolfTextureLocation("codawolf:entity/../bad");
+            throw new AssertionError("Unsafe entity texture path accepted");
+        } catch (IllegalArgumentException expected) { checks++; }
+
         UUID coda=UUID.randomUUID(),ordinary=UUID.randomUUID();
         check(CodaEntityAppearance.wolfSkin(ordinary).isEmpty(),
                 "Vanilla wolves are not registered");
@@ -159,6 +177,15 @@ public final class CodaWolfTextureTest {
             try(ZipFile contents=new ZipFile(pack.toFile())) {
                 check(contents.getEntry("assets/codawolf/textures/entity/coda_tame.png")!=null,
                     "Coda tame art gets its own namespace");
+                for (String texture : new String[]{
+                        "codawolf:entity/coda_tame", "codawolf:entity/coda_angry"}) {
+                    String identifier=CodaWolfClientTextures.wolfTextureLocation(texture);
+                    String[] pieces=identifier.split(":",2);
+                    String archiveEntry="assets/"+pieces[0]+"/"+pieces[1];
+                    check(contents.getEntry(archiveEntry)!=null,
+                          "WolfRenderState.texture exactly resolves to a real pack file: "
+                                  + identifier);
+                }
                 check(contents.getEntry("assets/codawolf/textures/entity/coda_angry.png")!=null,
                     "Coda angry art gets its own namespace");
                 check(contents.getEntry("assets/minecraft/textures/entity/wolf/wolf_tame.png")==null,

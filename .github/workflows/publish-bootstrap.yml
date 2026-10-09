@@ -94,16 +94,16 @@ jobs:
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
 
-          - Add UUID-bound custom wolf appearance support for Coda Companion.
-          - Generate exclusive icy-white/cyan normal and angry Coda skins
-            from the exact vanilla Snowy Wolf 64x32 texture UV mapping.
-          - Keep ordinary wolves unchanged and preserve existing wolf AI.
-          - Reapply Coda's skin after world reload and successful respawn.
-          - Leave BuildCraft gameplay Nightlies gated behind explicit approval.
+          - Fix Coda Companion's magenta-and-black missing texture.
+          - Translate the legacy Coda wolf sprite ID into the direct PNG
+            resource location required by WolfRenderState.texture.
+          - Verify BOTH normal/angry identifiers resolve to real files
+            inside the generated exclusive resource pack.
+          - Keep Coda Wolf 0.1.2 compatible; no mod reinstall required.
+          - Vanilla wolves, saves, Stable, and BuildCraft remain untouched.
 
-          CI checks Java 21/25, the companion's public API build,
-          and Mojang's exact Snapshot 3 WolfRenderer bytecode / texture atlas.
-          A disposable-world visual test is still required to approve the look.
+          Verified by headless Java tests and exact Minecraft Snapshot 3
+          renderer tests. Player visual confirmation remains the final gate.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
             --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \

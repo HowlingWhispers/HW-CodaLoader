@@ -1,7 +1,6 @@
 package dev.howlingwhispers.codaloader.bootstrap;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 /**
  * Client-only texture selector for Coda's persistently marked wolf.
@@ -13,6 +12,27 @@ public final class CodaWolfClientTextures {
     private static volatile boolean mappingWarning;
 
     private CodaWolfClientTextures() {}
+
+    /**
+     * Direct entity renderer texture IDs must include textures/ and .png.
+     * No atlas lookup occurs for the WolfRenderState.texture field.
+     * Preserve fully-qualified resource locations for future mods, and
+     * translate existing H.O.W.L. companion sprite IDs for compatibility.
+     */
+    static String wolfTextureLocation(String requested) {
+        if (requested == null) throw new IllegalArgumentException("Missing wolf texture ID");
+        int colon = requested.indexOf(':');
+        if (colon < 1 || colon != requested.lastIndexOf(':'))
+            throw new IllegalArgumentException("Wolf texture must have a namespace");
+        String namespace = requested.substring(0, colon);
+        String path = requested.substring(colon + 1);
+        if (path.startsWith("textures/") && path.endsWith(".png"))
+            return requested;
+        if (path.startsWith("entity/") && !path.contains("..")
+                && !path.endsWith(".png"))
+            return namespace + ":textures/" + path + ".png";
+        throw new IllegalArgumentException("Unsupported direct wolf texture path: " + requested);
+    }
 
     /** Called after the exact Snapshot 3 WolfRenderer.extractRenderState. */
     public static void select(Object wolf, Object wolfRenderState) {
@@ -27,7 +47,13 @@ public final class CodaWolfClientTextures {
                                    : registration.get().tameTexture();
             ClassLoader loader = wolf.getClass().getClassLoader();
             Class<?> idType = Class.forName("net.minecraft.resources.Identifier",true,loader);
-            Object textureId = idType.getMethod("parse",String.class).invoke(null,texture);
+            // WolfRenderState.texture is a DIRECT PNG Identifier, not an
+            // atlas sprite reference. e.g. namespace:textures/entity/wolf.png.
+            // Older Companion versions registered namespace:entity/wolf;
+            // normalize those logical paths instead of requesting a missing
+            // resource and displaying Minecraft's magenta checkerboard.
+            Object textureId = idType.getMethod("parse",String.class)
+                    .invoke(null, wolfTextureLocation(texture));
             Field field = wolfRenderState.getClass().getField("texture");
             if (!idType.isAssignableFrom(field.getType()))
                 throw new IllegalStateException("Snapshot 3 wolf render-state texture type changed");
