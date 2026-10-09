@@ -44,6 +44,55 @@ final class MinecraftWolfBridge {
         // Bed-based recovery requires this clock, NOT getGameTime().
         return ((Number) NativeCalls.call(level, "getOverworldClockTime")).longValue();
     }
+    /** A read-only Snapshot 3 block sample. Missing/unloaded blocks are skipped;
+     * this never asks Minecraft to generate or load chunks. */
+    CompanionAwareness.Observation observeBlock(Object wolf, int dx, int dy, int dz,
+                                                 long tick) throws Exception {
+        Object level = NativeCalls.call(wolf, "level");
+        int cx = (int)Math.floor(((Number)NativeCalls.call(wolf,"getX")).doubleValue());
+        int cy = (int)Math.floor(((Number)NativeCalls.call(wolf,"getY")).doubleValue());
+        int cz = (int)Math.floor(((Number)NativeCalls.call(wolf,"getZ")).doubleValue());
+        int x=cx+dx, y=cy+dy, z=cz+dz;
+        Object pos=NativeCalls.construct(NativeCalls.type("net.minecraft.core.BlockPos",gameLoader),x,y,z);
+        if (!Boolean.TRUE.equals(NativeCalls.call(level,"isLoaded",pos))) return null;
+        Object state=NativeCalls.call(level,"getBlockState",pos);
+        Object block=NativeCalls.call(state,"getBlock");
+        Object registry=NativeCalls.field(
+                NativeCalls.type("net.minecraft.core.registries.BuiltInRegistries",gameLoader),
+                "BLOCK");
+        String id=String.valueOf(NativeCalls.call(registry,"getKey",block));
+        if (id.equals("minecraft:air") || id.equals("minecraft:cave_air")
+                || id.equals("minecraft:void_air")) return null;
+        Object key=NativeCalls.call(level,"dimension");
+        String dimension=String.valueOf(NativeCalls.call(key,"location"));
+        List<String> tags=new java.util.ArrayList<>();
+        // Registry tags are best-effort metadata; an unknown custom tag may
+        // not prevent the companion's base ID-based awareness from working.
+        try {
+            Object holder=NativeCalls.call(block,"builtInRegistryHolder");
+            Object values=NativeCalls.call(holder,"tags");
+            if (values instanceof java.util.stream.Stream<?> stream) {
+                try(stream) {
+                    for(Object tag:stream.limit(32).toList())
+                        tags.add(String.valueOf(NativeCalls.call(tag,"location")));
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException incompatibleTags) {
+            // Registered block identity stays available on unknown tag APIs.
+        }
+        return new CompanionAwareness.Observation(dimension,id,tags,x,y,z,
+                dx*dx+dy*dy+dz*dz,tick);
+    }
+
+    /** Built-in server system chat. No signed-player-chat spoofing and no network
+     * call; Coda's text remains local to this player's singleplayer world. */
+    void comment(Object owner, String message) throws Exception {
+        Object component=NativeCalls.call(
+                NativeCalls.type("net.minecraft.network.chat.Component",gameLoader),
+                "literal", "[Coda 🐾] "+message);
+        NativeCalls.call(owner,"sendSystemMessage",component);
+    }
+
     boolean sleeping(Object player) throws Exception { return (Boolean) NativeCalls.call(player,"isSleeping"); }
     /** The only source of this tag is Coda's verified saved companion. */
     void markCoda(Object wolf) throws Exception {
