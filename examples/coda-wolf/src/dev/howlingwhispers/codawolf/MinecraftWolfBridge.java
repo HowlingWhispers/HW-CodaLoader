@@ -49,6 +49,11 @@ final class MinecraftWolfBridge {
         }
     }
     boolean sleeping(Object player) throws Exception { return (Boolean) NativeCalls.call(player,"isSleeping"); }
+    /** The only source of this tag is Coda's verified saved companion. */
+    void markCoda(Object wolf) throws Exception {
+        NativeCalls.call(wolf, "addTag", "howl.coda");
+    }
+
     Object wolf(Object level, UUID uuid) throws Exception {
         // getEntity is intentionally a loaded-entity lookup. Missing does NOT mean dead.
         return NativeCalls.call(level,"getEntity",uuid);
@@ -133,6 +138,7 @@ final class MinecraftWolfBridge {
         NativeCalls.call(wolf,"setCustomName",text);
         NativeCalls.call(wolf,"setCustomNameVisible",true);
         NativeCalls.call(wolf,"setPersistenceRequired");
+        markCoda(wolf);
         // Cosmetic collar. Custom ice-white fur needs a dedicated resource pack later.
         try {
             Object cyan = NativeCalls.field(NativeCalls.type("net.minecraft.world.item.DyeColor",gameLoader),"CYAN");
