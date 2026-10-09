@@ -8,6 +8,9 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeInventoryTransformer.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstaller.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstallerTest.java
+      - src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java
   workflow_dispatch:
 
 jobs:
