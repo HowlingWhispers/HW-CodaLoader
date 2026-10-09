@@ -20,13 +20,13 @@ javac --release 21 -encoding UTF-8 -cp dist/CodaLoader.jar -d out/api-classes "$
 
 # Compile command bridge and menu fixtures
 mapfile -d '' TEST_SOURCES < <(find tests/src -name '*.java' -print0)
-javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/CodaLoader.jar:dist/hw-essentials.jar:out/test-libraries/brigadier.jar -d out/test-classes "${TEST_SOURCES[@]}"
+javac --release 21 -encoding UTF-8 -cp out/api-classes:dist/CodaLoader.jar:dist/hw-essentials.jar:dist/buildcraft-lite-0.1.0-dev.jar:out/test-libraries/brigadier.jar -d out/test-classes "${TEST_SOURCES[@]}"
 
 # On Java 25, also test transformation of class files compiled for Minecraft's runtime.
 if [[ -n "${MENU_FIXTURE_RELEASE:-}" ]]; then
   javac --release "$MENU_FIXTURE_RELEASE" -encoding UTF-8 -cp out/test-classes:out/api-classes -d out/test-classes tests/src/net/minecraft/client/gui/screens/*.java
 fi
-TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:out/test-libraries/brigadier.jar:dist/CodaLoader.jar
+TEST_CP=out/test-classes:out/api-classes:dist/hw-essentials.jar:dist/buildcraft-lite-0.1.0-dev.jar:out/test-libraries/brigadier.jar:dist/CodaLoader.jar
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CommandBridgeTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaMenusTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaOwnedMenusTest
@@ -57,3 +57,5 @@ java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MinecraftVersionMet
 printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.WorldCreationTestAgent\n\n' > out/world-creation-test-manifest.mf
 jar --create --file out/world-creation-test-agent.jar --manifest out/world-creation-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/WorldCreationTestAgent.class
 java -javaagent:out/world-creation-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.QuietUndergroundCreationTest
+
+java -cp "$TEST_CP" dev.howlingwhispers.buildcraftlite.BuildCraftLiteTransportTest
