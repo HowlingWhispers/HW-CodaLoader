@@ -41,16 +41,16 @@ public final class CodaNativeRegistryBridge {
                 type("net.minecraft.resources.Identifier"))
                 .invoke(null, registryKey, identifier(name));
     }
-    private static Object registry(String name) throws ReflectiveOperationException {
+    static Object registry(String name) throws ReflectiveOperationException {
         return type("net.minecraft.core.registries.BuiltInRegistries").getField(name).get(null);
     }
-    private static Object register(Object registry, String name, Object value)
+    static Object register(Object registry, String name, Object value)
             throws ReflectiveOperationException {
         Class<?> cls = type("net.minecraft.core.Registry");
         return cls.getMethod("register", cls, type("net.minecraft.resources.ResourceKey"),
                 Object.class).invoke(null, registry, key(registry, name), value);
     }
-    private static void requireFree(Object registry, String name)
+    static void requireFree(Object registry, String name)
             throws ReflectiveOperationException {
         if ((Boolean)registry.getClass().getMethod("containsKey",
                 type("net.minecraft.resources.Identifier")).invoke(registry, identifier(name)))
@@ -66,6 +66,7 @@ public final class CodaNativeRegistryBridge {
     public static synchronized void registerBlocksAndItems() {
         registerBlocks();
         registerItems();
+        CodaNativeBlockEntityBridge.registerTypes(BLOCKS);
     }
 
     /** Register blocks after vanilla Block/Item static constructors complete. */
@@ -86,7 +87,12 @@ public final class CodaNativeRegistryBridge {
                 if (def.id().contains("item")) {
                     p = properties.getMethod("noOcclusion").invoke(p);
                 }
-                Object block = blockClass.getConstructor(properties).newInstance(p);
+                // Genuine Minecraft EntityBlock for BCCE's original pipe
+                // holders. The loader bridges native identity only, not pipe
+                // gameplay or synthetic inventories.
+                Class<?> nativeClass = CodaNativeContents.hasBlockEntity(def.id())
+                        ? CodaNativeBlockEntityBridge.entityBlockClass() : blockClass;
+                Object block = nativeClass.getConstructor(properties).newInstance(p);
                 register(registry, def.id(), block);
                 // Blocks.<clinit> has already populated vanilla state IDs and
                 // shape caches by this return hook. Registry.register alone
