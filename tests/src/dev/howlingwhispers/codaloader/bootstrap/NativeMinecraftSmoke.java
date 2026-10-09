@@ -13,6 +13,10 @@ public final class NativeMinecraftSmoke {
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:wood_item", 0.7f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:cobblestone_item", 1.4f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcraftcore:engine_redstone", 1.5f);
+        CodaNativeContents.registerBlockEntityType("buildcraft_cml",
+                "buildcrafttransport:pipe_holder", List.of(
+                        "buildcrafttransport:wood_item",
+                        "buildcrafttransport:cobblestone_item"));
         CodaNativeContents.registerItem("buildcraft_cml", "buildcraftcore:wrench");
         CodaNativeContents.registerTab("buildcraft_cml", "buildcraftcore:buildcraft",
                 "BuildCraft", "buildcrafttransport:wood_item",
@@ -78,6 +82,48 @@ public final class NativeMinecraftSmoke {
                 throw new AssertionError("Native BuildCraft BlockItem mapping absent: "+name);
             checked++;
         }
+        // Test the exact Snapshot 3 pipe-holder lifecycle, not a JVM-only
+        // mock and not a fake mod-managed chest/packet database.
+        Class<?> entityBlockInterface = Class.forName(
+                "net.minecraft.world.level.block.EntityBlock", true, loader);
+        Class<?> blockEntityClass = Class.forName(
+                "net.minecraft.world.level.block.entity.BlockEntity", true, loader);
+        Class<?> posClass = Class.forName("net.minecraft.core.BlockPos", true, loader);
+        Class<?> stateClass = Class.forName(
+                "net.minecraft.world.level.block.state.BlockState", true, loader);
+        Object pos = posClass.getConstructor(int.class,int.class,int.class).newInstance(3,64,5);
+        Object entityTypeRegistry = registries.getField("BLOCK_ENTITY_TYPE").get(null);
+        Object pipeHolderId = parse.invoke(null,"buildcrafttransport:pipe_holder");
+        Object pipeHolder = entityTypeRegistry.getClass().getMethod("getValue",idClass)
+                .invoke(entityTypeRegistry,pipeHolderId);
+        if (pipeHolder == null || !entityTypeRegistry.getClass()
+                .getMethod("getKey",Object.class).invoke(entityTypeRegistry,pipeHolder)
+                .toString().equals("buildcrafttransport:pipe_holder"))
+            throw new AssertionError("Native BCCE pipe holder BlockEntityType unregistered");
+        checked++;
+
+        Object blocksRegistry = registries.getField("BLOCK").get(null);
+        for (String pipeId : List.of("buildcrafttransport:wood_item",
+                "buildcrafttransport:cobblestone_item")) {
+            Object block = blocksRegistry.getClass().getMethod("getValue",idClass)
+                    .invoke(blocksRegistry,parse.invoke(null,pipeId));
+            if (!entityBlockInterface.isInstance(block))
+                throw new AssertionError("BuildCraft pipe is not a native EntityBlock: " + pipeId);
+            Object state = block.getClass().getMethod("defaultBlockState").invoke(block);
+            Object entity = entityBlockInterface.getMethod("newBlockEntity",posClass,stateClass)
+                    .invoke(block,pos,state);
+            if (!blockEntityClass.isInstance(entity))
+                throw new AssertionError("Minecraft did not construct a real BlockEntity: " + pipeId);
+            Object foundType = blockEntityClass.getMethod("getType").invoke(entity);
+            if (foundType != pipeHolder)
+                throw new AssertionError("Wrong native TilePipeHolder type for " + pipeId);
+            Class<?> entityTypeClass = Class.forName(
+                    "net.minecraft.world.level.block.entity.BlockEntityType",true,loader);
+            if (!(Boolean) entityTypeClass.getMethod("isValid",stateClass).invoke(pipeHolder,state))
+                throw new AssertionError("Native pipe-holder type rejects its block state: " + pipeId);
+            checked += 4;
+        }
+
         for (String name : List.of("buildcrafttransport:wood_item",
                 "buildcrafttransport:cobblestone_item", "buildcraftcore:engine_redstone",
                 "buildcraftcore:wrench")) {
