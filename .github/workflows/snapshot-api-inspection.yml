@@ -21,7 +21,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify backed-up Nightly patch installation and checksum guards
         shell: powershell
-        run: ./tests/install/BuildCraftFixInstallerTest.ps1
+        run: |
+          try { ./tests/install/BuildCraftFixInstallerTest.ps1 }
+          catch {
+              Write-Output ('::error::' + $_.Exception.Message.Replace("`r", '').Replace("`n", '%0A'))
+              throw
+          }
 
   inspect-snapshot:
     runs-on: ubuntu-latest

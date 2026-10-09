@@ -30,8 +30,8 @@ try {
     }
     $manifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $package 'update-manifest.json')
     $scriptFile = Join-Path $package 'Apply-BuildCraft-Fix.ps1'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptFile -LoaderDirectory $loader
-    Check ($LASTEXITCODE -eq 0) 'patch succeeds'
+    $patchOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $scriptFile -LoaderDirectory $loader 2>&1
+    Check ($LASTEXITCODE -eq 0) ('patch succeeds: ' + ($patchOutput -join ' '))
     Check ((Get-FileHash $installed -Algorithm SHA256).Hash -eq $newHash) 'correct loader installed'
     Check ((Get-Content (Join-Path $loader '.nightly-loader-sha256') -Raw).Trim() -eq $newHash) 'Nightly ownership marker updated'
     Check ((Get-Content (Join-Path $loader '.nightly-tag') -Raw) -eq 'existing-nightly') 'release tag preserved'
