@@ -84,6 +84,14 @@ public final class MinecraftBootstrap {
         // unaffected.
         if (BuildCraftResourceInstaller.prepare(game))
             enableGeneratedPack("file/" + BuildCraftResourceInstaller.packName());
+        prepareCodaWolfResources();
+    }
+
+    /** Run again from the in-game agent, after the actual Mojang client JAR
+     * is on the classpath and BEFORE the first resource reload. */
+    public void prepareCodaWolfResources() throws IOException {
+        if (CodaWolfResourceInstaller.prepare(game))
+            enableGeneratedPack("file/" + CodaWolfResourceInstaller.PACK);
     }
 
     public int launch() throws Exception {
