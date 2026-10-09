@@ -1,5 +1,6 @@
 package dev.howlingwhispers.codaloader.api;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,16 @@ import java.util.Optional;
  * chunks and does not expose mutable ItemStacks or world objects.
  */
 public interface CodaWorldView {
+    /**
+     * Server-owned world save root for persistent mod state. Available only
+     * while this view is alive on its authoritative server thread. A missing
+     * root in a third-party fixture means persistence is unavailable, not
+     * permission to use a global profile path.
+     */
+    default Optional<Path> worldDirectory() throws Exception {
+        return Optional.empty();
+    }
+
     /** Real loaded dimensions, using canonical namespaced identifiers. */
     List<String> dimensions() throws Exception;
 

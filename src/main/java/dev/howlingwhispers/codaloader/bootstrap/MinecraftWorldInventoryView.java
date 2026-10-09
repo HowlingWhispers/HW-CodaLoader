@@ -31,6 +31,23 @@ public final class MinecraftWorldInventoryView implements CodaWorldView, AutoClo
             throw new IllegalStateException("World inventory views are server-thread tick scoped");
     }
 
+    @Override
+    public Optional<java.nio.file.Path> worldDirectory() throws Exception {
+        requireActive();
+        // Exact Minecraft 26.4 Snapshot 3 save-root API. Never reconstruct
+        // paths from level names, game profiles, or an active user's identity.
+        Class<?> resource = Class.forName("net.minecraft.world.level.storage.LevelResource",
+                true, server.getClass().getClassLoader());
+        Object root = resource.getField("ROOT").get(null);
+        Object resolved = CommandReflection.call(server, "getWorldPath", root);
+        if (!(resolved instanceof java.nio.file.Path path))
+            throw new IllegalStateException("Snapshot 3 getWorldPath(ROOT) is not a Path");
+        java.nio.file.Path normal = path.toAbsolutePath().normalize();
+        if (!java.nio.file.Files.isDirectory(normal) || java.nio.file.Files.isSymbolicLink(normal))
+            throw new java.io.IOException("Refusing invalid world save root for H.O.W.L. mod state");
+        return Optional.of(normal);
+    }
+
     /** No Minecraft references escape into a mod's public API. */
     @Override
     public List<String> dimensions() throws Exception {
