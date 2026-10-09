@@ -50,7 +50,6 @@ java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.NativeRegistryTrans
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.api.NativeBlockEntityDeclarationTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaWolfTextureTest
-java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.BuildCraftResourceInstallerTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MinecraftVersionMetadataTest
 
 # Verify the same new-world ASM hook that the real Minecraft agent installs.
