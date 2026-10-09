@@ -112,6 +112,17 @@ public final class NativeMinecraftSmoke {
         nativeStack.getMethod("copyWithCount",int.class);
         nativeStack.getMethod("isSameItemSameComponents",nativeStack,nativeStack);
         checked += 3;
+        // Verify EXACT live save-path contract before the engine persistence
+        // feature reaches a player. Compile-only synthetic fixtures cannot
+        // detect Snapshot 3's possible LevelResource/getWorldPath renames.
+        Class<?> saveRoot = Class.forName("net.minecraft.world.level.storage.LevelResource",true,loader);
+        Object root = saveRoot.getField("ROOT").get(null);
+        if (root == null) throw new AssertionError("Missing Mojang world-save ROOT resource");
+        Class<?> minecraftServer = Class.forName("net.minecraft.server.MinecraftServer",true,loader);
+        java.lang.reflect.Method worldPath = minecraftServer.getMethod("getWorldPath",saveRoot);
+        if (!java.nio.file.Path.class.isAssignableFrom(worldPath.getReturnType()))
+            throw new AssertionError("World-save mapping does not return Path");
+        checked += 3;
         Class<?> chest = Class.forName("net.minecraft.world.level.block.entity.ChestBlockEntity",true,loader);
         chest.getMethod("getContainerSize");
         chest.getMethod("getItem",int.class);
