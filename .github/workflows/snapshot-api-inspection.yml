@@ -10,6 +10,10 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeInventoryTransformer.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/CodaWolfTextureTest.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaWolfTextureTransformer.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaWolfClientTextures.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaWolfResourceInstaller.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstaller.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/BuildCraftResourceInstallerTest.java
       - src/main/java/dev/howlingwhispers/codaloader/core/CodaTarget.java
@@ -120,9 +124,12 @@ jobs:
           javac --release 25 -cp dist/CodaLoader.jar -d inspection/test-classes \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeGameTestAgent.java \
             tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java \
-            tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java \
+            tests/src/dev/howlingwhispers/codaloader/bootstrap/CodaWolfTextureTest.java
           java -cp inspection/test-classes:dist/CodaLoader.jar \
             dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest inspection/client.jar
+          java -cp inspection/test-classes:dist/CodaLoader.jar:inspection/client.jar \
+            dev.howlingwhispers.codaloader.bootstrap.CodaWolfTextureTest inspection/client.jar
           bash scripts/test-essentials.sh
           printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.NativeGameTestAgent\n\n' > inspection/agent.mf
           jar --create --file inspection/test-agent.jar --manifest inspection/agent.mf \
