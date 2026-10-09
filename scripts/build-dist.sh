@@ -6,6 +6,12 @@ LOADER_VERSION="$(sed -n 's/.*LOADER_VERSION = "\([^"]*\)";.*/\1/p' src/main/jav
 [[ "$LOADER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid CodaTarget.LOADER_VERSION: $LOADER_VERSION" >&2; exit 1; }
 EXAMPLE_VERSION="0.0.1"
 ESSENTIALS_VERSION="0.2.0"
+# Known-good Coda Wolf skin/companion binary is pinned independently of main
+# (which may contain experimental environmental sensing work).
+CODAWOLF_RELEASE="nightly-codawolf-20261009-a611e592da"
+CODAWOLF_SHA256="18d13b3e6bb22f8d21a0911ae112d655cea735f19f2d166b8075bee379ff027a"
+CODAWOLF_FILE="coda-wolf-0.1.0-dev.jar"
+CODAWOLF_URL="https://github.com/HowlingWhispers/HW-Mods/releases/download/${CODAWOLF_RELEASE}/${CODAWOLF_FILE}"
 MAIN_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaBootstrap"
 AGENT_CLASS="dev.howlingwhispers.codaloader.bootstrap.CodaAgent"
 BUNDLE_NAME="CodaLoader-v${LOADER_VERSION}-win64.zip"
@@ -58,9 +64,27 @@ jar tf dist/hw-essentials.jar > out/essentials-contents.txt
 grep -Fx "coda.mod.json" out/essentials-contents.txt >/dev/null || { echo "Invalid mod JAR: missing coda.mod.json" >&2; exit 1; }
 grep -Fx "dev/howlingwhispers/essentials/HwEssentialsMod.class" out/essentials-contents.txt >/dev/null || { echo "Invalid mod JAR: missing entrypoint" >&2; exit 1; }
 
-# Embed mod in CodaLoader for automatic profile installation
+# Embed both required mods into H.O.W.L. for automatic Stable AND Nightly
+# profile installation. Never take Coda from the unreviewed main branch.
 mkdir -p out/classes/codaloader/mods
 cp dist/hw-essentials.jar out/classes/codaloader/mods/
+echo "Downloading approved Coda Companion ${CODAWOLF_RELEASE}..."
+curl --fail --location --retry 3 --silent --show-error \
+  "$CODAWOLF_URL" -o "dist/${CODAWOLF_FILE}"
+printf '%s  %s\n' "$CODAWOLF_SHA256" "dist/${CODAWOLF_FILE}" | sha256sum --check
+python3 - <<'PY'
+import json,zipfile
+p="dist/coda-wolf-0.1.0-dev.jar"
+with zipfile.ZipFile(p) as jar:
+    m=json.loads(jar.read("coda.mod.json"))
+    assert m["id"]=="coda_wolf" and m["version"]=="0.1.2-dev"
+    assert m["minecraft"]=="26.4-snapshot-3"
+    assert m["entrypoint"]=="dev.howlingwhispers.codawolf.CodaWolfMod"
+    assert "dev/howlingwhispers/codawolf/CodaWolfMod.class" in jar.namelist()
+    assert "dev/howlingwhispers/codawolf/CompanionAwareness.class" not in jar.namelist(), "Unreviewed AI work must not ship in Stable"
+print("PASS: pinned Coda Wolf 0.1.2, no experimental awareness module")
+PY
+cp "dist/${CODAWOLF_FILE}" "out/classes/codaloader/mods/${CODAWOLF_FILE}"
 
 cat > out/manifest.mf <<EOF
 Manifest-Version: 1.0
@@ -93,6 +117,9 @@ cp docs/HOWL-API.md dist/sdk/
 
 cp Launch-CodaLoader.bat dist/Launch-CodaLoader.bat
 cp dist/CodaLoader.jar dist/package/CodaLoader.jar
+# Also expose a transparent, auditable standalone copy in the distribution.
+mkdir -p dist/package/bundled-mods
+cp "dist/${CODAWOLF_FILE}" "dist/package/bundled-mods/${CODAWOLF_FILE}"
 cp dist/Launch-CodaLoader.bat dist/package/Launch-CodaLoader.bat
 
 cat > dist/package/README-FIRST.txt <<EOF
@@ -101,8 +128,9 @@ H.O.W.L. ${LOADER_VERSION} - Howling Open Works Loader
 1. Extract the entire ZIP into its own folder.
 2. Double-click Launch-CodaLoader.bat.
 3. Keep CodaLoader.jar beside the BAT.
-4. Put HOWL mods in the active Minecraft game profile's mods folder.
-5. Put custom menu .ogg music in run\\music\\menu.
+4. H.O.W.L. automatically installs required Coda Wolf Companion and HW Essentials.
+5. Other mods are optional. Put them in the active Minecraft mods folder.
+6. Put custom menu .ogg music in run\\music\\menu.
 
 CodaLoader checks public GitHub Releases for updates automatically.
 EOF
@@ -114,6 +142,7 @@ EOF
 
 JAR_SHA="$(sha256sum dist/package/CodaLoader.jar | awk '{print $1}')"
 BAT_SHA="$(sha256sum dist/package/Launch-CodaLoader.bat | awk '{print $1}')"
+CODAWOLF_BUNDLE_SHA="$(sha256sum "dist/${CODAWOLF_FILE}" | awk '{print $1}')"
 BUNDLE_SHA="$(sha256sum "dist/${BUNDLE_NAME}" | awk '{print $1}')"
 
 cat > dist/update-manifest.json <<EOF
@@ -124,7 +153,8 @@ cat > dist/update-manifest.json <<EOF
   "sha256": "${BUNDLE_SHA}",
   "files": {
     "CodaLoader.jar": "${JAR_SHA}",
-    "Launch-CodaLoader.bat": "${BAT_SHA}"
+    "Launch-CodaLoader.bat": "${BAT_SHA}",
+    "bundled-mods/coda-wolf-0.1.0-dev.jar": "${CODAWOLF_BUNDLE_SHA}"
   }
 }
 EOF
@@ -134,6 +164,7 @@ echo "  dist/CodaLoader.jar"
 echo "  dist/hello-coda.jar"
 echo "  dist/Launch-CodaLoader.bat"
 echo "  dist/hw-essentials.jar (from HW-Mods v${ESSENTIALS_VERSION})"
+echo "  dist/${CODAWOLF_FILE} (approved Coda Wolf 0.1.2; pinned SHA-256)"
 echo "  dist/${BUNDLE_NAME}"
 echo "  dist/update-manifest.json"
 echo "  dist/HOWL-SDK-v${LOADER_VERSION}.zip"

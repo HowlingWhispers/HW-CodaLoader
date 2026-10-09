@@ -53,12 +53,23 @@ jobs:
           MENU_FIXTURE_RELEASE: "25"
         run: bash scripts/test-essentials.sh
 
+      - name: Assert tested Coda Companion embedded (Stable and Nightly)
+        run: |
+          set -euo pipefail
+          jar tf dist/CodaLoader.jar | grep -Fx 'codaloader/mods/coda-wolf-0.1.0-dev.jar'
+          unzip -p "dist/CodaLoader-v$(java -jar dist/CodaLoader.jar --version)-win64.zip" bundled-mods/coda-wolf-0.1.0-dev.jar |
+            sha256sum | grep -F '18d13b3e6bb22f8d21a0911ae112d655cea735f19f2d166b8075bee379ff027a'
+          unzip -p dist/CodaLoader.jar codaloader/mods/coda-wolf-0.1.0-dev.jar |
+            sha256sum | grep -F '18d13b3e6bb22f8d21a0911ae112d655cea735f19f2d166b8075bee379ff027a'
+
       - name: Smoke-test loader
         run: |
           rm -rf run
           mkdir -p run/mods
           cp dist/hello-coda.jar run/mods/
           java -jar dist/CodaLoader.jar --loader-only run
+          test -f run/mods/coda-wolf-0.1.0-dev.jar
+          test -f run/config/codaloader-managed/coda-wolf-0.1.0-dev.jar.sha256
 
       - name: Verify HOWL SDK starter
         run: |
@@ -93,6 +104,13 @@ jobs:
           # H.O.W.L. ${VERSION} — Howling Open Works Loader
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
+
+          - Coda Companion is now a REQUIRED bundled H.O.W.L. mod.
+          - Ship the tested 0.1.2-dev wolf and exclusive icy-white fur in
+            BOTH Stable and Nightly without a separate mod download.
+          - Verify packaged mod SHA-256 against its known-good release.
+          - Keep environmental awareness, BuildCraft and other experimental
+            addons separate from the bundled stable companion.
 
           - Fix Coda Companion's magenta-and-black missing texture.
           - Translate the legacy Coda wolf sprite ID into the direct PNG
