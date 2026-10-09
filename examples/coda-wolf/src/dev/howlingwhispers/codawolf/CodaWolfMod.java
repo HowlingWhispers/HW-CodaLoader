@@ -3,6 +3,7 @@ package dev.howlingwhispers.codawolf;
 import dev.howlingwhispers.codaloader.api.CodaContext;
 import dev.howlingwhispers.codaloader.api.CodaMod;
 import dev.howlingwhispers.codaloader.api.CodaServerTickContext;
+import dev.howlingwhispers.codaloader.api.CodaEntityAppearance;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,16 @@ import java.util.UUID;
  */
 public final class CodaWolfMod implements CodaMod {
     private static final String PREFIX = "[Coda Wolf] ";
+    private static final String TAME = "codawolf:entity/coda_tame";
+    private static final String ANGRY = "codawolf:entity/coda_angry";
+
+    private static void skin(java.util.UUID wolfId) {
+        CodaEntityAppearance.setWolfSkin(wolfId, TAME, ANGRY);
+    }
+    private void clearRegisteredSkins() {
+        for (Companion c : companions.values())
+            CodaEntityAppearance.clearWolfSkin(c.save.wolfId);
+    }
     private final Map<UUID, Companion> companions = new HashMap<>();
     private String serverSession;
     private Object serverIdentity;
@@ -128,6 +139,8 @@ public final class CodaWolfMod implements CodaMod {
         if (save.wolfId != null) {
             Object existing = game.wolf(game.level(owner), save.wolfId);
             if (existing != null && !game.dead(existing)) {
+                game.markCoda(existing);
+                skin(save.wolfId);
                 command.reply("Coda already exists. Her saved wolf UUID is " + save.wolfId + ".");
                 return;
             }
@@ -159,6 +172,7 @@ public final class CodaWolfMod implements CodaMod {
             serverSession = tick.sessionId();
             serverIdentity = null;
             bridgeUnsupported = false;
+            clearRegisteredSkins();
             companions.clear();
         }
         if (bridgeUnsupported || tick.tick() % 2 != 0) return;
@@ -166,6 +180,7 @@ public final class CodaWolfMod implements CodaMod {
             MinecraftWolfBridge game = new MinecraftWolfBridge();
             if (serverIdentity != game.serverIdentity()) {
                 serverIdentity = game.serverIdentity();
+                clearRegisteredSkins();
                 companions.clear();
             }
             for (Object player : game.players()) {
@@ -199,9 +214,16 @@ public final class CodaWolfMod implements CodaMod {
         if (!c.save.created) { create(game, c, player); return; }
 
         Object wolf = c.save.wolfId == null ? null : game.wolf(level, c.save.wolfId);
-        if (wolf != null) c.cachedWolf = wolf;
+        if (wolf != null) {
+            c.cachedWolf = wolf;
+            // UUID is retrieved from CompanionSave, not the wolf's display name.
+            // The client and integrated server share this JVM appearance table.
+            skin(c.save.wolfId);
+            game.markCoda(wolf); // NBT marker is cosmetic, not the renderer's source of truth.
+        }
         // Missing wolf may be in an unloaded chunk or another dimension; never duplicate it.
         if (c.save.wolfId != null && c.cachedWolf != null && game.dead(c.cachedWolf)) {
+            CodaEntityAppearance.clearWolfSkin(c.save.wolfId);
             c.save.wolfId = null;
             c.save.pendingRespawn = true;
             c.cachedWolf = null;
@@ -233,6 +255,7 @@ public final class CodaWolfMod implements CodaMod {
             throw ex;
         }
         c.cachedWolf = wolf;
+        skin(c.save.wolfId);
         c.aggressor = null;
         c.defendUntilTick = 0;
         c.ownerAttackStamp = 0;
