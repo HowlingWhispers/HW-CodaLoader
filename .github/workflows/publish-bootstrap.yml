@@ -109,8 +109,14 @@ jobs:
           - Ship the tested 0.1.2-dev wolf and exclusive icy-white fur in
             BOTH Stable and Nightly without a separate mod download.
           - Verify packaged mod SHA-256 against its known-good release.
-          - Keep environmental awareness, BuildCraft and other experimental
-            addons separate from the bundled stable companion.
+          - Keep environmental awareness and other experimental addons
+            separate from the bundled stable companion.
+          - Add optional BuildCraft Lite 0.1.0-dev as a standalone mod JAR:
+            original wooden/stone pipe artwork, native server-tick chest
+            transport, and Coda diagnostics. No automatic mod installation.
+          - BuildCraft Lite is an experimental human playtest. Real Snapshot 3
+            bootstrap and JVM transport fixtures pass; gameplay still needs
+            a disposable-world test before any Stable designation.
 
           - Fix Coda Companion's magenta-and-black missing texture.
           - Translate the legacy Coda wolf sprite ID into the direct PNG
@@ -123,6 +129,6 @@ jobs:
           Verified by headless Java tests and exact Minecraft Snapshot 3
           renderer tests. Player visual confirmation remains the final gate.
           EOF
-          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
+          gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar dist/buildcraft-lite-0.1.0-dev.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
             --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \
             --notes-file release-notes.md --prerelease
