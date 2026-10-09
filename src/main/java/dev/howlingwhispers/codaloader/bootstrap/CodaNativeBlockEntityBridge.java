@@ -1,6 +1,8 @@
 package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.api.CodaNativeContents;
+import dev.howlingwhispers.codaloader.api.CodaBlockEntityTick;
+import dev.howlingwhispers.codaloader.api.CodaBlockPos;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
@@ -31,10 +33,13 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
     private static final String ENTITY = "net/minecraft/world/level/block/entity/BlockEntity";
     private static final String TYPE = "net/minecraft/world/level/block/entity/BlockEntityType";
     private static final String ENTITY_BLOCK = "net/minecraft/world/level/block/EntityBlock";
+    private static final String TICKER = "net/minecraft/world/level/block/entity/BlockEntityTicker";
+    private static final String LEVEL = "net/minecraft/world/level/Level";
     private static final String BLOCK_CLASS = PACKAGE + "HowlNativeEntityBlock";
     private static final String ENTITY_CLASS = PACKAGE + "HowlNativeBlockEntity";
 
     private static final Map<Object, Object> BLOCK_TYPES = new IdentityHashMap<>();
+    private static final Map<Object, String> TYPE_IDS = new IdentityHashMap<>();
     private static volatile Class<?> nativeBlock;
     private static volatile Constructor<?> nativeEntityCtor;
     private static boolean registered;
@@ -82,6 +87,26 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
             factory.visitInsn(ARETURN);
             factory.visitMaxs(0, 0);
             factory.visitEnd();
+
+            // Mojang's EntityBlock.getTicker drives pipe updates only while
+            // Minecraft owns a loaded server-side block entity. Do not run a
+            // global polling loop or synthesize travelling items.
+            MethodVisitor ticker = writer.visitMethod(ACC_PUBLIC, "getTicker",
+                    "(L" + LEVEL + ";L" + STATE + ";L" + TYPE + ";)L" + TICKER + ";",
+                    null, null);
+            ticker.visitCode();
+            ticker.visitVarInsn(ALOAD, 1);
+            ticker.visitVarInsn(ALOAD, 2);
+            ticker.visitVarInsn(ALOAD, 3);
+            ticker.visitMethodInsn(INVOKESTATIC, PACKAGE + "CodaNativeBlockEntityBridge",
+                    "createTicker",
+                    "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                    false);
+            ticker.visitTypeInsn(CHECKCAST, TICKER);
+            ticker.visitInsn(ARETURN);
+            ticker.visitMaxs(0, 0);
+            ticker.visitEnd();
+
             writer.visitEnd();
             nativeBlock = MethodHandles.lookup().defineClass(writer.toByteArray());
             return nativeBlock;
@@ -131,6 +156,54 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
             return type;
         } catch (ReflectiveOperationException error) {
             throw new IllegalStateException("Minecraft block-state mapping changed", error);
+        }
+    }
+
+    /**
+     * Give Minecraft a real BlockEntityTicker for a registered pipe-holder type.
+     * Only native ticker invocations dispatch an event. No unplaced or
+     * unloaded nodes are fabricated, and client calls do nothing.
+     */
+    public static synchronized Object createTicker(Object level, Object state, Object nativeType) {
+        if (state == null || nativeType == null) return null;
+        try {
+            Object requiredType = typeForState(state);
+            if (requiredType != nativeType) return null;
+            String typeId = TYPE_IDS.get(nativeType);
+            if (typeId == null || !CodaNativeContents.hasBlockEntityTick(typeId))
+                return null;
+            Class<?> ticker = minecraft(TICKER);
+            return Proxy.newProxyInstance(ticker.getClassLoader(),
+                    new Class<?>[]{ticker}, (proxy, method, args) -> {
+                        if (method.getName().equals("hashCode")) return System.identityHashCode(proxy);
+                        if (method.getName().equals("equals")) return proxy == args[0];
+                        if (method.getName().equals("toString")) return "H.O.W.L. native ticker " + typeId;
+                        if (!method.getName().equals("tick") || args == null || args.length != 4)
+                            throw new IllegalStateException("Unknown native BlockEntityTicker invocation");
+                        Object world = args[0], pos = args[1], stateAtPos = args[2], entity = args[3];
+                        if (world == null || pos == null || stateAtPos == null || entity == null)
+                            throw new IllegalStateException("Minecraft native ticker missing world context");
+                        if ((Boolean)world.getClass().getMethod("isClientSide").invoke(world))
+                            return null;
+                        if (entity.getClass().getMethod("getType").invoke(entity) != nativeType)
+                            throw new IllegalStateException("Native BuildCraft pipe entity type mismatch");
+                        if ((Boolean)entity.getClass().getMethod("isRemoved").invoke(entity))
+                            return null;
+                        if (typeForState(stateAtPos) != nativeType)
+                            throw new IllegalStateException("Native BuildCraft block changed during tick");
+                        Object dimension = world.getClass().getMethod("dimension").invoke(world);
+                        String dimensionId = dimension.getClass().getMethod("identifier")
+                                .invoke(dimension).toString();
+                        CodaBlockPos position = new CodaBlockPos(
+                                ((Number)pos.getClass().getMethod("getX").invoke(pos)).intValue(),
+                                ((Number)pos.getClass().getMethod("getY").invoke(pos)).intValue(),
+                                ((Number)pos.getClass().getMethod("getZ").invoke(pos)).intValue());
+                        CodaNativeContents.dispatchBlockEntityTick(
+                                new CodaBlockEntityTick(typeId, dimensionId, position));
+                        return null;
+                    });
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("Native Minecraft pipe ticker mapping unavailable", ex);
         }
     }
 
@@ -186,6 +259,7 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                 Object nativeType = type.getConstructor(supplier, Set.class)
                         .newInstance(factory, Set.copyOf(blocks));
                 CodaNativeRegistryBridge.register(registry, definition.id(), nativeType);
+                TYPE_IDS.put(nativeType, definition.id());
                 for (Object block : blocks) BLOCK_TYPES.put(block, nativeType);
                 System.out.println("[H.O.W.L.] Native BlockEntityType registered: " + definition.id());
             }
