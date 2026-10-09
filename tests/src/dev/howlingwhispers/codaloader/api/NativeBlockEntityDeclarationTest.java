@@ -74,6 +74,20 @@ public final class NativeBlockEntityDeclarationTest {
                 "buildcrafttransport:pipe_holder", originalTile);
         check(CodaNativeContents.nativeBlockEntityFactory("buildcrafttransport:pipe_holder")
                 == originalTile, "Original native BlockEntity factory retained");
+        java.util.function.Function<Object,Object> originalKeyedBlock = props -> props;
+        CodaNativeContents.registerNativeKeyedBlockFactory("buildcraft_cml",
+                "buildcrafttransport:cobblestone_item", originalKeyedBlock);
+        check(CodaNativeContents.nativeKeyedBlockFactory("buildcrafttransport:cobblestone_item")
+                == originalKeyedBlock, "Native keyed constructor gets registered unchanged");
+        rejected(() -> CodaNativeContents.registerNativeKeyedBlockFactory("other_mod",
+                "buildcrafttransport:wood_item", originalKeyedBlock),
+                "Cannot register keyed factory on another mod's block");
+        rejected(() -> CodaNativeContents.registerNativeKeyedBlockFactory("buildcraft_cml",
+                "buildcrafttransport:wood_item", originalKeyedBlock),
+                "Cannot combine keyed and supplier block factories for one block");
+        rejected(() -> CodaNativeContents.registerNativeBlockFactory("buildcraft_cml",
+                "buildcrafttransport:cobblestone_item", Object::new),
+                "Cannot overwrite keyed factory with unkeyed supplier");
         rejected(() -> CodaNativeContents.registerNativeBlockEntityFactory("other_mod",
                 "buildcrafttransport:pipe_holder", originalTile),
                 "Cannot replace another mod's native entity");

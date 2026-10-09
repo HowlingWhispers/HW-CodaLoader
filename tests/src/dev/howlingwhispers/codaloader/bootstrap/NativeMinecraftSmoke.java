@@ -13,6 +13,25 @@ public final class NativeMinecraftSmoke {
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:wood_item", 0.7f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcrafttransport:cobblestone_item", 1.4f);
         CodaNativeContents.registerBlock("buildcraft_cml", "buildcraftcore:engine_redstone", 1.5f);
+        // Real Mojang Block constructor, receiving the exact native,
+        // registry-keyed Properties prepared by H.O.W.L. This verifies the
+        // factory contract needed by original BCCE's adapted BlockPipeHolder.
+        final java.util.concurrent.atomic.AtomicInteger originalFactoryCalls =
+                new java.util.concurrent.atomic.AtomicInteger();
+        CodaNativeContents.registerNativeKeyedBlockFactory("buildcraft_cml",
+                "buildcraftcore:engine_redstone", properties -> {
+                    try {
+                        originalFactoryCalls.incrementAndGet();
+                        Class<?> nativeBlock = Class.forName("net.minecraft.world.level.block.Block");
+                        Class<?> props = Class.forName(
+                                "net.minecraft.world.level.block.state.BlockBehaviour$Properties");
+                        if (!props.isInstance(properties))
+                            throw new AssertionError("Non-native registry-keyed block properties");
+                        return nativeBlock.getConstructor(props).newInstance(properties);
+                    } catch (ReflectiveOperationException error) {
+                        throw new IllegalStateException("Native keyed constructor unavailable", error);
+                    }
+                });
         CodaNativeContents.registerBlockEntityType("buildcraft_cml",
                 "buildcrafttransport:pipe_holder", List.of(
                         "buildcrafttransport:wood_item",
@@ -35,6 +54,8 @@ public final class NativeMinecraftSmoke {
         System.out.println("Bootstrapping EXACT Mojang Snapshot 3 registries...");
         bootstrap.getMethod("bootStrap").invoke(null);
 
+        if (originalFactoryCalls.get() != 1)
+            throw new AssertionError("Native keyed block constructor was not used exactly once");
         Class<?> registries = Class.forName(
                 "net.minecraft.core.registries.BuiltInRegistries", true, loader);
         Class<?> idClass = Class.forName("net.minecraft.resources.Identifier", true, loader);

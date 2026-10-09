@@ -34,6 +34,8 @@ public final class CodaNativeContents {
     // BlockEntity objects. They are not H.O.W.L. gameplay substitutes.
     private static final Map<String, java.util.function.Supplier<?>> NATIVE_BLOCK_FACTORIES =
             new LinkedHashMap<>();
+    private static final Map<String, java.util.function.Function<Object,Object>>
+            NATIVE_KEYED_BLOCK_FACTORIES = new LinkedHashMap<>();
     private static final Map<String, java.util.function.BiFunction<Object,Object,Object>>
             NATIVE_BLOCK_ENTITY_FACTORIES = new LinkedHashMap<>();
     private static final Map<String, java.util.function.Consumer<CodaBlockEntityTick>> BLOCK_ENTITY_TICKS =
@@ -94,12 +96,36 @@ public final class CodaNativeContents {
         Definition block = DEFINITIONS.get(id);
         if (block == null || block.kind() != Kind.BLOCK || !block.owner().equals(owner))
             throw new IllegalArgumentException("Factory must target a registered owned block: " + id);
-        if (NATIVE_BLOCK_FACTORIES.putIfAbsent(id, factory) != null)
+        if (NATIVE_KEYED_BLOCK_FACTORIES.containsKey(id) ||
+                NATIVE_BLOCK_FACTORIES.putIfAbsent(id, factory) != null)
+            throw new IllegalArgumentException("Duplicate native block factory: " + id);
+    }
+
+    /**
+     * Required for source ports on Snapshot 3: original Block constructors
+     * must receive the exact registry-keyed BlockBehaviour.Properties instance.
+     * An unkeyed constructor may throw during Minecraft's block-state bootstrap.
+     */
+    public static synchronized void registerNativeKeyedBlockFactory(String owner, String id,
+            java.util.function.Function<Object,Object> factory) {
+        requireOwner(owner);
+        requireId(id);
+        Objects.requireNonNull(factory, "nativeKeyedBlockFactory");
+        if (sealed) throw new IllegalStateException("Native block factories closed after bootstrap");
+        Definition block = DEFINITIONS.get(id);
+        if (block == null || block.kind() != Kind.BLOCK || !block.owner().equals(owner))
+            throw new IllegalArgumentException("Factory must target an owned registered block: " + id);
+        if (NATIVE_BLOCK_FACTORIES.containsKey(id) ||
+                NATIVE_KEYED_BLOCK_FACTORIES.putIfAbsent(id, factory) != null)
             throw new IllegalArgumentException("Duplicate native block factory: " + id);
     }
 
     public static synchronized java.util.function.Supplier<?> nativeBlockFactory(String id) {
         return NATIVE_BLOCK_FACTORIES.get(id);
+    }
+
+    public static synchronized java.util.function.Function<Object,Object> nativeKeyedBlockFactory(String id) {
+        return NATIVE_KEYED_BLOCK_FACTORIES.get(id);
     }
 
     /** Original BlockEntity constructor: takes real Minecraft BlockPos, BlockState. */

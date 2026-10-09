@@ -59,6 +59,17 @@ public record CodaContext(
     }
 
     /**
+     * Source-port-safe block factory. The argument is Minecraft's already
+     * registry-keyed BlockBehaviour.Properties, not a H.O.W.L. substitute.
+     * Pass it directly to the adapted original Block constructor.
+     */
+    public void registerNativeKeyedBlockFactory(String blockId,
+            java.util.function.Function<Object,Object> originalBlockConstructor) {
+        CodaNativeContents.registerNativeKeyedBlockFactory(
+                modId, blockId, originalBlockConstructor);
+    }
+
+    /**
      * Supply an existing mod BlockEntity constructor with native BlockPos
      * and BlockState objects. No synthetic H.O.W.L. pipe state is generated.
      */

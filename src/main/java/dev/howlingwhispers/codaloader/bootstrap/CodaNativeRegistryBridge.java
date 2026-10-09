@@ -90,10 +90,19 @@ public final class CodaNativeRegistryBridge {
                 // Prefer ORIGINAL mod Block implementations when a source
                 // port supplies them. The generated generic placeholder
                 // remains only for legacy mods without a native factory.
+                java.util.function.Function<Object,Object> keyedFactory =
+                        CodaNativeContents.nativeKeyedBlockFactory(def.id());
                 java.util.function.Supplier<?> nativeFactory =
                         CodaNativeContents.nativeBlockFactory(def.id());
                 Object block;
-                if (nativeFactory != null) {
+                if (keyedFactory != null) {
+                    // This is the only path safe for an original source block
+                    // constructor that cannot set its own registry key.
+                    block = keyedFactory.apply(p);
+                    if (block == null || !blockClass.isInstance(block))
+                        throw new IllegalStateException(
+                                "Keyed factory returned a non-Minecraft Block: " + def.id());
+                } else if (nativeFactory != null) {
                     block = nativeFactory.get();
                     if (block == null || !blockClass.isInstance(block))
                         throw new IllegalStateException(

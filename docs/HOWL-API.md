@@ -197,3 +197,27 @@ remains for mods without source-native ticker implementations.
 **This loader support is not itself a BuildCraft port**: the original BCCE
 1.21.11 source has unresolved NeoForge and Minecraft 26.4 compatibility
 dependencies, and no `hw_buildcraft_reborn` JAR is distributed yet.
+
+### Minecraft 26.4 registry-keyed block properties
+
+Original-source ports must use `registerNativeKeyedBlockFactory` rather than
+the older zero-argument `registerNativeBlockFactory` where their Block
+constructors expect Mojang's required `BlockBehaviour.Properties`.
+
+```java
+context.registerNativeKeyedBlockFactory("hw_buildcraft_reborn:pipe",
+        nativeProperties -> new OriginalPipeBlock(
+                (BlockBehaviour.Properties) nativeProperties));
+```
+
+H.O.W.L. prepares the **real** Snapshot 3 registry key, block hardness, and
+native Properties before invoking this function. The game receives the
+original Minecraft Block instance and its actual states/shapes; no generated
+placeholder takes its place. The return must be a real Mojang Block or
+registration fails. Factory ownership and duplicate checks apply equally
+to keyed and unkeyed registrations. An exact Minecraft 26.4 headless smoke
+test exercises this path using the real native Block constructor.
+
+Original `BlockPipeHolder` still requires a source compatibility constructor
+accepting native keyed Properties; H.O.W.L. cannot add that constructor to
+unmodified upstream BCCE code on its own.
