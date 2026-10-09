@@ -8,9 +8,21 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeInventoryTransformer.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeInventoryTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
+      - scripts/Apply-BuildCraft-Fix.ps1
+      - scripts/Fix-BuildCraft.cmd
+      - scripts/BuildCraft-Fix-README.txt
+      - tests/install/BuildCraftFixInstallerTest.ps1
   workflow_dispatch:
 
 jobs:
+  test-windows-patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify backed-up Nightly patch installation and checksum guards
+        shell: powershell
+        run: ./tests/install/BuildCraftFixInstallerTest.ps1
+
   inspect-snapshot:
     runs-on: ubuntu-latest
     steps:
@@ -115,6 +127,10 @@ jobs:
           while IFS= read -r jar; do CLASSPATH="$CLASSPATH:$jar"; done < <(find inspection/maven -type f -name '*.jar')
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
+          mkdir -p inspection/buildcraft-fix
+          cp dist/CodaLoader-v*-win64.zip dist/update-manifest.json \
+            scripts/Apply-BuildCraft-Fix.ps1 scripts/Fix-BuildCraft.cmd \
+            scripts/BuildCraft-Fix-README.txt inspection/buildcraft-fix/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -127,7 +143,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: buildcraft-creative-inventory-fix
-          path: |
-            dist/CodaLoader-v*-win64.zip
-            dist/update-manifest.json
+          path: inspection/buildcraft-fix/
           retention-days: 14

@@ -37,6 +37,11 @@ checking the correction. The Snapshot API workflow also verifies the patch
 against Mojang's checksum-verified 26.4 Snapshot 3 client and links the actual
 screen class without starting graphics. Its `buildcraft-creative-inventory-fix`
 artifact contains a test loader bundle; it does not publish a release.
+On Windows, extract that artifact and run `Fix-BuildCraft.cmd` with Minecraft
+and CodaLauncher closed. It verifies the bundle and loader hashes, backs up
+the managed Nightly loader and its marker, and updates Nightly's hash marker
+so the launcher accepts the test patch. Its Windows CI fixture checks both
+installation and refusal of corrupt downloads or player-modified loaders.
 
 The BuildCraft resource-pack test checks explicit modern atlas entries,
 original texture bytes, exclusion of unsupported Forge expression models,
