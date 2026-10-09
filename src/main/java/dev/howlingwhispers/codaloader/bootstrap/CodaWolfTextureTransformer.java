@@ -25,7 +25,7 @@ public final class CodaWolfTextureTransformer implements ClassFileTransformer {
             "(Lnet/minecraft/world/entity/animal/wolf/Wolf;"
           + "Lnet/minecraft/client/renderer/entity/state/WolfRenderState;F)V";
 
-    private CodaWolfTextureTransformer() {}
+    CodaWolfTextureTransformer() {}
 
     static void install(Instrumentation instrumentation) {
         instrumentation.addTransformer(new CodaWolfTextureTransformer(), false);
