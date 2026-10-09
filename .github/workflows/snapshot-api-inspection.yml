@@ -58,6 +58,11 @@ jobs:
                       raw=jar.read(n)
                       print(n,"png_size",struct.unpack(">II",raw[16:24]),"bytes",len(raw))
           PY
+          echo "Snapshot 3 world clock APIs for Coda bed recovery:"
+          for cls in net.minecraft.server.level.ServerLevel net.minecraft.world.level.Level net.minecraft.world.level.storage.PrimaryLevelData net.minecraft.world.level.storage.ServerLevelData net.minecraft.world.level.storage.LevelData net.minecraft.world.level.storage.LevelStorageSource; do
+            echo "== $cls ==";
+            javap -p -classpath inspection/client.jar "$cls" 2>&1 | grep -iE 'time|day|sleep|clock|tick' | head -n 85 || true;
+          done
           echo "Wolf renderer bytecode:"
           javap -c -p -classpath inspection/client.jar net.minecraft.client.renderer.entity.WolfRenderer | head -n 260
           classes=(
