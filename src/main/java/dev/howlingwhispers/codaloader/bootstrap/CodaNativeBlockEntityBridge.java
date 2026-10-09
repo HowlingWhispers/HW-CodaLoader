@@ -229,7 +229,6 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
             return;
         }
         try {
-            Constructor<?> constructor = entityConstructor();
             Object registry = CodaNativeRegistryBridge.registry("BLOCK_ENTITY_TYPE");
             Class<?> supplier = minecraft(TYPE + "$BlockEntitySupplier");
             Class<?> type = minecraft(TYPE);
@@ -239,16 +238,25 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                 Set<Object> blocks = new LinkedHashSet<>();
                 for (String id : definition.blocks()) {
                     Object block = nativeBlocks.get(id);
-                    if (block == null || !entityBlockClass().isInstance(block))
-                        throw new IllegalStateException("Missing EntityBlock for " + id);
+                    if (block == null || !minecraft(ENTITY_BLOCK).isInstance(block))
+                        throw new IllegalStateException("Missing original Minecraft EntityBlock for " + id);
                     if (BLOCK_TYPES.containsKey(block))
                         throw new IllegalStateException("Duplicate block entity ownership: " + id);
                     blocks.add(block);
                 }
+                java.util.function.BiFunction<Object,Object,Object> originalFactory =
+                        CodaNativeContents.nativeBlockEntityFactory(definition.id());
                 Object factory = Proxy.newProxyInstance(supplier.getClassLoader(),
                         new Class<?>[]{supplier}, (proxy, method, args) -> {
-                            if (method.getName().equals("create") && args != null && args.length == 2)
-                                return constructor.newInstance(args);
+                            if (method.getName().equals("create") && args != null && args.length == 2) {
+                                Object entity = originalFactory == null
+                                        ? entityConstructor().newInstance(args)
+                                        : originalFactory.apply(args[0], args[1]);
+                                if (entity == null || !minecraft(ENTITY).isInstance(entity))
+                                    throw new IllegalStateException("Native entity factory returned a "
+                                            + "non-Minecraft BlockEntity: " + definition.id());
+                                return entity;
+                            }
                             if (method.getName().equals("toString")) return definition.id();
                             if (method.getName().equals("hashCode"))
                                 return System.identityHashCode(proxy);

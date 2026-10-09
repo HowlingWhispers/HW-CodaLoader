@@ -160,3 +160,40 @@ These remain original BCCE code to port into the native lifecycle. It must
 pass both the real Snapshot 3 headless bootstrap test and a separate in-game
 single-player placement/save/reload test before a Nightly announcement.
 Existing worlds must not be migrated automatically.
+
+## Source-preserving native Minecraft factories (experimental)
+
+H.O.W.L. can now accept mod-supplied **real Minecraft Block** and
+**BlockEntity** objects in place of its generated generic block/empty holder.
+This is the compatibility boundary required by ports of existing mods such
+as the independently named `hw_buildcraft_reborn`. The loader does not
+reimplement pipe item movement, energy, NBT, geometry or animation.
+
+After registering your own block IDs and declaring an owned
+`BlockEntityType`, a port with its original game classes compiled against
+the exact target version may supply factories:
+
+```java
+context.registerBlock("hw_buildcraft_reborn:pipe", 0.25f);
+context.registerBlockEntityType("hw_buildcraft_reborn:pipe_holder",
+        java.util.List.of("hw_buildcraft_reborn:pipe"));
+context.registerNativeBlockFactory("hw_buildcraft_reborn:pipe",
+        () -> /* original Minecraft Block subclass */);
+context.registerNativeBlockEntityFactory("hw_buildcraft_reborn:pipe_holder",
+        (pos,state) -> /* original BlockEntity instance */);
+```
+
+Both factories are validated for owner, registration order and duplicates.
+They are invoked only during the native Minecraft registry lifecycle; return
+values must be instances of Mojang's exact `Block` and `BlockEntity` classes.
+If not, the bridge fails closed rather than registering placeholder gameplay.
+The entity type's declared blocks must implement Mojang's `EntityBlock`
+interface, whether H.O.W.L.-generated or original mod implementation.
+
+The original mod's own `EntityBlock.getTicker` can perform its original
+block-entity updates; the prior generic `registerBlockEntityTick` callback
+remains for mods without source-native ticker implementations.
+
+**This loader support is not itself a BuildCraft port**: the original BCCE
+1.21.11 source has unresolved NeoForge and Minecraft 26.4 compatibility
+dependencies, and no `hw_buildcraft_reborn` JAR is distributed yet.

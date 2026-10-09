@@ -30,6 +30,12 @@ public final class CodaNativeContents {
     private static final Map<String, Definition> DEFINITIONS = new LinkedHashMap<>();
     private static final Map<String, Tab> TABS = new LinkedHashMap<>();
     private static final Map<String, BlockEntityDefinition> BLOCK_ENTITIES = new LinkedHashMap<>();
+    // Native factories allow a port to return its ORIGINAL Minecraft Block and
+    // BlockEntity objects. They are not H.O.W.L. gameplay substitutes.
+    private static final Map<String, java.util.function.Supplier<?>> NATIVE_BLOCK_FACTORIES =
+            new LinkedHashMap<>();
+    private static final Map<String, java.util.function.BiFunction<Object,Object,Object>>
+            NATIVE_BLOCK_ENTITY_FACTORIES = new LinkedHashMap<>();
     private static final Map<String, java.util.function.Consumer<CodaBlockEntityTick>> BLOCK_ENTITY_TICKS =
             new LinkedHashMap<>();
     private static boolean sealed;
@@ -76,6 +82,43 @@ public final class CodaNativeContents {
         for (String item : items) requireId(item);
         if (TABS.putIfAbsent(id, new Tab(owner, id, title, icon, items)) != null)
             throw new IllegalStateException("Duplicate Creative tab " + id);
+    }
+
+    /** Declare an existing mod-owned Minecraft Block constructor before registry freeze. */
+    public static synchronized void registerNativeBlockFactory(String owner, String id,
+            java.util.function.Supplier<?> factory) {
+        requireOwner(owner);
+        requireId(id);
+        Objects.requireNonNull(factory, "nativeBlockFactory");
+        if (sealed) throw new IllegalStateException("Native block factories closed after bootstrap");
+        Definition block = DEFINITIONS.get(id);
+        if (block == null || block.kind() != Kind.BLOCK || !block.owner().equals(owner))
+            throw new IllegalArgumentException("Factory must target a registered owned block: " + id);
+        if (NATIVE_BLOCK_FACTORIES.putIfAbsent(id, factory) != null)
+            throw new IllegalArgumentException("Duplicate native block factory: " + id);
+    }
+
+    public static synchronized java.util.function.Supplier<?> nativeBlockFactory(String id) {
+        return NATIVE_BLOCK_FACTORIES.get(id);
+    }
+
+    /** Original BlockEntity constructor: takes real Minecraft BlockPos, BlockState. */
+    public static synchronized void registerNativeBlockEntityFactory(String owner, String typeId,
+            java.util.function.BiFunction<Object,Object,Object> factory) {
+        requireOwner(owner);
+        requireId(typeId);
+        Objects.requireNonNull(factory, "nativeBlockEntityFactory");
+        if (sealed) throw new IllegalStateException("Native entity factories closed after bootstrap");
+        BlockEntityDefinition definition = BLOCK_ENTITIES.get(typeId);
+        if (definition == null || !definition.owner().equals(owner))
+            throw new IllegalArgumentException("Factory must target an owned BlockEntityType: " + typeId);
+        if (NATIVE_BLOCK_ENTITY_FACTORIES.putIfAbsent(typeId, factory) != null)
+            throw new IllegalArgumentException("Duplicate native block entity factory: " + typeId);
+    }
+
+    public static synchronized java.util.function.BiFunction<Object,Object,Object>
+            nativeBlockEntityFactory(String typeId) {
+        return NATIVE_BLOCK_ENTITY_FACTORIES.get(typeId);
     }
 
     public static synchronized void registerBlockEntityType(String owner, String id, List<String> blocks) {

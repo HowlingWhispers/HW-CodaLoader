@@ -44,6 +44,30 @@ public record CodaContext(
         CodaNativeContents.registerBlockEntityTick(modId, typeId, callback);
     }
 
+    /**
+     * Supply an existing native Minecraft Block implementation, preserving
+     * its real block states, geometry, interaction hooks, and EntityBlock.
+     * The loader validates its Minecraft type when registries materialize.
+     *
+     * Register the block ID first; use this only once the original source
+     * compiles against the actual Minecraft version.
+     */
+    public void registerNativeBlockFactory(String blockId,
+            java.util.function.Supplier<?> originalMinecraftBlockFactory) {
+        CodaNativeContents.registerNativeBlockFactory(
+                modId, blockId, originalMinecraftBlockFactory);
+    }
+
+    /**
+     * Supply an existing mod BlockEntity constructor with native BlockPos
+     * and BlockState objects. No synthetic H.O.W.L. pipe state is generated.
+     */
+    public void registerNativeBlockEntityFactory(String typeId,
+            java.util.function.BiFunction<Object,Object,Object> originalBlockEntityFactory) {
+        CodaNativeContents.registerNativeBlockEntityFactory(
+                modId, typeId, originalBlockEntityFactory);
+    }
+
     public void registerItem(String namespacedId) {
         CodaNativeContents.registerItem(modId, namespacedId);
     }

@@ -51,6 +51,38 @@ public final class NativeBlockEntityDeclarationTest {
                 "Empty block entity type");
         check(CodaNativeContents.blockEntityTypes().get(0).blocks().size()==2,
                 "Rejected declarations must not mutate accepted type");
+
+        // A source-first port must supply real original Minecraft Blocks and
+        // BlockEntities; check ownership and registration WITHOUT mocking game
+        // behavior or loading legacy BuildCraft implementations.
+        java.util.function.Supplier<Object> originalBlock = Object::new;
+        CodaNativeContents.registerNativeBlockFactory("buildcraft_cml",
+                "buildcrafttransport:wood_item", originalBlock);
+        check(CodaNativeContents.nativeBlockFactory("buildcrafttransport:wood_item")
+                == originalBlock, "Original native Block factory retained unchanged");
+        rejected(() -> CodaNativeContents.registerNativeBlockFactory("other_mod",
+                "buildcrafttransport:cobblestone_item", Object::new),
+                "Cannot replace another mod's native Block");
+        rejected(() -> CodaNativeContents.registerNativeBlockFactory("buildcraft_cml",
+                "buildcrafttransport:unknown", Object::new),
+                "Cannot use undeclared native Block");
+        rejected(() -> CodaNativeContents.registerNativeBlockFactory("buildcraft_cml",
+                "buildcrafttransport:wood_item", Object::new),
+                "Cannot overwrite original Block factory");
+        java.util.function.BiFunction<Object,Object,Object> originalTile = (pos,state) -> new Object();
+        CodaNativeContents.registerNativeBlockEntityFactory("buildcraft_cml",
+                "buildcrafttransport:pipe_holder", originalTile);
+        check(CodaNativeContents.nativeBlockEntityFactory("buildcrafttransport:pipe_holder")
+                == originalTile, "Original native BlockEntity factory retained");
+        rejected(() -> CodaNativeContents.registerNativeBlockEntityFactory("other_mod",
+                "buildcrafttransport:pipe_holder", originalTile),
+                "Cannot replace another mod's native entity");
+        rejected(() -> CodaNativeContents.registerNativeBlockEntityFactory("buildcraft_cml",
+                "buildcrafttransport:missing_holder", originalTile),
+                "Cannot register factory for unknown native entity type");
+        rejected(() -> CodaNativeContents.registerNativeBlockEntityFactory("buildcraft_cml",
+                "buildcrafttransport:pipe_holder", originalTile),
+                "Cannot overwrite original native entity constructor");
         java.util.concurrent.atomic.AtomicInteger ticks = new java.util.concurrent.atomic.AtomicInteger();
         CodaNativeContents.registerBlockEntityTick("buildcraft_cml",
                 "buildcrafttransport:pipe_holder", event -> {

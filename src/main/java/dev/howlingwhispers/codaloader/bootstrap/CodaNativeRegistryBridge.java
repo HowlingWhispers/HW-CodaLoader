@@ -87,12 +87,22 @@ public final class CodaNativeRegistryBridge {
                 if (def.id().contains("item")) {
                     p = properties.getMethod("noOcclusion").invoke(p);
                 }
-                // Genuine Minecraft EntityBlock for BCCE's original pipe
-                // holders. The loader bridges native identity only, not pipe
-                // gameplay or synthetic inventories.
-                Class<?> nativeClass = CodaNativeContents.hasBlockEntity(def.id())
-                        ? CodaNativeBlockEntityBridge.entityBlockClass() : blockClass;
-                Object block = nativeClass.getConstructor(properties).newInstance(p);
+                // Prefer ORIGINAL mod Block implementations when a source
+                // port supplies them. The generated generic placeholder
+                // remains only for legacy mods without a native factory.
+                java.util.function.Supplier<?> nativeFactory =
+                        CodaNativeContents.nativeBlockFactory(def.id());
+                Object block;
+                if (nativeFactory != null) {
+                    block = nativeFactory.get();
+                    if (block == null || !blockClass.isInstance(block))
+                        throw new IllegalStateException(
+                                "Native block factory returned a non-Minecraft Block: " + def.id());
+                } else {
+                    Class<?> nativeClass = CodaNativeContents.hasBlockEntity(def.id())
+                            ? CodaNativeBlockEntityBridge.entityBlockClass() : blockClass;
+                    block = nativeClass.getConstructor(properties).newInstance(p);
+                }
                 register(registry, def.id(), block);
                 // Blocks.<clinit> has already populated vanilla state IDs and
                 // shape caches by this return hook. Registry.register alone
