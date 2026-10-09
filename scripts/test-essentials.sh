@@ -59,3 +59,4 @@ jar --create --file out/world-creation-test-agent.jar --manifest out/world-creat
 java -javaagent:out/world-creation-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.QuietUndergroundCreationTest
 
 java -cp "$TEST_CP" dev.howlingwhispers.buildcraftlite.BuildCraftLiteTransportTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.BuildCraftLiteResourceInstallerTest
