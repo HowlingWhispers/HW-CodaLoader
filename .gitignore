@@ -9,6 +9,8 @@
 *.rar
 out/
 run/
+inspection/
+__pycache__/
 
 # IDEs
 .idea/

@@ -94,16 +94,18 @@ jobs:
 
           Minecraft Java 26.4 Snapshot 3 prerelease.
 
-          - Fix BuildCraft block placement disconnects: native block states now receive
-            network IDs and initialized shape caches before gameplay starts.
-          - Fix creative-inventory tab rendering with the extra BuildCraft tab.
-          - Restore original BuildCraft/BCCE pipe and engine artwork: unique texture
-            atlas registrations, original pipe dimensions and engine face textures.
-          - Keep the existing Nightly installation and single mods folder.
+          - Add a deferred native registry API for mods' original block, item and
+            other built-in registry implementations, preserving class behaviour.
+          - Initialize native block-state packet IDs, shape caches and explicit
+            block-item associations before registry freeze.
+          - Add a source-only H.O.W.L. binding for BCCE's original registry catalogs,
+            tested against the actual Minecraft 26.4 Snapshot 3 bootstrap.
+          - Preserve the existing BuildCraft prototype and Nightly installation.
+            This API foundation does not run the complete NeoForge BCCE JAR yet.
 
           CI checks cover Java 21/25 fixtures and actual Snapshot 3 block-state
-          IDs, rendering shape caches and creative-inventory bytecode.
-          In-game pipe placement and appearance still require a player playtest.
+          IDs, rendering shape caches, original BCCE catalog binding and
+          creative-inventory bytecode. Full BCCE gameplay remains unported.
           EOF
           gh release create "$TAG" "$ZIP" dist/update-manifest.json dist/hw-essentials.jar "dist/HOWL-SDK-v${VERSION}.zip" "dist/howl-api-${VERSION}.jar" \
             --target "$GITHUB_SHA" --title "H.O.W.L. ${VERSION}" \

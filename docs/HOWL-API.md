@@ -15,6 +15,8 @@ and retest against new releases.
 | `context.registerCommand(name, description, command)` | Registers a player command. The integrated-server bridge executes it on the server thread. |
 | `CodaCommandContext` | Player UUID, world directory, position, replies and checked teleports. Store world/player state using these identities. |
 | `context.registerScreen(id, priority, factory)` | Registers a native-screen factory; the Minecraft GUI bridge constructs/opens it on the GUI thread when requested. Registration alone does not open a screen. |
+| `context.registerBlock(id, hardness)` / `registerItem(id)` | Prototype generic blocks/items, including block-item association and initialized packet state IDs. |
+| `context.registerNativeRegistry(registry, id, factory)` | Development API for 0.0.30: defer a mod's own native class factory until built-in registry bootstrap; return a lazy entry handle. Explicit block items and other dependent entries retain their original implementations. |
 | `context.registerServerTick(id, callback)` | Registers an authoritative server-thread callback after each native `MinecraftServer.tickServer(BooleanSupplier)` return. Server sessions have opaque IDs and 1-based tick counters; handlers are isolated and disabled after three consecutive errors. Early integration, requires live Snapshot 3 mapping verification. |
 | `coda.mod.json` schema 1 | Exact Minecraft target, unique mod ID, entrypoint and required mod IDs. Missing dependencies, duplicates and dependency cycles are rejected. |
 
@@ -25,6 +27,39 @@ shipping a private API copy can break entrypoint and registry identity.
 Mods have separate classloaders. `depends` controls presence and startup order;
 it does not provide cross-mod Java class access or version ranges. Initialization
 does not grant safe access to Minecraft's client or world threads.
+
+## Original native content factories (0.0.30 development)
+
+Declare factories during `onInitialize`; do not construct Minecraft content
+during early loader initialization. The factory receives the actual native
+`ResourceKey`, so modern block/item properties can receive their required ID:
+
+```java
+var machine = context.registerNativeRegistry("minecraft:block", "example:machine", registration ->
+        new MyMachineBlock(BlockBehaviour.Properties.of()
+                .setId((ResourceKey<Block>) registration.key())));
+context.registerNativeRegistry("minecraft:item", "example:machine", registration ->
+        new BlockItem(machine.get(), new Item.Properties()
+                .setId((ResourceKey<Item>) registration.key())));
+```
+
+Compile native implementations against **26.4 Snapshot 3** as well as the
+matching HOWL API; do not bundle Minecraft or HOWL API classes in your mod.
+Declare dependencies first. Calling `get()` before its factory is registered
+throws. The loader preserves the returned object, registers all block states
+for packet IDs, initializes shape caches, and associates explicit block items.
+There is no implicit generic block or item substitution in this API.
+
+Factories execute immediately before built-in registry freeze. Duplicate or
+occupied IDs, null results and declarations after that boundary fail explicitly.
+This covers built-in registries; world-specific dynamic registries need a
+separate data-loading integration. A partially completed failed bootstrap is
+fatal, rather than being retried against mutated registries.
+
+The source-only [BCCE registry binding](../compat/bcce/src/main/java/buildcraft/lib/platform/registry/RegistryBinding.java)
+connects BCCE's existing `BCDeferredRegister` and `BCRegistryEntry` catalogs to
+this API. It belongs in BCCE's H.O.W.L. platform sources, not in a separate
+player API mod. See [the compatibility status](BCCE-COMPATIBILITY.md).
 
 ## A simple command
 
@@ -121,10 +156,12 @@ models, wrench item and energy engine remain future work.
 
 ## What revival mods still need
 
-Block/item registration, recipes, machine ticking, persistent block entities,
+Complete recipe integration, machine ticking, persistent block entity integration,
 inventory/fluid/energy transport, world generation and network synchronization
 are not provided as a complete public SDK yet. A BuildCraft port needs those
-contracts before pipes, engines and quarries can operate. The first revival
+integrations before its original pipes, engines and quarries can operate. Native
+factory registration preserves custom classes but does not provide their
+NeoForge services or adapt their Minecraft calls. The first revival
 tracking issue is [BuildCraft](https://github.com/HowlingWhispers/HW-CodaLoader/issues/1).
 
 This release supplies a working entrypoint/command starting point. It does not
