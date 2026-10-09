@@ -14,6 +14,12 @@ public final class CompanionRules {
                 && ownerDistanceSquared <= GUARD_RANGE_SQUARED;
     }
 
+    /** Never cancel vanilla targets just because the mod has no valid
+     * manually assigned target. This preserves ordinary tame wolf AI goals. */
+    public static boolean releaseAssignedTarget(boolean safe, boolean wasOurTarget) {
+        return !safe && wasOurTarget;
+    }
+
     /** Only a successful night skip after entering a bed can unlock respawn. */
     public static final class SleepGate {
         private boolean sawSleeping;

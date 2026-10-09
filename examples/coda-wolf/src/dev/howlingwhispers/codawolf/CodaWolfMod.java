@@ -7,6 +7,8 @@ import dev.howlingwhispers.codaloader.api.CodaEntityAppearance;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.UUID;
 
 /**
@@ -17,6 +19,18 @@ public final class CodaWolfMod implements CodaMod {
     private static final String PREFIX = "[Coda Wolf] ";
     private static final String TAME = "codawolf:entity/coda_tame";
     private static final String ANGRY = "codawolf:entity/coda_angry";
+    private static final int[][] SCAN_OFFSETS = scanOffsets();
+    /** Near-first fixed 7x3x7 search. Eight loaded blocks every two ticks,
+     * spread over time: no full-chunk scan, lighting engine or screenshots. */
+    private static int[][] scanOffsets() {
+        List<int[]> offsets = new ArrayList<>();
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -3; dx <= 3; dx++)
+                for (int dz = -3; dz <= 3; dz++)
+                    offsets.add(new int[]{dx,dy,dz});
+        offsets.sort(Comparator.comparingInt(v -> v[0]*v[0]+v[1]*v[1]+v[2]*v[2]));
+        return offsets.toArray(int[][]::new);
+    }
 
     private static void skin(java.util.UUID wolfId) {
         CodaEntityAppearance.setWolfSkin(wolfId, TAME, ANGRY);
@@ -35,6 +49,9 @@ public final class CodaWolfMod implements CodaMod {
     private static final class Companion {
         final CompanionSave save;
         final CompanionRules.SleepGate sleep = new CompanionRules.SleepGate();
+        final CompanionAwareness awareness = new CompanionAwareness();
+        boolean awarenessUnavailable;
+        Object assignedTarget;
         Object cachedWolf;
         Object aggressor;
         long defendUntilTick;
@@ -47,31 +64,76 @@ public final class CodaWolfMod implements CodaMod {
     @Override public void onInitialize(CodaContext context) {
         context.registerServerTick("companion", this::tick);
         context.registerCommand("codawolf", "Inspect or recover Coda's defensive wolf companion", (player, args) -> {
-            if (args.size() > 1 || (!args.isEmpty() &&
-                    !List.of("status", "help", "defensive", "diagnose", "summon").contains(args.get(0)))) {
-                player.reply("Usage: /codawolf [status|diagnose|summon|defensive|help]");
+            if (args.size() > 2 || (!args.isEmpty() &&
+                    !List.of("status", "help", "defensive", "diagnose", "summon",
+                             "awareness", "nearby", "ai").contains(args.get(0)))
+                    || (args.size() == 2 && !args.get(0).equals("awareness"))) {
+                player.reply("Usage: /codawolf [status|summon|diagnose|nearby|awareness on/off|ai|help]");
                 return;
             }
             String command = args.isEmpty() ? "status" : args.get(0);
             if (command.equals("help")) {
-                player.reply("Coda: DEFENSIVE. Commands: /codawolf status, /codawolf diagnose, /codawolf summon. " +
-                        "The summon command is safe and never duplicates a registered wolf.");
+                player.reply("Coda: defensive and offline-aware. Commands: /codawolf status, " +
+                        "/codawolf nearby, /codawolf awareness on/off, /codawolf diagnose, " +
+                        "/codawolf summon, /codawolf ai. No provider data is sent.");
                 return;
             }
             CompanionSave save = CompanionSave.load(player.worldDirectory(), player.playerId());
+            if (command.equals("ai")) {
+                player.reply("Offline reactions are working. A generative AI provider is " +
+                        "not yet connected to Coda Companion. No observations leave this PC.");
+                return;
+            }
+            if (command.equals("awareness")) {
+                if (args.size() == 2) {
+                    if (!List.of("on", "off").contains(args.get(1))) {
+                        player.reply("Usage: /codawolf awareness [on|off]"); return;
+                    }
+                    boolean enabled = args.get(1).equals("on");
+                    save.awarenessEnabled = enabled;
+                    save.persist();
+                    Companion cached = companions.get(player.playerId());
+                    if (cached != null) cached.save.awarenessEnabled = enabled;
+                    player.reply("Coda awareness " + (enabled ? "ON" : "OFF")
+                            + ". Offline only; no camera or external service.");
+                } else {
+                    player.reply("Coda awareness: " + (save.awarenessEnabled ? "ON" : "OFF")
+                            + ". Tip cooldown 45s. Use /codawolf nearby for her observations.");
+                }
+                return;
+            }
+            if (command.equals("nearby")) {
+                Companion cached = companions.get(player.playerId());
+                if (cached == null || cached.awareness.recent().isEmpty()) {
+                    player.reply("Nothing identified nearby yet. Stay close to Coda for a few " +
+                            "seconds, or check /codawolf awareness.");
+                } else {
+                    player.reply("Coda's recent registry observations (local only):");
+                    for (var observation : cached.awareness.recent().stream().limit(8).toList()) {
+                        String tags = observation.tags().isEmpty() ? "" :
+                                " #" + String.join(" #", observation.tags().stream().limit(2).toList());
+                        player.reply(" * " + observation.blockId() + tags +
+                                " (~" + (int)Math.sqrt(observation.distanceSquared()) + " blocks)");
+                    }
+                }
+                return;
+            }
             if (command.equals("summon")) {
                 summonFromCommand(player, save);
                 return;
             }
             String status = describeSave(save);
             if (!command.equals("diagnose")) {
-                player.reply("Coda: " + status + ". Combat: DEFENSIVE. " +
+                player.reply("Coda: " + status + ". Combat: DEFENSIVE. Awareness: " +
+                        (save.awarenessEnabled ? "ON" : "OFF") + ". Active AI: NOT CONNECTED. " +
                         (bridgeUnsupported ? "Native bridge disabled; use /codawolf diagnose." : ""));
                 return;
             }
             player.reply("Coda diagnostics: server ticks=" + ticksSeen +
                     ", adapter=" + (bridgeUnsupported ? "DISABLED" : "not disabled") +
-                    ", save=" + status + ", last error=" + lastFailure);
+                    ", save=" + status + ", last error=" + lastFailure +
+                    ", observed blocks=" + (companions.containsKey(player.playerId())
+                            ? companions.get(player.playerId()).awareness.observationsSeen() : 0));
             try {
                 MinecraftWolfBridge game = new MinecraftWolfBridge();
                 Object owner = game.player(player.playerId());
@@ -235,8 +297,11 @@ public final class CodaWolfMod implements CodaMod {
             if (slept) create(game, c, player);
             return;
         }
-        if (wolf != null && !game.dead(wolf))
+        if (wolf != null && !game.dead(wolf)) {
             defend(game, c, player, wolf, tick);
+            if (tick % CompanionAwareness.SCAN_INTERVAL_TICKS == 0)
+                sense(game, c, player, wolf, tick);
+        }
     }
 
     private void create(MinecraftWolfBridge game, Companion c, Object player) throws Exception {
@@ -257,10 +322,33 @@ public final class CodaWolfMod implements CodaMod {
         c.cachedWolf = wolf;
         skin(c.save.wolfId);
         c.aggressor = null;
+        c.assignedTarget = null;
         c.defendUntilTick = 0;
         c.ownerAttackStamp = 0;
         c.wolfAttackStamp = 0;
         System.out.println(PREFIX + "Coda joined the world as a tamed, defensive wolf: " + c.save.wolfId);
+    }
+
+    /** Never let missing sensory mappings disable Coda's movement, combat,
+     * health, respawn, world saves or vanilla Wolf entity behavior. */
+    private void sense(MinecraftWolfBridge game, Companion c, Object owner,
+                       Object wolf, long tick) {
+        if (!c.save.awarenessEnabled || c.awarenessUnavailable) return;
+        try {
+            if (game.distance(owner, wolf) > CompanionRules.GUARD_RANGE_SQUARED)
+                return; // Never send suggestions from an abandoned distant pet.
+            for (int sample = 0; sample < CompanionAwareness.BLOCKS_PER_SCAN; sample++) {
+                int[] offset=SCAN_OFFSETS[c.awareness.nextScanIndex(SCAN_OFFSETS.length)];
+                var observed=game.observeBlock(wolf, offset[0], offset[1], offset[2], tick);
+                if (observed == null) continue;
+                var idea=c.awareness.observe(observed);
+                if (idea.isPresent()) game.comment(owner, idea.get().text());
+            }
+        } catch (Exception invalidMapping) {
+            c.awarenessUnavailable = true;
+            System.err.println(PREFIX + "Environment sensing paused (vanilla wolf AI "
+                    + "still running): " + detail(invalidMapping));
+        }
     }
 
     private void defend(MinecraftWolfBridge game, Companion c, Object player, Object wolf, long tick) throws Exception {
@@ -281,9 +369,14 @@ public final class CodaWolfMod implements CodaMod {
         if (safe) safe = game.distance(wolf, c.aggressor) <= CompanionRules.GUARD_RANGE_SQUARED;
         Object current = game.target(wolf);
         if (!safe) {
-            if (current != null) game.target(wolf, null);
+            // Do not cancel vanilla AI's own hunting/defense targets.
+            if (CompanionRules.releaseAssignedTarget(false,
+                    current != null && current == c.assignedTarget))
+                game.target(wolf, null);
+            c.assignedTarget = null;
         } else if (current != c.aggressor) {
             game.target(wolf, c.aggressor);
+            c.assignedTarget = c.aggressor;
         }
     }
 }
