@@ -84,7 +84,14 @@ public final class CodaNativeRegistryBridge {
                 p = properties.getMethod("strength", float.class).invoke(p, def.hardness());
                 // Correct for the original narrow pipe bodies, not a solid
                 // suffocating cube. Actual BuildCraft models use release art.
-                if (def.id().contains("item")) {
+                if (def.id().startsWith("hw_buildcraft_lite:")
+                        && def.id().endsWith("_transport_pipe")) {
+                    // Lite's visible model is a thin pipe. Until source-native
+                    // voxel shapes are ported, do not create invisible
+                    // full-cube collision walls around those narrow models.
+                    p = properties.getMethod("noCollision").invoke(p);
+                    p = properties.getMethod("noOcclusion").invoke(p);
+                } else if (def.id().contains("item")) {
                     p = properties.getMethod("noOcclusion").invoke(p);
                 }
                 // Prefer ORIGINAL mod Block implementations when a source
