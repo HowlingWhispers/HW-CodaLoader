@@ -67,6 +67,13 @@ final class ClientHooks {
                     applyWindowTitle(minecraft);
 
                     Object screen = findActiveScreen(minecraft, screenClass);
+                    if (screen != null && screen.getClass().getName().contains("inventory.")) {
+                        Object recipeScreen = screen;
+                        schedule(minecraft, () -> {
+                            if (findActiveScreen(minecraft, screenClass) == recipeScreen)
+                                CodaRecipeBookUi.refresh(recipeScreen);
+                        });
+                    }
                     boolean isTitleScreen = screen != null
                             && "net.minecraft.client.gui.screens.TitleScreen".equals(screen.getClass().getName());
 
