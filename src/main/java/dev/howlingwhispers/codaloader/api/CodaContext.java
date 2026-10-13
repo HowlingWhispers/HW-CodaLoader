@@ -83,6 +83,15 @@ public record CodaContext(
         CodaNativeContents.registerItem(modId, namespacedId);
     }
 
+    /**
+     * Declare a sub-category beneath H.O.W.L.'s shared vanilla recipe-book tab.
+     * Item IDs refer to existing vanilla or modded items; this does not add recipes.
+     */
+    public void registerRecipeBookCategory(String id, String title, String icon,
+                                           List<String> itemIds) {
+        CodaRecipeBookCategories.register(modId, id, title, icon, itemIds);
+    }
+
     public void registerCreativeTab(String id, String title, String icon, List<String> entries) {
         CodaNativeContents.registerTab(modId, id, title, icon, entries);
     }
