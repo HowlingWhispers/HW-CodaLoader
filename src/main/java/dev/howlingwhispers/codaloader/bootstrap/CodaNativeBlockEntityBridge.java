@@ -132,7 +132,11 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                     "(L" + PROPERTIES + ";)V", null, null);
             ctor.visitCode();
             ctor.visitVarInsn(ALOAD, 0);
-            ctor.visitLdcInsn(0.1875f);
+            // Snapshot 3 PipeBlock takes a FULL WIDTH in model pixels,
+            // not a radius in block units. Match the visible [5,11] body:
+            // 6 pixels = 0.375 blocks. The old 0.1875 value made the
+            // outline almost impossible to hit when mining/picking pipes.
+            ctor.visitLdcInsn(6.0f);
             ctor.visitVarInsn(ALOAD, 1);
             ctor.visitMethodInsn(INVOKESPECIAL, PIPE_BLOCK, "<init>",
                     "(FL" + PROPERTIES + ";)V", false);

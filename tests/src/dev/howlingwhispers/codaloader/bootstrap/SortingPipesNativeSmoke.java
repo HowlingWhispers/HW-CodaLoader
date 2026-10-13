@@ -35,7 +35,7 @@ public final class SortingPipesNativeSmoke {
     }
     public static void main(String[] args) throws Exception {
         Path game=Files.createTempDirectory("howl-native-sort-");
-        var context=new CodaContext("0.0.38", "26.4-snapshot-3",game,game.resolve("config"),"howl_sorting_pipes",List.of("howl_sorting_pipes"));
+        var context=new CodaContext("0.0.40", "26.4-snapshot-3",game,game.resolve("config"),"howl_sorting_pipes",List.of("howl_sorting_pipes"));
         var blocks=List.of(SortingTransport.EXTRACT,SortingTransport.PIPE,SortingTransport.SORT,SortingTransport.ROUND,SortingTransport.EQUAL);
         for (String id:blocks) context.registerBlock(id,0.8f);
         context.registerBlockEntityType("howl_sorting_pipes:pipe_holder",blocks.subList(0,3));
@@ -54,6 +54,7 @@ public final class SortingPipesNativeSmoke {
                 Object entity=call(block,"newBlockEntity",pos,state);
                 check(Class.forName("net.minecraft.world.level.block.entity.BlockEntity").isInstance(entity),"Native entity constructed");
                 check(((Collection<?>)call(call(block,"getStateDefinition"),"getPossibleStates")).size()==64,"64 connection states registered");
+                checkPipeSelection(block,pos);
             }
         }
         // Unsafe is used ONLY to provide an unstarted native integrated-server identity in this headless test.
@@ -91,6 +92,36 @@ public final class SortingPipesNativeSmoke {
         check(!world.isLoaded(new CodaBlockPos(32,64,0)),"Unloaded native shell stays unloaded");
         checkNativePageControls(unsafe,unsafeClass,registry,identifier);
         System.out.println("PASS: "+checks+" exact Mojang Snapshot 3 native sorting-pipes checks");
+    }
+    private static void checkPipeSelection(Object block,Object pos)throws Exception {
+        Class<?> getter=Class.forName("net.minecraft.world.level.BlockGetter");
+        Class<?> posType=Class.forName("net.minecraft.core.BlockPos");
+        Class<?> vec=Class.forName("net.minecraft.world.phys.Vec3");
+        Object start=vec.getConstructor(double.class,double.class,double.class).newInstance(0.35,64.35,-1.0);
+        Object end=vec.getConstructor(double.class,double.class,double.class).newInstance(0.35,64.35,2.0);
+        // PipeBlock's shape is state-only; null BlockGetter proves querying
+        // geometry does not load chunks. Test every native connection state.
+        for(Object state:(Collection<?>)call(call(block,"getStateDefinition"),"getPossibleStates")) {
+            Object shape=state.getClass().getMethod("getShape",getter,posType).invoke(state,null,pos);
+            check(!(Boolean)call(shape,"isEmpty"),"Pipe remains targetable in every connection state");
+            Object bounds=call(shape,"bounds");
+            for(String axis:List.of("X","Y","Z")) {
+                String negative=Map.of("X","WEST","Y","DOWN","Z","NORTH").get(axis);
+                String positive=Map.of("X","EAST","Y","UP","Z","SOUTH").get(axis);
+                Object lo=Class.forName("net.minecraft.world.level.block.PipeBlock").getField(negative).get(null);
+                Object hi=Class.forName("net.minecraft.world.level.block.PipeBlock").getField(positive).get(null);
+                double min=(Boolean)call(state,"getValue",lo)?0:5.0/16;
+                double max=(Boolean)call(state,"getValue",hi)?1:11.0/16;
+                check(Math.abs(bounds.getClass().getField("min"+axis).getDouble(bounds)-min)<1e-9
+                        &&Math.abs(bounds.getClass().getField("max"+axis).getDouble(bounds)-max)<1e-9,
+                        "Native selection bounds match six-pixel model and connected arms: "+axis);
+            }
+            check(call(shape,"clip",start,end,pos)!=null,"Ray through visible pipe edge can target mining/pick-block");
+            Object collision=state.getClass().getMethod("getCollisionShape",getter,posType).invoke(state,null,pos);
+            check((Boolean)call(collision,"isEmpty"),"Pipe selection does not introduce invisible collision walls");
+            float hardness=((Number)state.getClass().getMethod("getDestroySpeed",getter,posType).invoke(state,null,pos)).floatValue();
+            check(Math.abs(hardness-0.8f)<1e-6,"Pipe has normal mineable hardness");
+        }
     }
     private static void checkNativePageControls(Object unsafe,Class<?> unsafeClass,Object blocks,Class<?> identifier)throws Exception {
         // Construct a real Minecraft Screen with a fixture selection handler.
