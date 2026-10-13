@@ -13,7 +13,7 @@ public final class CodaRecipeBookUi {
     private static final Map<Object, State> SCREENS = Collections.synchronizedMap(new WeakHashMap<>());
     private static final Set<Class<?>> WARNED = Collections.synchronizedSet(new HashSet<>());
     private static final int MAX_SUBTABS = 5;
-    private record State(Object book, Object parent, List<Object> children, boolean expanded) {}
+    private record State(Object book, Object parent, List<Object> children, boolean expanded, int page) {}
     private CodaRecipeBookUi() {}
 
     public static void refresh(Object screen) {
@@ -36,7 +36,7 @@ public final class CodaRecipeBookUi {
             // with children extending upwards if near the screen bottom.
             int x = Math.max(2, searchX - 66), y = Math.min(screenHeight - 22, searchY + 152);
             Object parent = button(screen, "HW", x, y, 25, () -> toggle(screen));
-            State state = new State(book, parent, new ArrayList<>(), false);
+            State state = new State(book, parent, new ArrayList<>(), false, 0);
             SCREENS.put(screen, state);
         } catch (ReflectiveOperationException | RuntimeException error) {
             if (WARNED.add(screen.getClass()))
@@ -60,38 +60,43 @@ public final class CodaRecipeBookUi {
     private static void toggle(Object screen) {
         State state = SCREENS.get(screen);
         if (state == null) return;
-        if (state.expanded) { removeChildren(screen, state.children); SCREENS.put(screen,new State(state.book,state.parent,new ArrayList<>(),false)); return; }
+        if (state.expanded) { removeChildren(screen, state.children); SCREENS.put(screen,new State(state.book,state.parent,new ArrayList<>(),false,state.page)); return; }
         try {
             int x = ((Number)invoke(state.parent, "getX")).intValue();
             int y = ((Number)invoke(state.parent, "getY")).intValue();
             List<Object> children = new ArrayList<>();
             List<CodaRecipeBookCategories.Category> categories = CodaRecipeBookCategories.snapshot();
-            int count = Math.min(MAX_SUBTABS, categories.size());
+            int offset = state.page * MAX_SUBTABS;
+            if (offset >= categories.size()) offset = 0;
+            int count = Math.min(MAX_SUBTABS, categories.size() - offset);
             // Subtabs form an adjacent flyout, avoiding collisions with vanilla tabs.
             int screenWidth = ((Number)fieldValue(screen,"width")).intValue();
             int flyoutX = x + 27;
             if (flyoutX + 96 > screenWidth) flyoutX = Math.max(2, x - 98);
             for (int i=0; i<count; i++) {
-                var category = categories.get(i);
+                var category = categories.get(offset+i);
                 int yy = Math.max(2, Math.min(y + i*19, ((Number)fieldValue(screen,"height")).intValue()-18));
                 children.add(button(screen, abbreviated(category.title()), flyoutX, yy, 94,
                         () -> search(state.book, category)));
             }
             if (categories.size() > count)
-                children.add(button(screen, "+" + (categories.size()-count) + " more", flyoutX,
-                        Math.max(2, y-19), 94, () -> page(screen, MAX_SUBTABS)));
-            SCREENS.put(screen,new State(state.book,state.parent,children,true));
+                children.add(button(screen, "More >", flyoutX,
+                        Math.max(2, y-19), 94, () -> page(screen)));
+            SCREENS.put(screen,new State(state.book,state.parent,children,true,state.page));
         } catch (ReflectiveOperationException | RuntimeException ex) {
             remove(screen);
             System.err.println("[H.O.W.L.] Recipe shortcut flyout closed: " + ex);
         }
     }
 
-    private static void page(Object screen,int offset) {
-        // Overflow handled through searchable mod names; avoid an unbounded
-        // flyout in small GUIs until native pagination is available.
-        State state=SCREENS.get(screen);
-        if(state!=null) { removeChildren(screen,state.children); SCREENS.put(screen,new State(state.book,state.parent,new ArrayList<>(),false)); }
+    private static void page(Object screen) {
+        State state = SCREENS.get(screen);
+        if (state == null) return;
+        removeChildren(screen,state.children);
+        int pages=(CodaRecipeBookCategories.snapshot().size()+MAX_SUBTABS-1)/MAX_SUBTABS;
+        SCREENS.put(screen,new State(state.book,state.parent,new ArrayList<>(),false,
+                (state.page+1)%Math.max(1,pages)));
+        toggle(screen);
     }
 
     private static String abbreviated(String text) {
@@ -104,7 +109,14 @@ public final class CodaRecipeBookUi {
             if (input == null) return;
             // Vanilla search index understands display names; this is a
             // search shortcut, not a new native recipe category.
-            invoke(input,"setValue",String.class,category.title());
+            String query = category.itemIds().stream()
+                    .map(id -> id.substring(id.indexOf(':') + 1))
+                    .map(id -> id.replace('_',' '))
+                    .filter(id -> id.contains("pipe"))
+                    .map(id -> "pipe")
+                    .findFirst()
+                    .orElseGet(() -> category.title().replace("Sorting ", "").replace("H.O.W.L. ", ""));
+            invoke(input,"setValue",String.class,query);
         } catch (ReflectiveOperationException e) {
             System.err.println("[H.O.W.L.] Recipe search unavailable: " + e);
         }
