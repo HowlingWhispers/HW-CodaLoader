@@ -221,3 +221,19 @@ test exercises this path using the real native Block constructor.
 Original `BlockPipeHolder` still requires a source compatibility constructor
 accepting native keyed Properties; H.O.W.L. cannot add that constructor to
 unmodified upstream BCCE code on its own.
+
+
+## Sorting Pipes extension (0.0.38)
+
+`CodaWorldView.itemInventory(dimension, pos)` returns immutable exact item-ID
+slot snapshots for supported loaded vanilla chest/barrel entities.
+`transferFiltered(dimension, source, target, maximum, CodaItemFilter)` selects
+source stacks by whitelist/blacklist registry ID while preserving all stack
+components. Empty whitelist blocks everything; empty blacklist passes all.
+The existing unfiltered API remains compatible. New methods are defaulted so
+existing third-party world-view implementations continue to compile.
+
+The matching mod lives in [HW-Mods](https://github.com/HowlingWhispers/HW-Mods/tree/main/mods/sorting-pipes). Its README documents
+singleplayer limits, attachment placement, commands, pack installation and
+verification. This loader release also supports its six-face native pipe
+models and returns canonical dimension IDs to player commands.

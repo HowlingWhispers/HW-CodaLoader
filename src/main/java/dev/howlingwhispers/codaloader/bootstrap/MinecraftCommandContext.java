@@ -30,7 +30,7 @@ final class MinecraftCommandContext implements CodaCommandContext {
 
     public CodaPosition position() throws Exception {
         Object level = CommandReflection.call(source, "getLevel");
-        return new CodaPosition(CommandReflection.call(level, "dimension").toString(),
+        return new CodaPosition(CommandReflection.call(CommandReflection.call(level, "dimension"), "identifier").toString(),
                 ((Number) CommandReflection.call(player, "getX")).doubleValue(),
                 ((Number) CommandReflection.call(player, "getY")).doubleValue(),
                 ((Number) CommandReflection.call(player, "getZ")).doubleValue(),

@@ -16,6 +16,7 @@ public final class ItemStack {
         this.components = components;
     }
 
+    public Object getItem() { return itemId; }
     public int getCount() { return count; }
     public int getMaxStackSize() { return max; }
     public boolean isEmpty() { return count == 0; }

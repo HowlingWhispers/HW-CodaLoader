@@ -344,7 +344,9 @@ public final class CodaNativeBlockEntityBridge implements Opcodes {
                 Object block = stateType.getMethod("getBlock").invoke(neighborState);
                 String id=registry.getClass().getMethod("getKey",Object.class)
                         .invoke(registry,block).toString();
-                connected = id.equals("hw_buildcraft_lite:wooden_transport_pipe")
+                connected = CodaNativeRegistryBridge.isConnectedPipe(id)
+                        || id.startsWith("howl_sorting_pipes:")
+                        || id.equals("hw_buildcraft_lite:wooden_transport_pipe")
                         || id.equals("hw_buildcraft_lite:stone_transport_pipe")
                         || id.equals("hw_buildcraft_lite:redstone_engine")
                         || id.equals("minecraft:chest") || id.equals("minecraft:trapped_chest")

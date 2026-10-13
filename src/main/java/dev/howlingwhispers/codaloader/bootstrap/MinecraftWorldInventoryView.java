@@ -131,6 +131,24 @@ public final class MinecraftWorldInventoryView implements CodaWorldView, AutoClo
         return new MinecraftSingleplayerWorld(server, level).transfer(from, to, maximum);
     }
 
+    @Override
+    public Optional<dev.howlingwhispers.codaloader.api.CodaItemInventoryView> itemInventory(
+            String dimension, CodaBlockPos pos) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null || existingChunk(level, pos) == null) return Optional.empty();
+        return new MinecraftSingleplayerWorld(server, level).itemInventory(pos);
+    }
+
+    @Override
+    public int transferFiltered(String dimension, CodaBlockPos from, CodaBlockPos to,
+            int maximum, dev.howlingwhispers.codaloader.api.CodaItemFilter filter) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null || existingChunk(level, from) == null || existingChunk(level, to) == null) return 0;
+        return new MinecraftSingleplayerWorld(server, level).transferFiltered(from, to, maximum, filter);
+    }
+
     private Iterable<?> levels() throws Exception {
         Object levels = CommandReflection.call(server, "getAllLevels");
         if (!(levels instanceof Iterable<?> result))

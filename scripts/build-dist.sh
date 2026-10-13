@@ -41,6 +41,9 @@ if [[ -d src/main/resources ]]; then
   cp -R src/main/resources/. out/classes/
 fi
 
+mkdir -p out/classes/codaloader
+printf '{"version":"%s","minecraft":"26.4-snapshot-3"}\n' "$LOADER_VERSION" > out/classes/codaloader/runtime-version.json
+
 # Both the release and local development paths require a verified mod JAR.
 if [[ -n "${HW_ESSENTIALS_LOCAL_JAR:-}" ]]; then
   [[ -f "$HW_ESSENTIALS_LOCAL_JAR" && -f "${HW_ESSENTIALS_LOCAL_SHA256:-}" ]] || {

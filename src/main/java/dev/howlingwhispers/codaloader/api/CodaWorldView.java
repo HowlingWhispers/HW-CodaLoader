@@ -33,6 +33,17 @@ public interface CodaWorldView {
      */
     Optional<CodaInventoryView> inventory(String dimension, CodaBlockPos pos) throws Exception;
 
+    /** Exact IDs for supported loaded ordinary chests and barrels. */
+    default Optional<CodaItemInventoryView> itemInventory(String dimension, CodaBlockPos pos) throws Exception {
+        throw new UnsupportedOperationException("H.O.W.L. Sorting Pipes loader patch is required");
+    }
+
+    /** Component-preserving transfer which skips every nonmatching source slot. */
+    default int transferFiltered(String dimension, CodaBlockPos source, CodaBlockPos target,
+            int maximum, CodaItemFilter filter) throws Exception {
+        throw new UnsupportedOperationException("H.O.W.L. Sorting Pipes loader patch is required");
+    }
+
     /** Native block registration check, only in loaded chunks. */
     default boolean isBlock(String dimension, CodaBlockPos pos, String blockId) throws Exception {
         throw new UnsupportedOperationException("Snapshot transport world adapter unavailable");

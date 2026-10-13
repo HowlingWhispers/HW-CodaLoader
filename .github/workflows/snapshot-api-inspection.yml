@@ -4,6 +4,10 @@ on:
     paths:
       - .github/workflows/snapshot-api-inspection.yml
       - 'examples/buildcraft-lite/**'
+      - 'src/main/java/dev/howlingwhispers/codaloader/api/CodaItem*'
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftSingleplayerWorld.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/SortingPipesNativeSmoke.java
+      - scripts/test-sorting-pipes-native.sh
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftLiteResourceInstaller.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
@@ -158,6 +162,7 @@ jobs:
           while IFS= read -r jar; do CLASSPATH="$CLASSPATH:$jar"; done < <(find inspection/maven -type f -name '*.jar')
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
+          bash scripts/test-sorting-pipes-native.sh inspection/client.jar inspection/maven
       - uses: actions/upload-artifact@v4
         if: always()
         with:

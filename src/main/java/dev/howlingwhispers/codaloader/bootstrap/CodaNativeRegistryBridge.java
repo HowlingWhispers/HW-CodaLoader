@@ -84,8 +84,7 @@ public final class CodaNativeRegistryBridge {
                 p = properties.getMethod("strength", float.class).invoke(p, def.hardness());
                 // Correct for the original narrow pipe bodies, not a solid
                 // suffocating cube. Actual BuildCraft models use release art.
-                if (def.id().startsWith("hw_buildcraft_lite:")
-                        && def.id().endsWith("_transport_pipe")) {
+                if (isConnectedPipe(def.id())) {
                     // Lite's visible model is a thin pipe. Until source-native
                     // voxel shapes are ported, do not create invisible
                     // full-cube collision walls around those narrow models.
@@ -116,8 +115,7 @@ public final class CodaNativeRegistryBridge {
                                 "Native block factory returned a non-Minecraft Block: " + def.id());
                 } else {
                     Class<?> nativeClass = CodaNativeContents.hasBlockEntity(def.id())
-                            ? (def.id().startsWith("hw_buildcraft_lite:")
-                                && def.id().endsWith("_transport_pipe")
+                            ? (isConnectedPipe(def.id())
                                 ? CodaNativeBlockEntityBridge.pipeEntityBlockClass()
                                 : CodaNativeBlockEntityBridge.entityBlockClass()) : blockClass;
                     block = nativeClass.getConstructor(properties).newInstance(p);
@@ -144,6 +142,11 @@ public final class CodaNativeRegistryBridge {
             // Do not mark success or pretend items are available in Creative.
             throw new IllegalStateException("H.O.W.L. native block registry failed", error);
         }
+    }
+
+    static boolean isConnectedPipe(String id) {
+        return (id.startsWith("hw_buildcraft_lite:") && id.endsWith("_transport_pipe"))
+                || (id.startsWith("howl_sorting_pipes:") && id.endsWith("_pipe"));
     }
 
     /** Register Item and BlockItem entries after native blocks exist. */

@@ -66,6 +66,9 @@ if ($jarContents -notcontains "dev/howlingwhispers/essentials/HwEssentialsMod.cl
 New-Item -ItemType Directory -Force out/classes/codaloader/mods | Out-Null
 Copy-Item dist/hw-essentials.jar out/classes/codaloader/mods/
 
+New-Item -ItemType Directory -Force out/classes/codaloader | Out-Null
+@{ version = $LoaderVersion; minecraft = "26.4-snapshot-3" } | ConvertTo-Json -Compress | Set-Content -Encoding ascii out/classes/codaloader/runtime-version.json
+
 $manifest = @(
     "Manifest-Version: 1.0",
     "Main-Class: $MainClass",

@@ -2,6 +2,8 @@ package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.api.CodaBlockPos;
 import dev.howlingwhispers.codaloader.api.CodaSingleplayerWorld;
+import dev.howlingwhispers.codaloader.api.CodaItemFilter;
+import dev.howlingwhispers.codaloader.api.CodaItemInventoryView;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Objects;
@@ -120,7 +122,38 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
 
     @Override
     public int transfer(CodaBlockPos from, CodaBlockPos to, int maximum) throws Exception {
+        return transferFiltered(from, to, maximum, CodaItemFilter.all());
+    }
+
+    static String itemId(Object stack) throws Exception {
+        Object registry = Class.forName("net.minecraft.core.registries.BuiltInRegistries", true,
+                stack.getClass().getClassLoader()).getField("ITEM").get(null);
+        Object item = CommandReflection.call(stack, "getItem");
+        Object key = CommandReflection.call(registry, "getKey", item);
+        if (key == null) throw new IOException("Unknown native item registry key");
+        return key.toString();
+    }
+
+    java.util.Optional<CodaItemInventoryView> itemInventory(CodaBlockPos pos) throws Exception {
         checkThread();
+        Object container = chest(Objects.requireNonNull(pos));
+        if (container == null) return java.util.Optional.empty();
+        int size = intCall(container, "getContainerSize");
+        if (size < 1 || size > 54) throw new IOException("Invalid vanilla inventory size");
+        var slots = new java.util.ArrayList<CodaItemInventoryView.Slot>();
+        for (int i=0; i<size; i++) {
+            Object stack = CommandReflection.call(container, "getItem", i);
+            boolean empty = (Boolean)CommandReflection.call(stack, "isEmpty");
+            slots.add(new CodaItemInventoryView.Slot(i, empty ? "minecraft:air" : itemId(stack),
+                    intCall(stack, "getCount"), intCall(stack, "getMaxStackSize")));
+        }
+        return java.util.Optional.of(new CodaItemInventoryView(pos, slots));
+    }
+
+    int transferFiltered(CodaBlockPos from, CodaBlockPos to, int maximum,
+            CodaItemFilter filter) throws Exception {
+        checkThread();
+        Objects.requireNonNull(filter, "filter");
         Objects.requireNonNull(from, "from");
         Objects.requireNonNull(to, "to");
         if (from.equals(to)) throw new IllegalArgumentException("Two different chests are required");
@@ -147,6 +180,9 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         for (int i = 0; i < srcSize; i++) {
             Object sourceStack = CommandReflection.call(source, "getItem", i);
             if ((Boolean) CommandReflection.call(sourceStack, "isEmpty")) continue;
+            if (!filter.items().isEmpty() || filter.mode() == CodaItemFilter.Mode.WHITELIST) {
+                if (!filter.allows(itemId(sourceStack))) continue;
+            }
             int available = intCall(sourceStack, "getCount");
             int stackLimit = intCall(sourceStack, "getMaxStackSize");
             if (available < 1 || stackLimit < 1) continue;
@@ -158,6 +194,8 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
                 int occupied = slotEmpty ? 0 : intCall(destStack, "getCount");
                 int slotMax = slotEmpty ? stackLimit : Math.min(stackLimit,
                         intCall(destStack, "getMaxStackSize"));
+                slotMax = Math.min(slotMax, intCall(destination, "getMaxStackSize"));
+                if (!(Boolean)CommandReflection.call(destination, "canPlaceItem", j, sourceStack)) continue;
                 int count = Math.min(maximum, Math.min(available, slotMax - occupied));
                 if (count <= 0) continue;
 

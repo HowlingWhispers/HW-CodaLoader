@@ -1,0 +1,94 @@
+package dev.howlingwhispers.codaloader.bootstrap;
+
+import dev.howlingwhispers.codaloader.api.*;
+
+import java.lang.reflect.*;
+import java.nio.file.*;
+import java.util.*;
+
+/** Real Snapshot 3 registries, pipe states, native chests/stacks and production transfer adapter.
+ * The test level/chunk shell is not a running Minecraft world or a GUI playtest.
+ */
+public final class SortingPipesNativeSmoke {
+    private static final class SortingTransport {
+        static final String EXTRACT="howl_sorting_pipes:extractor_pipe",PIPE="howl_sorting_pipes:transport_pipe",SORT="howl_sorting_pipes:sorting_pipe",ROUND="howl_sorting_pipes:round_robin",EQUAL="howl_sorting_pipes:equalizer";
+    }
+    private static int checks;
+    static void check(boolean b,String what) { checks++; if(!b)throw new AssertionError(what); }
+    public static final class Level {
+        final ChunkSource source=new ChunkSource();
+        public ChunkSource getChunkSource() { return source; }
+    }
+    public static final class ChunkSource {
+        final Chunk chunk=new Chunk();
+        public Chunk getChunkNow(int x,int z) { return x==0&&z==0?chunk:null; }
+        public Object getChunk(int x,int z) { throw new AssertionError("Chunk load forbidden"); }
+    }
+    public static final class Chunk {
+        final Map<Object,Object> entries=new HashMap<>();
+        public Object getBlockEntity(Object pos) { return entries.get(pos); }
+    }
+    static Object call(Object target,String name,Object... args) throws Exception { return CommandReflection.call(target,name,args); }
+    static Object itemStack(Object item,int count) throws Exception {
+        Class<?> cls=Class.forName("net.minecraft.world.item.ItemStack"), i=Class.forName("net.minecraft.world.level.ItemLike");
+        return cls.getConstructor(i,int.class).newInstance(item,count);
+    }
+    public static void main(String[] args) throws Exception {
+        Path game=Files.createTempDirectory("howl-native-sort-");
+        var context=new CodaContext("0.0.38", "26.4-snapshot-3",game,game.resolve("config"),"howl_sorting_pipes",List.of("howl_sorting_pipes"));
+        var blocks=List.of(SortingTransport.EXTRACT,SortingTransport.PIPE,SortingTransport.SORT,SortingTransport.ROUND,SortingTransport.EQUAL);
+        for (String id:blocks) context.registerBlock(id,0.8f);
+        context.registerBlockEntityType("howl_sorting_pipes:pipe_holder",blocks.subList(0,3));
+        context.registerCreativeTab("howl_sorting_pipes:pipes","Sorting Pipes",SortingTransport.SORT,blocks);
+        Class.forName("net.minecraft.SharedConstants").getMethod("tryDetectVersion").invoke(null);
+        Class.forName("net.minecraft.server.Bootstrap").getMethod("bootStrap").invoke(null);
+        Object registry=Class.forName("net.minecraft.core.registries.BuiltInRegistries").getField("BLOCK").get(null);
+        Class<?> identifier=Class.forName("net.minecraft.resources.Identifier"), posCls=Class.forName("net.minecraft.core.BlockPos"), stateCls=Class.forName("net.minecraft.world.level.block.state.BlockState");
+        Object pos=posCls.getConstructor(int.class,int.class,int.class).newInstance(0,64,0);
+        for(String id:List.of(SortingTransport.EXTRACT,SortingTransport.PIPE,SortingTransport.SORT,SortingTransport.ROUND,SortingTransport.EQUAL)) {
+            Object key=identifier.getMethod("parse",String.class).invoke(null,id),block=call(registry,"getValue",key);
+            check(id.equals(call(registry,"getKey",block).toString()),"Real registered block "+id);
+            Object state=call(block,"defaultBlockState");
+            if(id.endsWith("_pipe")) {
+                check(Class.forName("net.minecraft.world.level.block.PipeBlock").isInstance(block),"Six-direction native pipe geometry");
+                Object entity=call(block,"newBlockEntity",pos,state);
+                check(Class.forName("net.minecraft.world.level.block.entity.BlockEntity").isInstance(entity),"Native entity constructed");
+                check(((Collection<?>)call(call(block,"getStateDefinition"),"getPossibleStates")).size()==64,"64 connection states registered");
+            }
+        }
+        // Unsafe is used ONLY to provide an unstarted native integrated-server identity in this headless test.
+        Class<?> unsafeClass=Class.forName("sun.misc.Unsafe"); Field field=unsafeClass.getDeclaredField("theUnsafe"); field.setAccessible(true); Object unsafe=field.get(null);
+        Object server=unsafeClass.getMethod("allocateInstance",Class.class).invoke(unsafe,Class.forName("net.minecraft.client.server.IntegratedServer"));
+        Level level=new Level();
+        Object chestBlock=Class.forName("net.minecraft.world.level.block.Blocks").getField("CHEST").get(null);
+        Object chestState=call(chestBlock,"defaultBlockState");
+        Class<?> chestClass=Class.forName("net.minecraft.world.level.block.entity.ChestBlockEntity");
+        Object source=chestClass.getConstructor(posCls,stateCls).newInstance(pos,chestState);
+        Object targetPos=posCls.getConstructor(int.class,int.class,int.class).newInstance(1,64,0);
+        Object target=chestClass.getConstructor(posCls,stateCls).newInstance(targetPos,chestState);
+        level.source.chunk.entries.put(pos,source); level.source.chunk.entries.put(targetPos,target);
+        Object iron=Class.forName("net.minecraft.world.item.Items").getField("IRON_INGOT").get(null),gold=Class.forName("net.minecraft.world.item.Items").getField("GOLD_INGOT").get(null);
+        // Item defaults are data-pack bound in Snapshot 3; the headless shell
+        // supplies only the real MAX_STACK_SIZE component needed by these test items.
+        for (Object item:List.of(iron,gold)) {
+            Object builder=Class.forName("net.minecraft.core.component.DataComponentMap").getMethod("builder").invoke(null);
+            Object max=Class.forName("net.minecraft.core.component.DataComponents").getField("MAX_STACK_SIZE").get(null);
+            call(builder,"set",max,64);
+            call(call(item,"builtInRegistryHolder"),"bindComponents",call(builder,"build"));
+        }
+        call(source,"setItem",0,itemStack(gold,11)); Object ironStack=itemStack(iron,9);
+        Object component=Class.forName("net.minecraft.core.component.DataComponents").getField("CUSTOM_NAME").get(null);
+        Object customName=Class.forName("net.minecraft.network.chat.Component").getMethod("literal",String.class).invoke(null,"Coda's Iron");
+        call(ironStack,"set",component,customName); call(source,"setItem",1,ironStack);
+        MinecraftSingleplayerWorld world=new MinecraftSingleplayerWorld(server,level);
+        var from=new CodaBlockPos(0,64,0); var to=new CodaBlockPos(1,64,0);
+        check(world.itemInventory(from).orElseThrow().count("minecraft:iron_ingot")==9,"Real stack registry ID inspection");
+        check(world.transferFiltered(from,to,3,CodaItemFilter.only("minecraft:iron_ingot"))==3,"Real native whitelist transfer");
+        check(((Number)call(call(source,"getItem",0),"getCount")).intValue()==11,"Nonmatching source preserved");
+        check(call(call(target,"getItem",0),"get",component).equals(customName),"Actual custom-name component retained");
+        check(world.transferFiltered(from,to,4,new CodaItemFilter(CodaItemFilter.Mode.BLACKLIST,Set.of("minecraft:iron_ingot")))==4,"Real native blacklist transfer");
+        check(world.transferFiltered(from,to,1,new CodaItemFilter(CodaItemFilter.Mode.WHITELIST,Set.of()))==0,"Empty native whitelist rejects all");
+        check(!world.isLoaded(new CodaBlockPos(32,64,0)),"Unloaded native shell stays unloaded");
+        System.out.println("PASS: "+checks+" exact Mojang Snapshot 3 native sorting-pipes checks");
+    }
+}

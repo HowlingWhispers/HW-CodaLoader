@@ -107,7 +107,8 @@ public final class CommandBridgeTest {
     public static final class Border { final boolean bounds; public Border(boolean bounds) { this.bounds = bounds; } public boolean isWithinBounds(BlockPos pos) { return bounds; } }
     public static final class Level {
         boolean collision, fluid, supported = true, bounds = true; int chunks;
-        public String dimension() { return "overworld"; }
+        public record Dimension() { public String identifier() { return "overworld"; } }
+        public Dimension dimension() { return new Dimension(); }
         public boolean isInWorldBounds(BlockPos pos) { return bounds; }
         public Border getWorldBorder() { return new Border(bounds); }
         public Object getChunk(int x, int z) { chunks++; return new Object(); }
