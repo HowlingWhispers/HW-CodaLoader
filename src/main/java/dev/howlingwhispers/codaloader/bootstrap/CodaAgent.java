@@ -54,6 +54,7 @@ public final class CodaAgent {
             List<ModMetadata> mods = loader.loadAndInitialize();
             activeLoader = loader;
             modCount = mods.size();
+            dev.howlingwhispers.codaloader.api.CodaRecipeBookCategories.freeze();
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 CodaLoader current = activeLoader;
