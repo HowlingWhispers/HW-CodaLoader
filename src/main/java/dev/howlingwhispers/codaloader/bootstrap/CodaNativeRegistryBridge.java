@@ -210,11 +210,14 @@ public final class CodaNativeRegistryBridge {
             // exist but remain UNBOUND until the registry finishes loading.
             // Registry.stream() here crashes the game. Snapshot 3's stock
             // tabs occupy bottom columns 0-6. Append at column 7; no vanilla
-            // values are touched while still unbound.
+            // values are touched while still unbound. These unique registry
+            // coordinates are logical only; the client page bridge maps mod
+            // tabs to in-frame positions without duplicating vanilla slots.
             int column = 7;
             Object bottom = rowClass.getField("BOTTOM").get(null);
+            int modIndex=0;
             for (CodaNativeContents.Tab spec : CodaNativeContents.tabs()) {
-                if (column >= 10) throw new IllegalStateException(
+                if (modIndex >= 96) throw new IllegalStateException(
                         "No available Creative tab slots for " + spec.id());
                 requireFree(registry, spec.id());
                 Object builder = creativeTab.getMethod("builder", rowClass, int.class)
@@ -255,6 +258,7 @@ public final class CodaNativeRegistryBridge {
                 builder = builderClass.getMethod("displayItems", generator).invoke(builder, display);
                 Object tab = builderClass.getMethod("build").invoke(builder);
                 register(registry, spec.id(), tab);
+                CodaCreativeTabPages.register(tab,modIndex++);
                 System.out.println("[H.O.W.L.] Creative tab registered: " + spec.id());
             }
             CodaNativeContents.seal();

@@ -7,5 +7,6 @@ public final class NativeGameTestAgent {
     public static void premain(String args, Instrumentation instrumentation) {
         CodaNativeRegistryTransformer.install(instrumentation);
         CodaCreativeInventoryTransformer.install(instrumentation);
+        CodaCreativePagesTransformer.install(instrumentation);
     }
 }

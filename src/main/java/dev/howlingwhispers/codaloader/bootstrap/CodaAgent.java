@@ -19,6 +19,7 @@ public final class CodaAgent {
         CodaWorldCreationTransformer.install(instrumentation);
         CodaNativeRegistryTransformer.install(instrumentation);
         CodaCreativeInventoryTransformer.install(instrumentation);
+        CodaCreativePagesTransformer.install(instrumentation);
         CodaBlockPlacementTransformer.install(instrumentation);
         CodaWolfTextureTransformer.install(instrumentation);
 

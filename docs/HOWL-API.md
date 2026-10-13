@@ -237,3 +237,20 @@ The matching mod lives in [HW-Mods](https://github.com/HowlingWhispers/HW-Mods/t
 singleplayer limits, attachment placement, commands, pack installation and
 verification. This loader release also supports its six-face native pipe
 models and returns canonical dimension IDs to player commands.
+
+
+## Automatic mod assets and creative pages (0.0.39)
+
+A mod may declare `"resourcePack": "sorting-pipes-resources.zip"` in its
+`coda.mod.json`. Include that ZIP in the mod JAR. H.O.W.L. validates the exact
+Snapshot resource-pack format and an `assets/<mod-id>/` namespace, installs
+it as one checksum-managed profile pack and enables it before the first
+Minecraft resource reload. Updates refresh managed assets; edited packs are
+preserved and produce an actionable error. This replaces manual texture-pack
+selection for declared mod assets.
+
+Native creative inventory retains all vanilla tabs on page one, including
+operator utilities. Mod tabs occupy six top and six bottom slots per further
+page. Native arrows above the tab row navigate pages; search and player
+inventory remain pinned. Drawing and hit testing share the same page layout.
+No added tab extends beyond the seven-column vanilla panel.

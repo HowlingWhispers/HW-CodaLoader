@@ -45,11 +45,13 @@ printf 'Premain-Class: dev.howlingwhispers.codaloader.bootstrap.ServerTickTestAg
 jar --create --file out/server-tick-test-agent.jar --manifest out/server-tick-test-manifest.mf -C out/test-classes dev/howlingwhispers/codaloader/bootstrap/ServerTickTestAgent.class
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ServerTickLifecycleTest
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.WorldInventoryTickTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ModResourcePackInstallerTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.RuntimeMetadataTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.FilteredTransferTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.NativeRegistryTransformerTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.api.NativeBlockEntityDeclarationTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CreativeTabPagesTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CreativeInventoryTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.CodaWolfTextureTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.MinecraftVersionMetadataTest

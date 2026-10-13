@@ -8,6 +8,10 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftSingleplayerWorld.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/SortingPipesNativeSmoke.java
       - scripts/test-sorting-pipes-native.sh
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeTabPages.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativePagesTransformer.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/ModResourcePackInstaller.java
+      - tests/src/dev/howlingwhispers/codaloader/bootstrap/CreativeTabPagesTest.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/NativeMinecraftSmoke.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/BuildCraftLiteResourceInstaller.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaNativeRegistryBridge.java
@@ -163,6 +167,7 @@ jobs:
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
           bash scripts/test-sorting-pipes-native.sh inspection/client.jar inspection/maven
+          java -cp out/test-classes:out/api-classes:dist/CodaLoader.jar dev.howlingwhispers.codaloader.bootstrap.CreativeTabPagesTest inspection/client.jar
       - uses: actions/upload-artifact@v4
         if: always()
         with:

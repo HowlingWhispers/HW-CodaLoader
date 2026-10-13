@@ -84,6 +84,7 @@ public final class MinecraftBootstrap {
     /** Run again from the in-game agent, after the actual Mojang client JAR
      * is on the classpath and BEFORE the first resource reload. */
     public void prepareCodaWolfResources() throws IOException {
+        for(String pack:ModResourcePackInstaller.prepare(game)) enableGeneratedPack(pack);
         if (CodaWolfResourceInstaller.prepare(game))
             enableGeneratedPack("file/" + CodaWolfResourceInstaller.PACK);
         // The optional BuildCraft Lite mod JAR is not a vanilla resource-pack

@@ -89,6 +89,55 @@ public final class SortingPipesNativeSmoke {
         check(world.transferFiltered(from,to,4,new CodaItemFilter(CodaItemFilter.Mode.BLACKLIST,Set.of("minecraft:iron_ingot")))==4,"Real native blacklist transfer");
         check(world.transferFiltered(from,to,1,new CodaItemFilter(CodaItemFilter.Mode.WHITELIST,Set.of()))==0,"Empty native whitelist rejects all");
         check(!world.isLoaded(new CodaBlockPos(32,64,0)),"Unloaded native shell stays unloaded");
+        checkNativePageControls(unsafe,unsafeClass,registry,identifier);
         System.out.println("PASS: "+checks+" exact Mojang Snapshot 3 native sorting-pipes checks");
     }
+    private static void checkNativePageControls(Object unsafe,Class<?> unsafeClass,Object blocks,Class<?> identifier)throws Exception {
+        // Construct a real Minecraft Screen with a fixture selection handler.
+        // Native widgets run headlessly; this is not a rendered world/client.
+        String name="dev/howlingwhispers/codaloader/bootstrap/NativePageFixtureScreen";
+        String screen="net/minecraft/client/gui/screens/Screen",tab="net/minecraft/world/item/CreativeModeTab";
+        var w=new org.objectweb.asm.ClassWriter(org.objectweb.asm.ClassWriter.COMPUTE_MAXS);
+        w.visit(org.objectweb.asm.Opcodes.V25,org.objectweb.asm.Opcodes.ACC_PUBLIC,name,null,screen,null);
+        w.visitField(org.objectweb.asm.Opcodes.ACC_PUBLIC|org.objectweb.asm.Opcodes.ACC_STATIC,"selectedTab","L"+tab+";",null,null).visitEnd();
+        for(String field:List.of("leftPos","topPos","imageWidth"))w.visitField(org.objectweb.asm.Opcodes.ACC_PUBLIC,field,"I",null,null).visitEnd();
+        var init=w.visitMethod(org.objectweb.asm.Opcodes.ACC_PUBLIC,"<init>","()V",null,null);init.visitCode();
+        init.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD,0);init.visitInsn(org.objectweb.asm.Opcodes.ACONST_NULL);init.visitInsn(org.objectweb.asm.Opcodes.ACONST_NULL);
+        init.visitLdcInsn("Native page fixture");init.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESTATIC,"net/minecraft/network/chat/Component","literal","(Ljava/lang/String;)Lnet/minecraft/network/chat/MutableComponent;",true);
+        init.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESPECIAL,screen,"<init>","(Lnet/minecraft/client/Minecraft;Lnet/minecraft/client/gui/Font;Lnet/minecraft/network/chat/Component;)V",false);
+        for(var entry:Map.of("leftPos",20,"topPos",80,"imageWidth",195).entrySet()){
+            init.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD,0);init.visitLdcInsn(entry.getValue());init.visitFieldInsn(org.objectweb.asm.Opcodes.PUTFIELD,name,entry.getKey(),"I");
+        }
+        init.visitInsn(org.objectweb.asm.Opcodes.RETURN);init.visitMaxs(0,0);init.visitEnd();
+        var select=w.visitMethod(org.objectweb.asm.Opcodes.ACC_PUBLIC,"selectTab","(L"+tab+";)V",null,null);select.visitCode();
+        select.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD,1);select.visitFieldInsn(org.objectweb.asm.Opcodes.PUTSTATIC,name,"selectedTab","L"+tab+";");
+        select.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD,1);select.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESTATIC,"dev/howlingwhispers/codaloader/bootstrap/CodaCreativeTabPages","selected","(Ljava/lang/Object;)V",false);
+        select.visitInsn(org.objectweb.asm.Opcodes.RETURN);select.visitMaxs(0,0);select.visitEnd();w.visitEnd();
+        class FixtureLoader extends ClassLoader {Class<?> define(byte[] bytes){return defineClass(name.replace('/','.'),bytes,0,bytes.length);}}
+        Class<?> fixture=new FixtureLoader().define(w.toByteArray());Object instance=fixture.getConstructor().newInstance();
+        Object defaultTab=Class.forName("net.minecraft.world.item.CreativeModeTabs").getMethod("getDefaultTab").invoke(null);
+        fixture.getField("selectedTab").set(null,defaultTab);
+        Object creativeRegistry=Class.forName("net.minecraft.core.registries.BuiltInRegistries").getField("CREATIVE_MODE_TAB").get(null);
+        Object id=identifier.getMethod("parse",String.class).invoke(null,"howl_sorting_pipes:pipes");Object modTab=call(creativeRegistry,"getValue",id);
+        Class<?> tabClass=Class.forName("net.minecraft.world.item.CreativeModeTab");
+        Field contents=tabClass.getDeclaredField("displayItems");contents.setAccessible(true);
+        contents.set(modTab,List.of(Class.forName("net.minecraft.world.item.ItemStack").getField("EMPTY").get(null)));
+        CodaCreativeTabPages.initialize(instance);
+        Field children=Class.forName("net.minecraft.client.gui.screens.Screen").getDeclaredField("children");children.setAccessible(true);
+        List<?> controls=(List<?>)children.get(instance);check(controls.size()==3,"Real native page controls added to screen");
+        Object previous=controls.get(0),next=controls.get(1),label=controls.get(2);
+        check(((Number)call(previous,"getX")).intValue()==26&&((Number)call(next,"getX")).intValue()==193,"Native buttons stay inside horizontal panel extent");
+        check(((Number)call(next,"getY")).intValue()==31,"Native buttons sit above existing tab row");
+        check(call(call(label,"getMessage"),"getString").equals("1/2"),"Native page count starts at vanilla page");
+        Field callback=Class.forName("net.minecraft.client.gui.components.Button").getDeclaredField("onPress");callback.setAccessible(true);
+        Class<?> press=Class.forName("net.minecraft.client.gui.components.Button$OnPress"),button=Class.forName("net.minecraft.client.gui.components.Button");
+        press.getMethod("onPress",button).invoke(callback.get(next),next);
+        check(fixture.getField("selectedTab").get(null)==modTab,"Next button selects real mod tab");
+        check(CodaCreativeTabPages.visualColumn(modTab)==0&&CodaCreativeTabPages.visualRow(modTab).toString().equals("TOP"),"Real sorting tab maps into first in-frame mod slot");
+        check(call(call(label,"getMessage"),"getString").equals("2/2"),"Native page count updates after navigation");
+        press.getMethod("onPress",button).invoke(callback.get(previous),previous);
+        check(fixture.getField("selectedTab").get(null)==defaultTab,"Previous button restores vanilla page");
+        CodaCreativeTabPages.removed(instance);
+    }
+
 }
