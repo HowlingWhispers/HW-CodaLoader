@@ -8,6 +8,10 @@ on:
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftSingleplayerWorld.java
       - tests/src/dev/howlingwhispers/codaloader/bootstrap/SortingPipesNativeSmoke.java
       - scripts/test-sorting-pipes-native.sh
+      - scripts/test-mod-data-native.sh
+      - tests/native/dev/howlingwhispers/codaloader/bootstrap/GuideBookNativeSmoke.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaModDataPacks.java
+      - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaModDataPackTransformer.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativeTabPages.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/CodaCreativePagesTransformer.java
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/ModResourcePackInstaller.java
@@ -168,6 +172,18 @@ jobs:
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
           bash scripts/test-sorting-pipes-native.sh inspection/client.jar inspection/maven
           java -cp out/test-classes:out/api-classes:dist/CodaLoader.jar dev.howlingwhispers.codaloader.bootstrap.CreativeTabPagesTest inspection/client.jar
+      - uses: actions/checkout@v4
+        with:
+          repository: HowlingWhispers/HW-Mods
+          path: inspection/HW-Mods
+      - name: Verify native guide, recipes, unlock and vanilla advancements
+        shell: bash
+        env:
+          HW_CODALOADER_API_DIR: ${{ github.workspace }}/src/main/java
+        run: |
+          bash inspection/HW-Mods/mods/sorting-pipes/build.sh
+          VERSION="$(python3 -c 'import json;print(json.load(open("inspection/HW-Mods/mods/sorting-pipes/resources/coda.mod.json"))["version"])')"
+          bash scripts/test-mod-data-native.sh inspection/client.jar inspection/maven "inspection/HW-Mods/mods/sorting-pipes/dist/howl-sorting-pipes-${VERSION}.jar"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

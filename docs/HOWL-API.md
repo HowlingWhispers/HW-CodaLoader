@@ -254,3 +254,25 @@ operator utilities. Mod tabs occupy six top and six bottom slots per further
 page. Native arrows above the tab row navigate pages; search and player
 inventory remain pinned. Drawing and hit testing share the same page layout.
 No added tab extends beyond the seven-column vanilla panel.
+
+## Declared server data packs (0.0.41+)
+
+A mod may declare `"dataPack": "my-mod-data.zip"` in `coda.mod.json` and
+embed that ZIP in its JAR. Exact Snapshot 3 pack metadata must specify
+`min_format: 123` and `max_format: 123`. H.O.W.L. validates and caches the
+embedded bytes, then exposes a required `howl/mod/<mod-id>` pack through
+Minecraft's server pack repository before data loading. New and existing
+worlds get the mod's recipes, loot and advancements automatically. No
+world-save data-pack directories or advancement progress files are edited.
+World packs can retain priority above the default-bottom mod pack.
+
+Data must live in `data/<mod-id>/`. Vanilla data overrides, filters and
+overlays are refused so a mod cannot accidentally hide Minecraft's
+advancement trees. The only shared paths allowed are Minecraft's load/tick
+function tags, with `replace` false and values belonging to the declaring
+mod. Removing a mod stops discovery of its cached data on the next launch.
+
+Sorting Pipes uses this contract for its recipe book unlock and ordinary
+written guide. The hidden vanilla tick advancement checks both
+`minecraft:story/smelt_iron` and `minecraft:story/iron_tools`; one loot reward
+and five recipe unlocks are recorded in ordinary player advancement state.

@@ -46,6 +46,7 @@ jar --create --file out/server-tick-test-agent.jar --manifest out/server-tick-te
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ServerTickLifecycleTest
 java -javaagent:out/server-tick-test-agent.jar -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.WorldInventoryTickTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ModResourcePackInstallerTest
+java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.ModDataPacksTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.RuntimeMetadataTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.SingleplayerTransferTest
 java -cp "$TEST_CP" dev.howlingwhispers.codaloader.bootstrap.FilteredTransferTest

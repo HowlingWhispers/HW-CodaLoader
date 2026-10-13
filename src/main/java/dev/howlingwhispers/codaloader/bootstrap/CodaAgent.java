@@ -18,6 +18,7 @@ public final class CodaAgent {
         CodaServerTickTransformer.install(instrumentation);
         CodaWorldCreationTransformer.install(instrumentation);
         CodaNativeRegistryTransformer.install(instrumentation);
+        CodaModDataPackTransformer.install(instrumentation);
         CodaCreativeInventoryTransformer.install(instrumentation);
         CodaCreativePagesTransformer.install(instrumentation);
         CodaBlockPlacementTransformer.install(instrumentation);
