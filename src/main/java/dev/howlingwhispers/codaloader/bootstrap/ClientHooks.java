@@ -70,8 +70,13 @@ final class ClientHooks {
                     if (screen != null && screen.getClass().getName().contains("inventory.")) {
                         Object recipeScreen = screen;
                         schedule(minecraft, () -> {
-                            if (findActiveScreen(minecraft, screenClass) == recipeScreen)
+                            if (findActiveScreen(minecraft, screenClass) == recipeScreen) {
                                 CodaRecipeBookUi.refresh(recipeScreen);
+                                if (recipeScreen.getClass().getName().equals(
+                                        "net.minecraft.client.gui.screens.inventory.InventoryScreen"))
+                                    dev.howlingwhispers.codaloader.api.CodaInventoryPanels
+                                            .refresh(minecraft, recipeScreen);
+                            }
                         });
                     }
                     boolean isTitleScreen = screen != null

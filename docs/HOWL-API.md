@@ -276,3 +276,18 @@ Sorting Pipes uses this contract for its recipe book unlock and ordinary
 written guide. The hidden vanilla tick advancement checks both
 `minecraft:story/smelt_iron` and `minecraft:story/iron_tools`; one loot reward
 and five recipe unlocks are recorded in ordinary player advancement state.
+
+## Development inventory panel API (Codex)
+
+`CodaContext.registerInventoryPanel("my_mod:panel", priority, callback)` supplies
+a GUI-thread callback while the **vanilla player inventory** is active.
+This first milestone uses H.O.W.L.'s existing client scheduler. The callback
+receives opaque Minecraft client and inventory Screen objects; it can create
+ordinary native widgets but cannot mutate items. It must be **idempotent**,
+checking whether its widgets survived a screen resize/rebuild. Exceptions from
+one mod do not stop other mods' panels. Repeat failures log once.
+
+Not currently supported: arbitrary chest/creative screens, cross-mod widget
+compositing, native item sprites, permissioned item-give actions, direct
+recipe manager access. Treat it as a pre-release API; verify against the exact
+26.4 Snapshot 3 game before any player release.
