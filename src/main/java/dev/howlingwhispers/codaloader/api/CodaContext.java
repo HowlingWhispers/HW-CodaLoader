@@ -101,6 +101,12 @@ public record CodaContext(
         CodaBlockPlacements.register(modId, listener);
     }
 
+    /** Attach mod-owned vanilla GUI widgets to the client player inventory. */
+    public void registerInventoryPanel(String panelId, int priority,
+            CodaInventoryPanels.Panel panel) {
+        CodaInventoryPanels.register(modId, panelId, priority, panel);
+    }
+
     /** Register a Minecraft-native screen factory for a namespaced screen ID. */
     public void registerScreen(String screenId, int priority, CodaScreens.ScreenFactory factory) {
         CodaScreens.global().register(new CodaScreens.Provider(screenId, modId, priority, factory));
