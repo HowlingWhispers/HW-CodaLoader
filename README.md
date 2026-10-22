@@ -3,7 +3,7 @@
 Frontier development adds the **0.0.43 living-world API** for native settlers,
 loaded-only navigation, bed sleep, real food consumption and worker inventory
 operations. The mod and its isolated launcher profile are developed together.
-See [HOWL API](docs/HOWL-API.md). This source change is not yet in Nightly.
+See [HOWL API](docs/HOWL-API.md). Published in H.O.W.L. **0.0.43**. Use CodaLauncher **0.7.32+**, select **Frontier** on Home, then Nightly Play / Install-Repair.
 
 **Howling Open Works Loader**, by Howling Whispers. CodaLauncher remains the player launcher.
 
@@ -13,7 +13,7 @@ It does **not** depend on Fabric, Forge, NeoForge, Quilt, or another mod loader.
 
 ## First-party mod policy
 
-H.O.W.L. player releases have **no optional first-party mods**. All officially released gameplay modules must install and update automatically; missing required modules trigger repair or a visible error, not a skip option. Unfinished prototypes such as BuildCraft CML and HW Quiet Underground stay in development rather than appearing as optional player downloads.
+H.O.W.L. player releases have **no optional first-party mods**. Within each selected play mode, all declared official gameplay modules must install and update automatically; missing required modules trigger repair or a visible error, not a skip option. Unfinished prototypes such as BuildCraft CML and HW Quiet Underground stay in development rather than appearing as optional player downloads.
 
 Verified world-generation changes must become required, automatically enabled content in new H.O.W.L. worlds. Existing world saves must not be silently rewritten; that requires a separate, tested backup/migration plan. User-developed community mods are separate from the official required set.
 
