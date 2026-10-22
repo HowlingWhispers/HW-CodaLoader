@@ -1,11 +1,14 @@
 package dev.howlingwhispers.codaloader.bootstrap;
 
 import dev.howlingwhispers.codaloader.api.CodaCommandContext;
+import dev.howlingwhispers.codaloader.api.CodaBlockTarget;
+import dev.howlingwhispers.codaloader.api.CodaBlockPos;
 import dev.howlingwhispers.codaloader.api.CodaPosition;
 import dev.howlingwhispers.codaloader.api.CodaSingleplayerWorld;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -39,6 +42,43 @@ final class MinecraftCommandContext implements CodaCommandContext {
     }
 
     public void reply(String message) throws Exception { sendReply(source, message, false); }
+
+    @Override public Optional<CodaBlockTarget> targetBlock() throws Exception {
+        Object server = CommandReflection.call(source, "getServer");
+        if (!Boolean.TRUE.equals(CommandReflection.call(server, "isSameThread")))
+            throw new IllegalStateException("Block targeting requires the native server thread");
+        Object level = CommandReflection.call(source, "getLevel");
+        double reach = Math.min(8, ((Number) CommandReflection.call(player, "blockInteractionRange")).doubleValue());
+        if (!Double.isFinite(reach) || reach <= 0) return Optional.empty();
+        Object eye = CommandReflection.call(player, "getEyePosition");
+        Object direction = CommandReflection.call(player, "getViewVector", 1.0f);
+        Object end = CommandReflection.call(eye, "add", CommandReflection.call(direction, "scale", reach));
+        Class<?> vec = Class.forName("net.minecraft.world.phys.Vec3", true, loader);
+        double x = vec.getField("x").getDouble(eye), z = vec.getField("z").getDouble(eye);
+        double ex = vec.getField("x").getDouble(end), ez = vec.getField("z").getDouble(end);
+        // Vanilla clip reads block states. Preflight its entire tiny corridor,
+        // including endpoint epsilon, so that it cannot synchronously load a chunk.
+        Object chunks = CommandReflection.call(level, "getChunkSource");
+        for (int cx = (int)Math.floor(Math.min(x, ex) - .001) >> 4;
+                cx <= (int)Math.floor(Math.max(x, ex) + .001) >> 4; cx++)
+            for (int cz = (int)Math.floor(Math.min(z, ez) - .001) >> 4;
+                    cz <= (int)Math.floor(Math.max(z, ez) + .001) >> 4; cz++)
+                if (CommandReflection.call(chunks, "getChunkNow", cx, cz) == null) return Optional.empty();
+        Class<?> clip = Class.forName("net.minecraft.world.level.ClipContext", true, loader);
+        Class<?> blocks = Class.forName("net.minecraft.world.level.ClipContext$Block", true, loader);
+        Class<?> fluids = Class.forName("net.minecraft.world.level.ClipContext$Fluid", true, loader);
+        Object context = clip.getConstructor(vec, vec, blocks, fluids,
+                Class.forName("net.minecraft.world.entity.Entity", true, loader)).newInstance(
+                        eye, end, blocks.getField("OUTLINE").get(null), fluids.getField("NONE").get(null), player);
+        Object hit = CommandReflection.call(level, "clip", context);
+        if (!CommandReflection.call(hit, "getType").toString().equals("BLOCK")) return Optional.empty();
+        Object p = CommandReflection.call(hit, "getBlockPos");
+        return Optional.of(new CodaBlockTarget(
+                CommandReflection.call(CommandReflection.call(level, "dimension"), "identifier").toString(),
+                new CodaBlockPos(((Number)CommandReflection.call(p, "getX")).intValue(),
+                        ((Number)CommandReflection.call(p, "getY")).intValue(),
+                        ((Number)CommandReflection.call(p, "getZ")).intValue())));
+    }
 
     @Override public void withWorld(CodaCommandContext.WorldAction action) throws Exception {
         Object server = CommandReflection.call(source, "getServer");

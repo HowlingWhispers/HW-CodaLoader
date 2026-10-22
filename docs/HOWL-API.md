@@ -319,3 +319,13 @@ replacement spawn. Mods must persist identities before issuing spawn operations.
 Mojang GameTest ServerLevel with real villagers, paths, loot, tools and inventories.
 Its integrated-server identity is a test fixture; renderer and actual integrated
 world save/reload must still be verified through CodaLauncher Nightly.
+
+## Player block targeting (0.0.44)
+
+`CodaCommandContext.targetBlock()` returns an optional immutable `CodaBlockTarget`
+with the canonical dimension and first outlined block position along the player's
+authoritative eye/view ray. It uses native block interaction reach, capped at
+eight blocks, ignores fluids and stops at intervening blocks. Call on the server
+thread. An unloaded ray corridor or a miss returns empty without loading chunks.
+Mods must validate the selected block and their own distance/permission rules
+before updating state. Existing coordinate commands can remain as an advanced form.

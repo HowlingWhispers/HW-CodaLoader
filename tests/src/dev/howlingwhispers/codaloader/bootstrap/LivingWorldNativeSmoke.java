@@ -22,6 +22,38 @@ public final class LivingWorldNativeSmoke {
         return Class.forName("net.minecraft.world.item.ItemStack").getConstructor(Class.forName("net.minecraft.world.level.ItemLike"),int.class).newInstance(value,n);
     }
     static void put(Object level,CodaBlockPos p,String name)throws Exception{call(level,"setBlock",pos(p),call(block(name),"defaultBlockState"),3);}
+    public record TargetSource(Object server,Object level,Object player){
+        public Object getServer(){return server;}
+        public Object getLevel(){return level;}
+        public Object getPlayerOrException(){return player;}
+    }
+    public record WrongThread(){public boolean isSameThread(){return false;}}
+    static void targeting(Object server,Object level)throws Exception{
+        Class<?> profile=Class.forName("com.mojang.authlib.GameProfile"), info=Class.forName("net.minecraft.server.level.ClientInformation");
+        Object player=Class.forName("net.minecraft.server.level.ServerPlayer").getConstructor(
+                Class.forName("net.minecraft.server.MinecraftServer"),Class.forName("net.minecraft.server.level.ServerLevel"),profile,info).newInstance(
+                        server,level,profile.getConstructor(UUID.class,String.class).newInstance(UUID.randomUUID(),"TargetTest"),call(info,"createDefault"));
+        call(player,"setPos",.5,80.0,.5);call(player,"setYRot",0f);call(player,"setYHeadRot",0f);call(player,"setXRot",0f);
+        var adapter=new MinecraftCommandContext(new TargetSource(server,level,player));
+        CodaBlockPos selected=new CodaBlockPos(0,81,3), wall=new CodaBlockPos(0,81,2);
+        put(level,selected,"minecraft:chest");
+        check(adapter.targetBlock().orElseThrow().equals(new CodaBlockTarget("minecraft:overworld",selected)),"Real server-player view selects chest within native reach");
+        put(level,selected,"minecraft:barrel");check(adapter.targetBlock().orElseThrow().position().equals(selected),"Real view selects barrel");
+        put(level,wall,"minecraft:stone");check(adapter.targetBlock().orElseThrow().position().equals(wall),"View ray stops at intervening wall");
+        put(level,wall,"minecraft:air");put(level,selected,"minecraft:air");
+        check(adapter.targetBlock().isEmpty(),"Looking at air gives no block target");
+        CodaBlockPos far=new CodaBlockPos(0,81,7);put(level,far,"minecraft:chest");
+        check(adapter.targetBlock().isEmpty(),"Container outside native interaction reach is not selected");put(level,far,"minecraft:air");
+        put(level,selected,"minecraft:chest");call(player,"setYRot",180f);call(player,"setYHeadRot",180f);
+        check(adapter.targetBlock().isEmpty(),"Container behind the player is not selected");
+        call(player,"setPos",16000.5,80.0,.5);call(player,"setYRot",0f);call(player,"setYHeadRot",0f);
+        Object chunks=call(level,"getChunkSource");int count=((Number)call(chunks,"getLoadedChunksCount")).intValue();
+        check(adapter.targetBlock().isEmpty(),"Unloaded view corridor is refused");
+        check(((Number)call(chunks,"getLoadedChunksCount")).intValue()==count,"Targeting never loads an absent chunk");
+        try{new MinecraftCommandContext(new TargetSource(new WrongThread(),level,player)).targetBlock();throw new AssertionError("Wrong thread accepted");}
+        catch(IllegalStateException expected){checks++;}
+        put(level,selected,"minecraft:air");
+    }
     public static void tick(Object server){
         if(finished)return;scope=true;
         try{
@@ -43,6 +75,7 @@ public final class LivingWorldNativeSmoke {
             }
             var world=new MinecraftLivingWorld(integrated,level,()->{if(!scope)throw new IllegalStateException("Expired test scope");});
             if(tick==2){
+                targeting(server,level);
                 check(world.block(new CodaBlockPos(0,79,0)).orElseThrow().id().equals("minecraft:dirt"),"Actual loaded block registry sample");
                 check(world.block(new CodaBlockPos(16000,80,0)).isEmpty(),"Unloaded position is absent");
                 check(world.spawn(id,"Frontier native test",new CodaBlockPos(0,80,0)),"Native villager spawn");
