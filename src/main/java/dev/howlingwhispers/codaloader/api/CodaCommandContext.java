@@ -2,6 +2,7 @@ package dev.howlingwhispers.codaloader.api;
 
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.Optional;
 
 /** Player-only command context. World data belongs in worldDirectory, never a global profile. */
 public interface CodaCommandContext {
@@ -14,6 +15,14 @@ public interface CodaCommandContext {
     UUID playerId() throws Exception;
     Path worldDirectory() throws Exception;
     CodaPosition position() throws Exception;
+    /**
+     * First outlined block under the player's crosshair, within vanilla interaction
+     * reach (capped at eight blocks). Server thread only; never loads chunks.
+     * Fluids are ignored. Empty means a miss or an unloaded ray corridor.
+     */
+    default Optional<CodaBlockTarget> targetBlock() throws Exception {
+        throw new UnsupportedOperationException("This command context has no block targeting");
+    }
     void reply(String message) throws Exception;
     /**
      * Experimental: only available to integrated single-player server commands.
