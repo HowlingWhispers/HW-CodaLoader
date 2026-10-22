@@ -291,3 +291,31 @@ Not currently supported: arbitrary chest/creative screens, cross-mod widget
 compositing, native item sprites, permissioned item-give actions, direct
 recipe manager access. Treat it as a pre-release API; verify against the exact
 26.4 Snapshot 3 game before any player release.
+
+## Living world API (0.0.43, Frontier development)
+
+`CodaWorldView.living(dimension)` exposes a callback-scoped `CodaLivingWorld` for
+integrated singleplayer. Player commands use `CodaCommandContext.withWorld(action)`;
+its views expire before the command returns. Missing dimensions return empty;
+dedicated servers are refused. Queries and mutations use already-loaded chunks.
+Native pathfinding is refused unless its surrounding region is already loaded.
+
+The API provides immutable block/property and actor snapshots, UUID-preserving
+villager spawn, navigation, native bed sleep/wake, starvation damage, and nearby
+chest/barrel meals and component-preserving inventory transfers. Only tagged
+settlers are controlled. Vanilla physics/navigation remain active while native
+villager jobs are disabled. Mining uses the supplied actual tool, native loot,
+carrying capacity and durability. Seed/sapling planting consumes actual inventory
+and checks native block survival. Containers and unbreakable blocks cannot be
+harvested through this API. Source/destination inventory rollback is best-effort
+for unexpected native failures, as with the existing vanilla storage bridge.
+
+The loader owns version mappings and thread/lifetime boundaries. The Frontier mod
+owns settlement rules, hunger, loyalty, bed claims, worker selection and save data.
+An absent loaded-entity lookup is **not** evidence of death and never authorizes a
+replacement spawn. Mods must persist identities before issuing spawn operations.
+
+`test-living-world-native.sh` exercises the production adapter against a running
+Mojang GameTest ServerLevel with real villagers, paths, loot, tools and inventories.
+Its integrated-server identity is a test fixture; renderer and actual integrated
+world save/reload must still be verified through CodaLauncher Nightly.

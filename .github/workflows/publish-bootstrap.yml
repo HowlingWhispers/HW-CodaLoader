@@ -53,6 +53,11 @@ jobs:
           MENU_FIXTURE_RELEASE: "25"
         run: bash scripts/test-essentials.sh
 
+      - name: Verify Frontier bridge on real Snapshot 3 entities and inventories
+        run: |
+          python3 scripts/fetch-snapshot-test-runtime.py out/frontier-minecraft
+          bash scripts/test-living-world-native.sh out/frontier-minecraft/client.jar out/frontier-minecraft/libraries
+
       - name: Assert tested Coda Companion embedded (Stable and Nightly)
         run: |
           set -euo pipefail

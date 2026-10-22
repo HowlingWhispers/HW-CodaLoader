@@ -48,6 +48,13 @@ public final class MinecraftWorldInventoryView implements CodaWorldView, AutoClo
         return Optional.of(normal);
     }
 
+    @Override public Optional<dev.howlingwhispers.codaloader.api.CodaLivingWorld> living(String dimension) throws Exception {
+        requireActive();
+        Object level = findLevel(dimension);
+        if (level == null) return Optional.empty();
+        return Optional.of(new MinecraftLivingWorld(server, level, this::requireActive));
+    }
+
     /** No Minecraft references escape into a mod's public API. */
     @Override
     public List<String> dimensions() throws Exception {

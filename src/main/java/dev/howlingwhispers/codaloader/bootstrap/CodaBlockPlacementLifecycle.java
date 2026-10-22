@@ -32,7 +32,8 @@ public final class CodaBlockPlacementLifecycle {
             String id = CommandReflection.call(registry, "getKey", placedBlock).toString();
             if (!id.equals("buildcraftcore:engine_redstone")
                 && !id.equals("buildcrafttransport:wood_item")
-                && !id.equals("buildcrafttransport:cobblestone_item")) return;
+                && !id.equals("buildcrafttransport:cobblestone_item")
+                && !id.equals("minecraft:campfire")) return;
             Object dimension = CommandReflection.call(level, "dimension");
             String dimensionId = CommandReflection.call(dimension, "identifier").toString();
             CodaBlockPlacements.dispatch(new CodaBlockPlacements.Placement(

@@ -11,6 +11,10 @@ import java.util.Optional;
  * chunks and does not expose mutable ItemStacks or world objects.
  */
 public interface CodaWorldView {
+    /** Optional single-player entity/block bridge. All methods expire with this view. */
+    default Optional<CodaLivingWorld> living(String dimension) throws Exception {
+        return Optional.empty();
+    }
     /**
      * Server-owned world save root for persistent mod state. Available only
      * while this view is alive on its authoritative server thread. A missing
