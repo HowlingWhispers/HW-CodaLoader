@@ -5,7 +5,7 @@ import org.objectweb.asm.*;
 
 /** Test-only driver: use Mojang's headless GameTest world, with our smoke scenario instead of its test runner. */
 public final class LivingWorldNativeAgent implements ClassFileTransformer {
-    public static void premain(String args,Instrumentation i){i.addTransformer(new LivingWorldNativeAgent());}
+    public static void premain(String args,Instrumentation i){CodaSettlerAvatarTransformer.install(i);i.addTransformer(new LivingWorldNativeAgent());}
     public byte[] transform(ClassLoader loader,String name,Class<?> redefined,ProtectionDomain domain,byte[] bytes){
         if(!name.equals("net/minecraft/gametest/framework/GameTestServer"))return null;
         var reader=new ClassReader(bytes);var writer=new ClassWriter(reader,ClassWriter.COMPUTE_MAXS);

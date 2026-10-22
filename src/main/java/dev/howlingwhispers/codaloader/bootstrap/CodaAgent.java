@@ -22,6 +22,7 @@ public final class CodaAgent {
         CodaCreativeInventoryTransformer.install(instrumentation);
         CodaCreativePagesTransformer.install(instrumentation);
         CodaBlockPlacementTransformer.install(instrumentation);
+        CodaSettlerAvatarTransformer.install(instrumentation);
         CodaWolfTextureTransformer.install(instrumentation);
 
         Path root = agentArgs == null || agentArgs.isBlank()

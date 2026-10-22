@@ -292,7 +292,7 @@ compositing, native item sprites, permissioned item-give actions, direct
 recipe manager access. Treat it as a pre-release API; verify against the exact
 26.4 Snapshot 3 game before any player release.
 
-## Living world API (0.0.43, Frontier development)
+## Living world API (0.0.45, Frontier development)
 
 `CodaWorldView.living(dimension)` exposes a callback-scoped `CodaLivingWorld` for
 integrated singleplayer. Player commands use `CodaCommandContext.withWorld(action)`;
@@ -301,10 +301,11 @@ dedicated servers are refused. Queries and mutations use already-loaded chunks.
 Native pathfinding is refused unless its surrounding region is already loaded.
 
 The API provides immutable block/property and actor snapshots, UUID-preserving
-villager spawn, navigation, native bed sleep/wake, starvation damage, and nearby
+player-shaped NPC spawn, navigation, native bed sleep/wake, starvation damage, and nearby
 chest/barrel meals and component-preserving inventory transfers. Only tagged
-settlers are controlled. Vanilla physics/navigation remain active while native
-villager jobs are disabled. Mining uses the supplied actual tool, native loot,
+settlers are controlled. Mojang mannequin physics, player rendering and skin
+resolution remain native. Ground paths are planned with an unspawned native
+navigation helper; no invisible controller entity is added to the world. Mining uses the supplied actual tool, native loot,
 carrying capacity and durability. Seed/sapling planting consumes actual inventory
 and checks native block survival. Containers and unbreakable blocks cannot be
 harvested through this API. Source/destination inventory rollback is best-effort
@@ -316,7 +317,7 @@ An absent loaded-entity lookup is **not** evidence of death and never authorizes
 replacement spawn. Mods must persist identities before issuing spawn operations.
 
 `test-living-world-native.sh` exercises the production adapter against a running
-Mojang GameTest ServerLevel with real villagers, paths, loot, tools and inventories.
+Mojang GameTest ServerLevel with real NPCs, paths, loot, tools and inventories.
 Its integrated-server identity is a test fixture; renderer and actual integrated
 world save/reload must still be verified through CodaLauncher Nightly.
 
@@ -329,3 +330,24 @@ eight blocks, ignores fluids and stops at intervening blocks. Call on the server
 thread. An unloaded ray corridor or a miss returns empty without loading chunks.
 Mods must validate the selected block and their own distance/permission rules
 before updating state. Existing coordinate commands can remain as an advanced form.
+
+## Player-shaped settlers (0.0.45)
+
+New settlers are tagged native `minecraft:mannequin` entities, with their own
+Mojang player model, equipment, health, physics, saved profile and eight-slot
+component-preserving carried inventory. They are not online players and do not
+inherit villager zombification. Their inventories save in the entity's native
+chunk data and drop on death. Movement uses server ticks and native collision;
+pathfinding only visits an already-loaded region.
+
+`CodaLivingWorld.rename(id, name)` updates the native display name and unresolved
+username skin profile. Minecraft resolves and caches skins asynchronously on the
+client, using its default skin if the profile is unavailable. No profile request
+blocks the server thread.
+
+Loaded living tagged legacy villagers migrate with the same UUID, health,
+equipment and carried items. `recover(id, savedName, playerPosition)` explicitly
+repairs a uniquely matching tagged zombie villager within eight blocks, using its
+existing native save data and the camp's original UUID. It refuses ordinary
+zombies, existing UUIDs, ambiguous matches and unloaded positions. It never
+spawns an absent actor. Mods must verify an active camp record and player proximity.

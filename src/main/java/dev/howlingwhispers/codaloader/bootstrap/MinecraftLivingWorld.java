@@ -50,15 +50,16 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
     private Object entity(UUID id) throws Exception {
         Object e=call(level,"getEntity",Objects.requireNonNull(id));
         if(e==null)return null;
-        if(!type("net.minecraft.world.entity.npc.villager.Villager").isInstance(e)
-                || !((Set<?>)call(e,"entityTags")).contains(TAG))
-            throw new IllegalArgumentException("Entity is not a H.O.W.L. settler");
+        if(!((Set<?>)call(e,"entityTags")).contains(TAG))throw new IllegalArgumentException("Entity is not a H.O.W.L. settler");
+        if(type("net.minecraft.world.entity.npc.villager.Villager").isInstance(e)){
+            if((Boolean)call(e,"isAlive"))e=replace(e,id,call(call(e,"getCustomName"),"getString").toString());
+        }else if(!type("net.minecraft.world.entity.decoration.Mannequin").isInstance(e))
+            throw new IllegalArgumentException("Entity is not a H.O.W.L. settler avatar");
         return e;
     }
     @Override public Optional<Actor> actor(UUID id) throws Exception {
         Object e=entity(id); if(e==null)return Optional.empty();
-        // Vanilla physics/navigation still tick, but its jobs, breeding and bed selection do not compete.
-        call(e,"removeFreeWill");
+        // Mojang avatar physics, equipment and skin synchronization remain authoritative.
         return Optional.of(new Actor(id,number(e,"getX"),number(e,"getY"),number(e,"getZ"),
                 ((Number)call(e,"getHealth")).floatValue(),(Boolean)call(e,"isSleeping")));
     }
@@ -81,18 +82,60 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
         Object nativePos=pos(feet);
         if(!(Boolean)call(level,"isInWorldBounds",nativePos)
                 ||!(Boolean)call(call(level,"getWorldBorder"),"isWithinBounds",nativePos))return false;
-        Object e=type("net.minecraft.world.entity.npc.villager.Villager")
-                .getConstructor(type("net.minecraft.world.entity.EntityType"),type("net.minecraft.world.level.Level"))
-                .newInstance(value("ENTITY_TYPE","minecraft:villager"),level);
+        Object e=newAvatar();
         call(e,"setUUID",id);call(e,"addTag",TAG);
         call(e,"setPos",feet.x()+.5,(double)feet.y(),feet.z()+.5);
         if(!(Boolean)call(level,"noCollision",e))return false;
-        call(e,"setPersistenceRequired");call(e,"removeFreeWill");
-        call(e,"setCustomName",call(type("net.minecraft.network.chat.Component"),"literal",name));
-        call(e,"setCustomNameVisible",true);
-        call(e,"setOffers",type("net.minecraft.world.item.trading.MerchantOffers").getConstructor().newInstance());
-        call(call(e,"getNavigation"),"setCanOpenDoors",true);
+        CodaSettlerAvatarLifecycle.configure(e,name);
         return (Boolean)call(level,"addFreshEntity",e);
+    }
+    private Object newAvatar()throws Exception{
+        return type("net.minecraft.world.entity.decoration.Mannequin")
+                .getConstructor(type("net.minecraft.world.entity.EntityType"),type("net.minecraft.world.level.Level"))
+                .newInstance(value("ENTITY_TYPE","minecraft:mannequin"),level);
+    }
+    /** Copy native save data before replacing a loaded legacy actor, retaining its identity and real gear. */
+    private Object replace(Object old,UUID id,String name)throws Exception{
+        Object reporter=type("net.minecraft.util.ProblemReporter").getField("DISCARDING").get(null);
+        Object registries=call(level,"registryAccess");
+        Object output=call(type("net.minecraft.world.level.storage.TagValueOutput"),"createWithContext",reporter,registries);
+        call(old,"saveWithoutId",output);
+        Object input=call(type("net.minecraft.world.level.storage.TagValueInput"),"create",reporter,registries,call(output,"buildResult"));
+        Object avatar=newAvatar();call(avatar,"load",input);call(avatar,"setUUID",id);
+        CodaSettlerAvatarLifecycle.configure(avatar,name);
+        if(type("net.minecraft.world.entity.npc.villager.Villager").isInstance(old)){
+            Object from=call(old,"getInventory"),to=CodaSettlerAvatarLifecycle.inventory(avatar);
+            for(int i=0;i<size(from);i++)call(to,"setItem",i,copy(call(from,"getItem",i)));
+        }
+        call(old,"discard");
+        if(!(Boolean)call(level,"addFreshEntity",avatar)){
+            var undo=type("net.minecraft.world.entity.Entity").getDeclaredMethod("unsetRemoved");undo.setAccessible(true);undo.invoke(old);
+            if(!(Boolean)call(level,"addFreshEntity",old))throw new IllegalStateException("Cannot restore legacy settler after refused avatar migration");
+            throw new IllegalStateException("Minecraft refused settler avatar migration; original entity restored");
+        }
+        return avatar;
+    }
+    @Override public boolean rename(UUID id,String name)throws Exception{
+        if(name==null||name.isBlank()||name.length()>64)throw new IllegalArgumentException("Invalid settler name");
+        Object e=entity(id);if(e==null||!(Boolean)call(e,"isAlive"))return false;
+        CodaSettlerAvatarLifecycle.configure(e,name);return true;
+    }
+    @Override public boolean recover(UUID id,String name,CodaBlockPos playerPosition)throws Exception{
+        requireActive.run();Objects.requireNonNull(id);
+        if(name==null||name.isBlank()||name.length()>64)throw new IllegalArgumentException("Invalid settler name");
+        if(!storage.isLoaded(playerPosition)||call(level,"getEntityInAnyDimension",id)!=null)return false;
+        Object box=type("net.minecraft.world.phys.AABB").getConstructor(double.class,double.class,double.class,
+                double.class,double.class,double.class).newInstance(playerPosition.x()-8.0,playerPosition.y()-8.0,playerPosition.z()-8.0,
+                        playerPosition.x()+9.0,playerPosition.y()+9.0,playerPosition.z()+9.0);
+        List<Object> matches=new ArrayList<>();
+        for(Object e:(List<?>)call(level,"getEntitiesOfClass",type("net.minecraft.world.entity.monster.zombie.ZombieVillager"),box)){
+            if(!((Set<?>)call(e,"entityTags")).contains(TAG)||!near(e,playerPosition,8))continue;
+            Object label=call(e,"getCustomName");
+            if(label!=null&&name.equals(call(label,"getString"))&&(Boolean)call(e,"isAlive"))matches.add(e);
+        }
+        if(matches.size()!=1)return false;
+        Object recovered=replace(matches.getFirst(),id,name);
+        return call(level,"getEntity",id)==recovered;
     }
     /** Preflight the whole native pathfinding region; do not generate neighbouring chunks. */
     private boolean navigationLoaded(Object e)throws Exception{
@@ -107,18 +150,24 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
     }
     @Override public boolean walk(UUID id,CodaBlockPos target,double speed)throws Exception{
         if(!Double.isFinite(speed)||speed<.1||speed>1.2)throw new IllegalArgumentException("Invalid walking speed");
-        Object e=entity(id);if(e==null||!near(e,target,32)||!storage.isLoaded(target)||!navigationLoaded(e))return false;
-        Object nav=call(e,"getNavigation");call(nav,"setRequiredPathLength",32f);
+        Object e=entity(id);if(e==null||!near(e,target,32)||!storage.isLoaded(target))return false;
+        Object planner=type("net.minecraft.world.entity.npc.villager.Villager")
+                .getConstructor(type("net.minecraft.world.entity.EntityType"),type("net.minecraft.world.level.Level"))
+                .newInstance(value("ENTITY_TYPE","minecraft:villager"),level);
+        call(planner,"setPos",number(e,"getX"),number(e,"getY"),number(e,"getZ"));
+        call(planner,"setOnGround",call(e,"onGround"));
+        if(!navigationLoaded(planner))return false;
+        Object nav=call(planner,"getNavigation");call(nav,"setRequiredPathLength",32f);
         Object path=call(nav,"createPath",pos(target),1);
         if(path==null||!(Boolean)call(path,"canReach"))return false;
-        return (Boolean)call(nav,"moveTo",path,speed);
+        CodaSettlerAvatarLifecycle.path(e,path,speed);return true;
     }
     @Override public boolean sleep(UUID id,CodaBlockPos bed)throws Exception{
         Object e=entity(id);if(e==null||!near(e,bed,2.5))return false;
         var b=block(bed);if(b.isEmpty()||!b.get().id().endsWith("_bed")||!"head".equals(b.get().properties().get("part")))return false;
         if((Boolean)call(e,"isSleeping"))return true;
         if("true".equals(b.get().properties().get("occupied")))return false;
-        call(call(e,"getNavigation"),"stop");
+        CodaSettlerAvatarLifecycle.stop(e);
         return (Boolean)call(e,"startSleeping",pos(bed));
     }
     @Override public void wake(UUID id)throws Exception{Object e=entity(id);if(e!=null&&(Boolean)call(e,"isSleeping"))call(e,"stopSleeping");}
@@ -127,7 +176,7 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
         Object e=entity(id);if(e!=null)call(e,"hurtServer",level,call(call(e,"damageSources"),"starve"),amount);
     }
     @Override public void discard(UUID id)throws Exception{Object e=entity(id);if(e!=null)call(e,"discard");}
-    private Object inventory(Object e)throws Exception{return call(e,"getInventory");}
+    private Object inventory(Object e)throws Exception{return CodaSettlerAvatarLifecycle.inventory(e);}
     private int count(Object stack)throws Exception{return ((Number)call(stack,"getCount")).intValue();}
     private int size(Object container)throws Exception{return ((Number)call(container,"getContainerSize")).intValue();}
     private Object copy(Object stack)throws Exception{return call(stack,"copy");}
@@ -169,8 +218,10 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
             if(!near(e,supplies,3))return null;
             Object destination=storage.chest(supplies);if(destination==null)return null;
             Object hand=type("net.minecraft.world.entity.EquipmentSlot").getField("MAINHAND").get(null);
-            Object equipment=call(e,"createEquipmentSlotContainer",hand);
+            Object equipment=type("net.minecraft.world.SimpleContainer").getConstructor(int.class).newInstance(1);
+            call(equipment,"setItem",0,copy(held));
             if(MinecraftSingleplayerWorld.moveContainers(equipment,destination,1,CodaItemFilter.all())!=1)return null;
+            call(e,"setItemSlot",hand,call(equipment,"getItem",0));
             held=call(e,"getMainHandItem");
         }
         if(tools.isEmpty())return empty();
