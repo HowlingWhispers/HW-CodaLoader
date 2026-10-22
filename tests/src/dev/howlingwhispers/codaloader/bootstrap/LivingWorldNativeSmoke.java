@@ -72,6 +72,8 @@ public final class LivingWorldNativeSmoke {
                 check(world.block(target).orElseThrow().id().equals("minecraft:oak_sapling"),"Native planted block exists");
                 check(world.carried(id)==1,"Planting consumed only the sapling");
                 check(world.deliver(id,stock)==1&&world.carried(id)==0,"Real harvested log delivered to chest");
+                check(world.equip(id,stock,Set.of()),"Changing to a bare-hand job returns the old tool through a native equipment container");
+                check((Boolean)call(call(call(level,"getEntity",id),"getMainHandItem"),"isEmpty"),"Issued tool is not duplicated in the worker's hand");
                 Object bed=block("minecraft:red_bed"),state=call(bed,"defaultBlockState");
                 Object part=Class.forName("net.minecraft.world.level.block.BedBlock").getField("PART").get(null);
                 Object head=Class.forName("net.minecraft.world.level.block.state.properties.BedPart").getField("HEAD").get(null);

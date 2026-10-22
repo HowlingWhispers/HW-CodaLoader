@@ -97,7 +97,11 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
     /** Preflight the whole native pathfinding region; do not generate neighbouring chunks. */
     private boolean navigationLoaded(Object e)throws Exception{
         int x=(int)Math.floor(number(e,"getX")),z=(int)Math.floor(number(e,"getZ"));
-        for(int cx=(x-48)>>4;cx<=(x+48)>>4;cx++)for(int cz=(z-48)>>4;cz<=(z+48)>>4;cz++)
+        Object follow=type("net.minecraft.world.entity.ai.attributes.Attributes").getField("FOLLOW_RANGE").get(null);
+        double range=((Number)call(e,"getAttributeValue",follow)).doubleValue();
+        if(!Double.isFinite(range)||range<0||range>128)return false;
+        int radius=(int)Math.ceil(Math.max(32,range))+8; // exact PathNavigationRegion padding
+        for(int cx=(x-radius)>>4;cx<=(x+radius)>>4;cx++)for(int cz=(z-radius)>>4;cz<=(z+radius)>>4;cz++)
             if(!storage.isLoaded(new CodaBlockPos(cx<<4,64,cz<<4)))return false;
         return true;
     }
