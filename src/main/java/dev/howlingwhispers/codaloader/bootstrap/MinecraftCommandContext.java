@@ -40,6 +40,13 @@ final class MinecraftCommandContext implements CodaCommandContext {
 
     public void reply(String message) throws Exception { sendReply(source, message, false); }
 
+    @Override public void withWorld(CodaCommandContext.WorldAction action) throws Exception {
+        Object server = CommandReflection.call(source, "getServer");
+        if (!Boolean.TRUE.equals(CommandReflection.call(server, "isSameThread")))
+            throw new IllegalStateException("World commands require the native server thread");
+        try (var view = new MinecraftWorldInventoryView(server)) { action.run(view); }
+    }
+
     @Override
     public CodaSingleplayerWorld singleplayerWorld() throws Exception {
         return new MinecraftSingleplayerWorld(source);

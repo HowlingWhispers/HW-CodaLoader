@@ -19,7 +19,14 @@ final class CommandReflection {
                 }
             }
             if (!matches) continue;
-            try { return method.invoke(target instanceof Class<?> ? null : target, args); }
+            try {
+                Object receiver = target instanceof Class<?> ? null : target;
+                // Native public API implementations can be anonymous classes (e.g. Mob's equipment Container).
+                // Keep exact public method selection; merely make that implementation callable.
+                if (!method.canAccess(receiver) && !method.trySetAccessible())
+                    throw new IllegalAccessException("Native public API method is inaccessible: " + method);
+                return method.invoke(receiver, args);
+            }
             catch (InvocationTargetException ex) {
                 if (ex.getCause() instanceof Exception cause) throw cause;
                 throw ex;

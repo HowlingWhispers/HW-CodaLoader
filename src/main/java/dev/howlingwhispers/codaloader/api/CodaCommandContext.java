@@ -5,6 +5,12 @@ import java.util.UUID;
 
 /** Player-only command context. World data belongs in worldDirectory, never a global profile. */
 public interface CodaCommandContext {
+    @FunctionalInterface
+    interface WorldAction { void run(CodaWorldView world) throws Exception; }
+    /** Scoped world access for player commands, on the authoritative server thread. */
+    default void withWorld(WorldAction action) throws Exception {
+        throw new UnsupportedOperationException("This command context has no scoped world access");
+    }
     UUID playerId() throws Exception;
     Path worldDirectory() throws Exception;
     CodaPosition position() throws Exception;

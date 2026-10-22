@@ -3,6 +3,10 @@ on:
   push:
     paths:
       - .github/workflows/snapshot-api-inspection.yml
+      - 'src/main/java/dev/howlingwhispers/codaloader/api/CodaLivingWorld.java'
+      - 'src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftLivingWorld.java'
+      - 'tests/src/dev/howlingwhispers/codaloader/bootstrap/LivingWorldNative*'
+      - scripts/test-living-world-native.sh
       - 'examples/buildcraft-lite/**'
       - 'src/main/java/dev/howlingwhispers/codaloader/api/CodaItem*'
       - src/main/java/dev/howlingwhispers/codaloader/bootstrap/MinecraftSingleplayerWorld.java
@@ -171,6 +175,7 @@ jobs:
           java -Djava.awt.headless=true -javaagent:inspection/test-agent.jar \
             -cp "$CLASSPATH" dev.howlingwhispers.codaloader.bootstrap.NativeMinecraftSmoke
           bash scripts/test-sorting-pipes-native.sh inspection/client.jar inspection/maven
+          bash scripts/test-living-world-native.sh inspection/client.jar inspection/maven
           java -cp out/test-classes:out/api-classes:dist/CodaLoader.jar dev.howlingwhispers.codaloader.bootstrap.CreativeTabPagesTest inspection/client.jar
       - uses: actions/checkout@v4
         with:

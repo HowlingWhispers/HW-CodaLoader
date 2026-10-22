@@ -1,5 +1,10 @@
 # H.O.W.L.
 
+Frontier development adds the **0.0.43 living-world API** for native settlers,
+loaded-only navigation, bed sleep, real food consumption and worker inventory
+operations. The mod and its isolated launcher profile are developed together.
+See [HOWL API](docs/HOWL-API.md). This source change is not yet in Nightly.
+
 **Howling Open Works Loader**, by Howling Whispers. CodaLauncher remains the player launcher.
 
 H.O.W.L. is a from-scratch Minecraft Java mod loader and bootstrap project targeting **Minecraft Java 26.4 Snapshot 3**.

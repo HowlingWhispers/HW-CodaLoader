@@ -94,7 +94,7 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         return (Boolean) CommandReflection.call(state, "is", candidate);
     }
 
-    private Object chest(CodaBlockPos pos) throws Exception {
+    Object chest(CodaBlockPos pos) throws Exception {
         Object loaded = chunk(pos);
         if (loaded == null) return null;
         Object entity = CommandReflection.call(loaded, "getBlockEntity", nativePos(pos));
@@ -165,6 +165,12 @@ final class MinecraftSingleplayerWorld implements CodaSingleplayerWorld {
         if (source == null || destination == null)
             throw new IllegalArgumentException("Place ordinary single chests/barrels at both loaded endpoints");
 
+        return moveContainers(source, destination, maximum, filter);
+    }
+
+    static int moveContainers(Object source, Object destination, int maximum, CodaItemFilter filter) throws Exception {
+        if (maximum < 1 || maximum > 64) throw new IllegalArgumentException("Invalid transfer size");
+        ClassLoader loader = source.getClass().getClassLoader();
         int srcSize = intCall(source, "getContainerSize");
         int dstSize = intCall(destination, "getContainerSize");
         if (srcSize < 1 || srcSize > 54 || dstSize < 1 || dstSize > 54)
