@@ -19,6 +19,18 @@ public interface CodaLivingWorld {
     Optional<Actor> actor(UUID id) throws Exception;
     /** UUID is allocated and persisted by the mod before spawning. Duplicate UUIDs are refused. */
     boolean spawn(UUID id, String name, CodaBlockPos feet) throws Exception;
+    /**
+     * Explicit repair of an old converted settler: uniquely named/tagged loaded zombie
+     * within eight blocks of the player. Restores its saved UUID, retaining equipment
+     * and current health. Refuses existing UUIDs, ordinary zombies and ambiguous matches.
+     */
+    default boolean recover(UUID id, String name, CodaBlockPos playerPosition) throws Exception {
+        throw new UnsupportedOperationException("Settler recovery requires H.O.W.L. 0.0.45");
+    }
+    /** Change display name and its Mojang username skin profile. Unknown accounts use the native default skin. */
+    default boolean rename(UUID id,String name) throws Exception {
+        throw new UnsupportedOperationException("Player-shaped settlers require H.O.W.L. 0.0.45");
+    }
     boolean walk(UUID id, CodaBlockPos target, double speed) throws Exception;
     boolean sleep(UUID id, CodaBlockPos bed) throws Exception;
     void wake(UUID id) throws Exception;
