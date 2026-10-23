@@ -371,3 +371,24 @@ item. Passing a second half, an unknown property or a block without an item thro
 `shapePath(id, target)` turns grass, dirt, coarse dirt, podzol, mycelium or rooted dirt
 into a dirt path with the shovel in the settler's main hand, which loses one point of
 durability, as a player's would. It needs air above and the settler within 6 blocks.
+
+## Settler crafting (0.0.47)
+
+`CodaLivingWorld.craft(id, workbench, supplies, recipeId, times)` crafts one vanilla
+crafting recipe up to `times` times (1-64), exactly as a player would, and returns how
+many crafts were done.
+
+- The recipe is looked up by id in the game's own recipe manager (for example
+  `minecraft:oak_planks`, `minecraft:oak_door`, `minecraft:ladder`). Only ordinary shaped
+  and shapeless crafting recipes are accepted; unknown ids, smelting and other special
+  recipes throw. Ingredients, tags and results are the game's, never copied.
+- With a `workbench`, a `minecraft:crafting_table` must stand there, the settler within
+  3 blocks of it and the table within 3 blocks of `supplies`. With `workbench == null`
+  only recipes that fit the 2x2 grid every player carries can be made (planks, sticks,
+  a crafting table); larger ones return 0.
+- Ingredients come from the settler's own inventory first, then from the chest or barrel
+  at `supplies` when the settler is within 3 blocks of it. The game's `matches` check
+  must accept the grid. Results and remainders (empty buckets and the like) go into the
+  settler's inventory.
+- Each craft is all-or-nothing: a missing ingredient or no room for the result restores
+  both inventories and stops; earlier crafts in the same call stay done.

@@ -284,6 +284,111 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
         try{if((Boolean)call(level,"setBlock",pos(target),planted,3))return true;set(container,slot,original);return false;}
         catch(Exception ex){try{call(level,"setBlock",pos(target),air,3);set(container,slot,original);}catch(Exception rollback){ex.addSuppressed(rollback);}throw ex;}
     }
+    /**
+     * L8 (0.0.47): craft like a player at a crafting table (or in the 2x2 grid without one).
+     * Uses the game's own recipe, ingredients and results; each craft is all-or-nothing.
+     */
+    @Override public int craft(UUID id,CodaBlockPos workbench,CodaBlockPos supplies,String recipeId,int times)throws Exception{
+        if(times<1||times>64)throw new IllegalArgumentException("Craft 1 to 64 times");
+        Object recipe=craftingRecipe(Objects.requireNonNull(recipeId));
+        Object e=entity(id);if(e==null)return 0;
+        boolean shaped=type("net.minecraft.world.item.crafting.ShapedRecipe").isInstance(recipe);
+        List<Optional<?>> cells=new ArrayList<>();int w,h;
+        if(shaped){
+            w=((Number)call(recipe,"getWidth")).intValue();h=((Number)call(recipe,"getHeight")).intValue();
+            for(Object cell:(List<?>)call(recipe,"getIngredients"))cells.add((Optional<?>)cell);
+        }else{
+            List<?> ingredients=(List<?>)call(call(recipe,"placementInfo"),"ingredients");
+            int n=ingredients.size();if(n<1||n>9)return 0;
+            w=n<=4?2:3;h=n<=4?2:3;
+            for(Object ingredient:ingredients)cells.add(Optional.of(ingredient));
+            while(cells.size()<w*h)cells.add(Optional.empty());
+        }
+        if(workbench==null){
+            if(w>2||h>2)return 0;
+        }else{
+            Object table=state(workbench);
+            if(table==null||!"minecraft:crafting_table".equals(key("BLOCK",call(table,"getBlock"))))return 0;
+            if(!near(e,workbench,3))return 0;
+            if(Math.pow(workbench.x()-supplies.x(),2)+Math.pow(workbench.y()-supplies.y(),2)+Math.pow(workbench.z()-supplies.z(),2)>9)return 0;
+        }
+        Object bag=inventory(e);
+        Object chest=supplies!=null&&near(e,supplies,3)?storage.chest(supplies):null;
+        int done=0;
+        for(int t=0;t<times;t++){
+            List<Object> bagBefore=snapshot(bag),chestBefore=chest==null?List.of():snapshot(chest);
+            boolean ok=false;
+            try{ok=craftOnce(recipe,cells,w,h,bag,chest);}
+            finally{if(!ok){restore(bag,bagBefore);if(chest!=null)restore(chest,chestBefore);}}
+            if(!ok)break;
+            done++;
+        }
+        return done;
+    }
+    private Object craftingRecipe(String recipeId)throws Exception{
+        Object key=call(type("net.minecraft.resources.ResourceKey"),"create",
+                type("net.minecraft.core.registries.Registries").getField("RECIPE").get(null),
+                call(type("net.minecraft.resources.Identifier"),"parse",recipeId));
+        Optional<?> holder=(Optional<?>)call(call(server,"getRecipeManager"),"byKey",key);
+        if(holder.isEmpty())throw new IllegalArgumentException("Unknown recipe: "+recipeId);
+        Object recipe=call(holder.get(),"value");
+        // Only ordinary crafting-table recipes: no special recipes (dyeing, repairs, maps...).
+        if(!type("net.minecraft.world.item.crafting.ShapedRecipe").isInstance(recipe)
+                &&!type("net.minecraft.world.item.crafting.ShapelessRecipe").isInstance(recipe))
+            throw new IllegalArgumentException("Not a crafting-table recipe: "+recipeId);
+        return recipe;
+    }
+    /** One craft: take one matching item per cell (own inventory first), check with the game, add the results. */
+    private boolean craftOnce(Object recipe,List<Optional<?>> cells,int w,int h,Object bag,Object chest)throws Exception{
+        List<Object> grid=new ArrayList<>();
+        for(Optional<?> cell:cells){
+            if(cell.isEmpty()){grid.add(empty());continue;}
+            Object ingredient=cell.get(),taken=null;
+            for(Object container:chest==null?List.of(bag):List.of(bag,chest)){
+                for(int i=0;i<size(container)&&taken==null;i++){
+                    Object stack=call(container,"getItem",i);
+                    if(count(stack)>0&&(Boolean)call(ingredient,"test",stack)){taken=call(stack,"copyWithCount",1);consume(container,i);}
+                }
+                if(taken!=null)break;
+            }
+            if(taken==null)return false;
+            grid.add(taken);
+        }
+        Object input=call(type("net.minecraft.world.item.crafting.CraftingInput"),"of",w,h,grid);
+        if(!(Boolean)call(recipe,"matches",input,level))return false;
+        List<Object> out=new ArrayList<>();
+        Object result=call(recipe,"assemble",input);
+        if(count(result)<1)return false;
+        out.add(result);
+        for(Object rest:(Iterable<?>)call(recipe,"getRemainingItems",input))if(count(rest)>0)out.add(rest);
+        return addAll(bag,out);
+    }
+    private List<Object> snapshot(Object container)throws Exception{
+        List<Object> copy=new ArrayList<>();for(int i=0;i<size(container);i++)copy.add(copy(call(container,"getItem",i)));return copy;
+    }
+    private void restore(Object container,List<Object> copy)throws Exception{
+        for(int i=0;i<copy.size();i++)set(container,i,copy.get(i));
+    }
+    /** Put stacks into an inventory like a pickup would, or change nothing and return false. */
+    private boolean addAll(Object container,List<Object> stacks)throws Exception{
+        List<Object> after=snapshot(container);
+        Object stackType=type("net.minecraft.world.item.ItemStack");
+        for(Object stack:stacks){
+            int remaining=count(stack);
+            for(int pass=0;pass<2&&remaining>0;pass++)
+                for(int i=0;i<after.size()&&remaining>0;i++){
+                    Object current=after.get(i);int n=count(current);
+                    if(pass==0&&(n==0||!(Boolean)call(stackType,"isSameItemSameComponents",current,stack)))continue;
+                    if(pass==1&&n!=0)continue;
+                    int maximum=Math.min(((Number)call(stack,"getMaxStackSize")).intValue(),((Number)call(container,"getMaxStackSize")).intValue());
+                    int add=Math.min(remaining,maximum-n);
+                    if(add>0){after.set(i,call(stack,"copyWithCount",n+add));remaining-=add;}
+                }
+            if(remaining>0)return false;
+        }
+        restore(container,after);
+        return true;
+    }
     private static final java.util.regex.Pattern STATE=java.util.regex.Pattern.compile(
             "([a-z0-9_.-]+:[a-z0-9_./-]+)(?:\\[([a-z0-9_]+=[a-z0-9_]+(?:,[a-z0-9_]+=[a-z0-9_]+)*)\\])?");
     /** A block state from "namespace:id[name=value,...]"; unnamed properties keep their defaults. */
