@@ -27,7 +27,7 @@ jobs:
           report() {
             local title="$1" file="$2"
             # One annotation per chunk; newlines encoded as %0A.
-            split -l 60 "$file" "$file.part."
+            split -l 22 "$file" "$file.part."
             for part in "$file".part.*; do
               msg="$(sed -e 's/%/%25/g' -e 's/\r//g' "$part" | sed -e ':a;N;$!ba;s/\n/%0A/g')"
               echo "::notice title=${title} $(basename "$part")::${msg}"
@@ -42,35 +42,15 @@ jobs:
             done
           }
           inspect inspection/a.txt \
-            net.minecraft.world.item.crafting.RecipeManager \
-            net.minecraft.world.item.crafting.RecipeHolder \
-            net.minecraft.world.item.crafting.RecipeType \
-            net.minecraft.world.item.crafting.Recipe \
-            net.minecraft.world.item.crafting.CraftingRecipe
-          inspect inspection/b.txt \
-            net.minecraft.world.item.crafting.ShapedRecipe \
-            net.minecraft.world.item.crafting.ShapedRecipePattern \
-            net.minecraft.world.item.crafting.ShapelessRecipe \
             net.minecraft.world.item.crafting.CraftingInput \
-            net.minecraft.world.item.crafting.PlacementInfo \
-            net.minecraft.world.item.crafting.Ingredient \
-            net.minecraft.world.item.crafting.RecipeInput \
-            net.minecraft.world.item.crafting.CraftingBookCategory
-          inspect inspection/c.txt \
-            net.minecraft.core.registries.Registries \
-            net.minecraft.resources.ResourceKey \
-            net.minecraft.resources.Identifier \
-            net.minecraft.core.HolderLookup\$Provider \
-            net.minecraft.core.RegistryAccess
-          javap -p -classpath inspection/client.jar net.minecraft.server.MinecraftServer | grep -iE 'recipe|registryAccess|reloadableRegistries' > inspection/d.txt || true
-          javap -p -classpath inspection/client.jar net.minecraft.server.level.ServerLevel | grep -iE 'recipe|registryAccess|getServer\(' >> inspection/d.txt || true
-          javap -p -classpath inspection/client.jar net.minecraft.world.level.Level | grep -iE 'recipe|registryAccess' >> inspection/d.txt || true
-          javap -p -classpath inspection/client.jar net.minecraft.world.item.ItemStack | grep -E 'public' | grep -iE 'copy|count|isEmpty|shrink|grow|getItem|is\(|isSameItem|getMaxStackSize|split|EMPTY' >> inspection/d.txt || true
-          javap -p -classpath inspection/client.jar net.minecraft.world.Container | grep -E 'public' >> inspection/d.txt || true
-          ls -1 <(unzip -l inspection/client.jar | grep -oE 'data/minecraft/recipe/(oak_planks|oak_door|stick|ladder|crafting_table|white_bed|red_bed|torch)\.json') >/dev/null
-          unzip -l inspection/client.jar | grep -oE 'data/minecraft/recipe/[a-z_]+\.json' | grep -E '/(oak_planks|oak_door|stick|stick_from_bamboo_item|ladder|crafting_table|white_bed|red_bed|torch|chest)\.json' >> inspection/d.txt || true
-          for r in oak_planks oak_door stick ladder crafting_table white_bed; do echo "## recipe $r" >> inspection/d.txt; unzip -p inspection/client.jar "data/minecraft/recipe/$r.json" | tr -d '\n ' >> inspection/d.txt || true; echo >> inspection/d.txt; done
-          report "recipe classes" inspection/a.txt
-          report "recipe inputs" inspection/b.txt
-          report "registries" inspection/c.txt
-          report "server, stacks, containers, recipe json" inspection/d.txt
+            net.minecraft.world.item.crafting.Recipe \
+            net.minecraft.world.item.crafting.ShapelessRecipe \
+            net.minecraft.world.item.crafting.NormalCraftingRecipe
+          javap -p -classpath inspection/client.jar net.minecraft.core.registries.Registries | grep -E ' RECIPE;| ITEM;' > inspection/b.txt || true
+          javap -p -classpath inspection/client.jar net.minecraft.resources.ResourceKey | grep -E 'public' >> inspection/b.txt || true
+          javap -p -classpath inspection/client.jar net.minecraft.world.item.crafting.RecipeType | grep -E 'CRAFTING' >> inspection/b.txt || true
+          : > inspection/d.txt
+          for r in oak_planks oak_door stick ladder crafting_table white_bed; do echo "## recipe $r" >> inspection/d.txt; unzip -p inspection/client.jar "data/minecraft/recipe/$r.json" | tr -d '\n ' >> inspection/d.txt || echo missing >> inspection/d.txt; echo >> inspection/d.txt; done
+          report "craft A" inspection/a.txt
+          report "craft B" inspection/b.txt
+          report "craft D" inspection/d.txt
