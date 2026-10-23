@@ -137,6 +137,10 @@ public final class LivingWorldNativeSmoke {
     /** L8 (0.0.47): settlers craft with the game's own recipes, real items and a real crafting table. */
     static void crafting(Object level,CodaLivingWorld world,Object chest)throws Exception{
         world.deliver(id,stock);check(world.carried(id)==0,"Crafting starts with an empty bag");
+        // Earlier steps may have left planks in the chest; set them aside so the plank counts below are exact.
+        Map<Integer,Object> setAside=new HashMap<>();
+        for(int i=0;i<((Number)call(chest,"getContainerSize")).intValue();i++)
+            if(MinecraftSingleplayerWorld.itemId(call(chest,"getItem",i)).endsWith("_planks"))setAside.put(i,call(chest,"removeItemNoUpdate",i));
         int planksBefore=stocked(chest,"minecraft:oak_planks");
         call(chest,"setItem",10,item("minecraft:oak_log",2));
         int logsBefore=stocked(chest,"minecraft:oak_log");
@@ -147,8 +151,9 @@ public final class LivingWorldNativeSmoke {
         check(world.craft(id,null,stock,"minecraft:oak_door",1)==0&&world.carried(id)==4,"A door does not fit the 2x2 grid: nothing changes without a table");
         CodaBlockPos table=new CodaBlockPos(stock.x(),stock.y()+1,stock.z());
         put(level,table,"minecraft:crafting_table");
-        check(world.craft(id,table,stock,"minecraft:oak_door",1)==0&&world.carried(id)==4&&stocked(chest,"minecraft:oak_planks")==planksBefore,
-                "Too few planks for a door: all-or-nothing, nothing used");
+        int tooFew=world.craft(id,table,stock,"minecraft:oak_door",1);
+        check(tooFew==0&&world.carried(id)==4&&stocked(chest,"minecraft:oak_planks")==planksBefore,
+                "Too few planks for a door: all-or-nothing, nothing used (crafted "+tooFew+", carried "+world.carried(id)+", chest planks "+planksBefore+" -> "+stocked(chest,"minecraft:oak_planks")+")");
         check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1&&world.carried(id)==8&&stocked(chest,"minecraft:oak_log")==logsBefore-2,"The second log becomes planks too");
         check(world.craft(id,table,stock,"minecraft:oak_door",2)==1,"Six planks make one batch of doors; the second batch stops cleanly");
         int doors=0,planks=0;Object bag=CodaSettlerAvatarLifecycle.inventory(call(level,"getEntity",id));
@@ -158,6 +163,7 @@ public final class LivingWorldNativeSmoke {
         put(level,table,"minecraft:air");
         check(world.craft(id,table,stock,"minecraft:oak_planks",1)==0,"No crafting table there: nothing is crafted");
         check(world.deliver(id,stock)>0&&world.carried(id)==0,"Crafted items go to the stockpile like any other");
+        for(var e:setAside.entrySet())if(((Boolean)call(call(chest,"getItem",e.getKey()),"isEmpty")))call(chest,"setItem",e.getKey(),e.getValue());
     }
     public record TargetSource(Object server,Object level,Object player){
         public Object getServer(){return server;}
