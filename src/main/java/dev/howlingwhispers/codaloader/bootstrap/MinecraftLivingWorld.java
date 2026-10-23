@@ -329,7 +329,8 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
         Object key=call(type("net.minecraft.resources.ResourceKey"),"create",
                 type("net.minecraft.core.registries.Registries").getField("RECIPE").get(null),
                 call(type("net.minecraft.resources.Identifier"),"parse",recipeId));
-        Optional<?> holder=(Optional<?>)call(call(server,"getRecipeManager"),"byKey",key);
+        // The level's own recipe access (ServerLevel.recipeAccess() is the server's RecipeManager in Snapshot 3).
+        Optional<?> holder=(Optional<?>)call(call(level,"recipeAccess"),"byKey",key);
         if(holder.isEmpty())throw new IllegalArgumentException("Unknown recipe: "+recipeId);
         Object recipe=call(holder.get(),"value");
         // Only ordinary crafting-table recipes: no special recipes (dyeing, repairs, maps...).
