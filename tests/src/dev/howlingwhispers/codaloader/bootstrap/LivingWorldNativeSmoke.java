@@ -139,16 +139,17 @@ public final class LivingWorldNativeSmoke {
         world.deliver(id,stock);check(world.carried(id)==0,"Crafting starts with an empty bag");
         int planksBefore=stocked(chest,"minecraft:oak_planks");
         call(chest,"setItem",10,item("minecraft:oak_log",2));
+        int logsBefore=stocked(chest,"minecraft:oak_log");
         try{world.craft(id,null,stock,"minecraft:no_such_recipe",1);throw new AssertionError("Unknown recipe accepted");}catch(IllegalArgumentException expected){checks++;}
         try{world.craft(id,null,stock,"minecraft:iron_ingot_from_smelting_iron_ore",1);throw new AssertionError("Smelting recipe accepted");}catch(IllegalArgumentException expected){checks++;}
         check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1,"Planks from a log in the 2x2 grid, no table needed");
-        check(world.carried(id)==4&&stocked(chest,"minecraft:oak_log")==1,"One real log became four real planks in the bag");
+        check(world.carried(id)==4&&stocked(chest,"minecraft:oak_log")==logsBefore-1,"One real log became four real planks in the bag (carried "+world.carried(id)+", logs "+logsBefore+" -> "+stocked(chest,"minecraft:oak_log")+")");
         check(world.craft(id,null,stock,"minecraft:oak_door",1)==0&&world.carried(id)==4,"A door does not fit the 2x2 grid: nothing changes without a table");
         CodaBlockPos table=new CodaBlockPos(stock.x(),stock.y()+1,stock.z());
         put(level,table,"minecraft:crafting_table");
         check(world.craft(id,table,stock,"minecraft:oak_door",1)==0&&world.carried(id)==4&&stocked(chest,"minecraft:oak_planks")==planksBefore,
                 "Too few planks for a door: all-or-nothing, nothing used");
-        check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1&&world.carried(id)==8,"The second log becomes planks too");
+        check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1&&world.carried(id)==8&&stocked(chest,"minecraft:oak_log")==logsBefore-2,"The second log becomes planks too");
         check(world.craft(id,table,stock,"minecraft:oak_door",2)==1,"Six planks make one batch of doors; the second batch stops cleanly");
         int doors=0,planks=0;Object bag=CodaSettlerAvatarLifecycle.inventory(call(level,"getEntity",id));
         for(int i=0;i<((Number)call(bag,"getContainerSize")).intValue();i++){Object st=call(bag,"getItem",i);String k=MinecraftSingleplayerWorld.itemId(st);int c=((Number)call(st,"getCount")).intValue();
