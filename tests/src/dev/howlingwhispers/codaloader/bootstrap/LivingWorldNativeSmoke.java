@@ -269,7 +269,10 @@ public final class LivingWorldNativeSmoke {
             for(Throwable t=failure.getCause();t!=null;t=t.getCause())where.append(" | caused by ").append(t);
             StackTraceElement[] trace=failure.getStackTrace();
             for(int i=0;i<Math.min(6,trace.length);i++)where.append(" | at ").append(trace[i]);
-            System.out.println("::error title=Living-world native check failed::"+where.toString().replace("%","%25").replace("\n"," ").replace("\r",""));
+            // Minecraft wraps System.out with a "[STDOUT]" prefix; write to the raw stream so GitHub sees the command.
+            try(var raw=new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out),true)){
+                raw.println("::error title=Living-world native check failed::"+where.toString().replace("%","%25").replace("\n"," ").replace("\r",""));
+            }
             System.exit(1);
         }finally{scope=false;}
     }
