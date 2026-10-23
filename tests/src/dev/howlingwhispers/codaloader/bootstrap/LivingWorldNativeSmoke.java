@@ -131,6 +131,40 @@ public final class LivingWorldNativeSmoke {
         check(!world.shapePath(id,ground),"A path cannot be shaped twice");
         check(world.equip(id,stock,Set.of()),"The shovel goes back to the stockpile");
     }
+    static int stocked(Object chest,String itemId)throws Exception{
+        int n=0;for(int i=0;i<((Number)call(chest,"getContainerSize")).intValue();i++){Object st=call(chest,"getItem",i);if(MinecraftSingleplayerWorld.itemId(st).equals(itemId))n+=((Number)call(st,"getCount")).intValue();}return n;
+    }
+    /** L8 (0.0.47): settlers craft with the game's own recipes, real items and a real crafting table. */
+    static void crafting(Object level,CodaLivingWorld world,Object chest)throws Exception{
+        world.deliver(id,stock);check(world.carried(id)==0,"Crafting starts with an empty bag");
+        // Earlier steps may have left planks in the chest; set them aside so the plank counts below are exact.
+        Map<Integer,Object> setAside=new HashMap<>();
+        for(int i=0;i<((Number)call(chest,"getContainerSize")).intValue();i++)
+            if(MinecraftSingleplayerWorld.itemId(call(chest,"getItem",i)).endsWith("_planks"))setAside.put(i,call(chest,"removeItemNoUpdate",i));
+        int planksBefore=stocked(chest,"minecraft:oak_planks");
+        call(chest,"setItem",10,item("minecraft:oak_log",2));
+        int logsBefore=stocked(chest,"minecraft:oak_log");
+        try{world.craft(id,null,stock,"minecraft:no_such_recipe",1);throw new AssertionError("Unknown recipe accepted");}catch(IllegalArgumentException expected){checks++;}
+        try{world.craft(id,null,stock,"minecraft:iron_ingot_from_smelting_iron_ore",1);throw new AssertionError("Smelting recipe accepted");}catch(IllegalArgumentException expected){checks++;}
+        check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1,"Planks from a log in the 2x2 grid, no table needed");
+        check(world.carried(id)==4&&stocked(chest,"minecraft:oak_log")==logsBefore-1,"One real log became four real planks in the bag (carried "+world.carried(id)+", logs "+logsBefore+" -> "+stocked(chest,"minecraft:oak_log")+")");
+        check(world.craft(id,null,stock,"minecraft:oak_door",1)==0&&world.carried(id)==4,"A door does not fit the 2x2 grid: nothing changes without a table");
+        CodaBlockPos table=new CodaBlockPos(stock.x(),stock.y()+1,stock.z());
+        put(level,table,"minecraft:crafting_table");
+        int tooFew=world.craft(id,table,stock,"minecraft:oak_door",1);
+        check(tooFew==0&&world.carried(id)==4&&stocked(chest,"minecraft:oak_planks")==planksBefore,
+                "Too few planks for a door: all-or-nothing, nothing used (crafted "+tooFew+", carried "+world.carried(id)+", chest planks "+planksBefore+" -> "+stocked(chest,"minecraft:oak_planks")+")");
+        check(world.craft(id,null,stock,"minecraft:oak_planks",1)==1&&world.carried(id)==8&&stocked(chest,"minecraft:oak_log")==logsBefore-2,"The second log becomes planks too");
+        check(world.craft(id,table,stock,"minecraft:oak_door",2)==1,"Six planks make one batch of doors; the second batch stops cleanly");
+        int doors=0,planks=0;Object bag=CodaSettlerAvatarLifecycle.inventory(call(level,"getEntity",id));
+        for(int i=0;i<((Number)call(bag,"getContainerSize")).intValue();i++){Object st=call(bag,"getItem",i);String k=MinecraftSingleplayerWorld.itemId(st);int c=((Number)call(st,"getCount")).intValue();
+            if(k.equals("minecraft:oak_door"))doors+=c;if(k.equals("minecraft:oak_planks"))planks+=c;}
+        check(doors==3&&planks==2,"The game's recipe made 3 doors from 6 planks ("+doors+" doors, "+planks+" planks)");
+        put(level,table,"minecraft:air");
+        check(world.craft(id,table,stock,"minecraft:oak_planks",1)==0,"No crafting table there: nothing is crafted");
+        check(world.deliver(id,stock)>0&&world.carried(id)==0,"Crafted items go to the stockpile like any other");
+        for(var e:setAside.entrySet())if(((Boolean)call(call(chest,"getItem",e.getKey()),"isEmpty")))call(chest,"setItem",e.getKey(),e.getValue());
+    }
     public record TargetSource(Object server,Object level,Object player){
         public Object getServer(){return server;}
         public Object getLevel(){return level;}
@@ -219,6 +253,7 @@ public final class LivingWorldNativeSmoke {
                 check(world.equip(id,stock,Set.of()),"Changing to a bare-hand job returns the old tool through a native equipment container");
                 check((Boolean)call(call(call(level,"getEntity",id),"getMainHandItem"),"isEmpty"),"Issued tool is not duplicated in the worker's hand");
                 placement(level,world,actor,chest);
+                crafting(level,world,chest);
                 Object bed=block("minecraft:red_bed"),state=call(bed,"defaultBlockState");
                 Object part=Class.forName("net.minecraft.world.level.block.BedBlock").getField("PART").get(null);
                 Object head=Class.forName("net.minecraft.world.level.block.state.properties.BedPart").getField("HEAD").get(null);
@@ -234,7 +269,19 @@ public final class LivingWorldNativeSmoke {
                 finished=true;System.out.println("PASS: "+checks+" running Snapshot 3 living-world checks");call(server,"halt",false);
             }
             if(tick>120)throw new AssertionError("Native scenario timed out");
-        }catch(Throwable failure){failure.printStackTrace();System.exit(1);}finally{scope=false;}
+        }catch(Throwable failure){
+            failure.printStackTrace();
+            // Also as a GitHub annotation, so the failing check is readable without the full log.
+            StringBuilder where=new StringBuilder(String.valueOf(failure));
+            for(Throwable t=failure.getCause();t!=null;t=t.getCause())where.append(" | caused by ").append(t);
+            StackTraceElement[] trace=failure.getStackTrace();
+            for(int i=0;i<Math.min(6,trace.length);i++)where.append(" | at ").append(trace[i]);
+            // Minecraft wraps System.out with a "[STDOUT]" prefix; write to the raw stream so GitHub sees the command.
+            try(var raw=new java.io.PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out),true)){
+                raw.println("::error title=Living-world native check failed::"+where.toString().replace("%","%25").replace("\n"," ").replace("\r",""));
+            }
+            System.exit(1);
+        }finally{scope=false;}
     }
     public static void finish(){System.exit(finished?0:1);}
 }

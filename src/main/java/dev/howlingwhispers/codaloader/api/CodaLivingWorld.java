@@ -70,5 +70,21 @@ public interface CodaLivingWorld {
     default boolean shapePath(UUID id, CodaBlockPos target) throws Exception {
         throw new UnsupportedOperationException("Settler path shaping requires H.O.W.L. 0.0.46");
     }
+    /**
+     * Craft {@code times} of one vanilla crafting recipe, as a player would (H.O.W.L. 0.0.47, hook L8).
+     * With a {@code workbench}, the settler must be within 3 blocks of a {@code minecraft:crafting_table}
+     * there, and that table within 3 blocks of the chest or barrel at {@code supplies}; any crafting
+     * recipe can be made. With {@code workbench == null} only recipes that fit the 2x2 grid every
+     * player carries can be made (planks, sticks, a crafting table).
+     * Ingredients come from the settler's own inventory first, then from the supplies (the settler
+     * within 3 blocks of them). Results and vanilla remainders go into the settler's inventory.
+     * Each craft is all-or-nothing: if an ingredient or the room for the result is missing, that
+     * craft and every later one change nothing. Returns how many crafts were done (0..times).
+     * The recipe is looked up in the game's own recipe manager by id (for example
+     * {@code minecraft:oak_planks}); unknown ids and non-crafting recipes throw.
+     */
+    default int craft(UUID id, CodaBlockPos workbench, CodaBlockPos supplies, String recipeId, int times) throws Exception {
+        throw new UnsupportedOperationException("Settler crafting requires H.O.W.L. 0.0.47");
+    }
     void announce(String message) throws Exception;
 }
