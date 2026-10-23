@@ -351,3 +351,23 @@ repairs a uniquely matching tagged zombie villager within eight blocks, using it
 existing native save data and the camp's original UUID. It refuses ordinary
 zombies, existing UUIDs, ambiguous matches and unloaded positions. It never
 spawns an absent actor. Mods must verify an active camp record and player proximity.
+
+## Settler block placement (0.0.46)
+
+`CodaLivingWorld.place(id, target, blockState, supplies)` places one block from one
+real item: the settler's own inventory first, otherwise the chest or barrel at
+`supplies` when the settler is within 3 blocks of it. `blockState` is a block ID with
+optional properties, for example `minecraft:oak_door[facing=south,half=lower,hinge=left]`;
+unnamed properties keep their defaults. It returns false and changes nothing unless the
+settler is loaded, alive and within 6 blocks, every affected position is loaded, inside
+the world and replaceable (air or a replaceable plant, never a fluid), the block can
+survive there, and no entity is in the way.
+
+Doors and beds are placed by their first half (the door's lower half, the bed's foot).
+Minecraft's own `setPlacedBy` then adds the other half, and one item covers both. Both
+halves are checked before anything changes, and a failure restores the blocks and the
+item. Passing a second half, an unknown property or a block without an item throws.
+
+`shapePath(id, target)` turns grass, dirt, coarse dirt, podzol, mycelium or rooted dirt
+into a dirt path with the shovel in the settler's main hand, which loses one point of
+durability, as a player's would. It needs air above and the settler within 6 blocks.

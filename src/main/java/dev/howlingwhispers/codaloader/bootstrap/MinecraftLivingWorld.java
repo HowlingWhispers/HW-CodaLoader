@@ -284,6 +284,110 @@ final class MinecraftLivingWorld implements CodaLivingWorld {
         try{if((Boolean)call(level,"setBlock",pos(target),planted,3))return true;set(container,slot,original);return false;}
         catch(Exception ex){try{call(level,"setBlock",pos(target),air,3);set(container,slot,original);}catch(Exception rollback){ex.addSuppressed(rollback);}throw ex;}
     }
+    private static final java.util.regex.Pattern STATE=java.util.regex.Pattern.compile(
+            "([a-z0-9_.-]+:[a-z0-9_./-]+)(?:\\[([a-z0-9_]+=[a-z0-9_]+(?:,[a-z0-9_]+=[a-z0-9_]+)*)\\])?");
+    /** A block state from "namespace:id[name=value,...]"; unnamed properties keep their defaults. */
+    private Object blockState(String text)throws Exception{
+        var m=STATE.matcher(Objects.requireNonNull(text));
+        if(!m.matches())throw new IllegalArgumentException("Invalid block state: "+text);
+        Object state=call(value("BLOCK",m.group(1)),"defaultBlockState");
+        if(m.group(2)==null)return state;
+        for(String pair:m.group(2).split(",")){
+            String name=pair.substring(0,pair.indexOf('=')),wanted=pair.substring(pair.indexOf('=')+1);
+            Object property=null;
+            for(Object candidate:(Collection<?>)call(state,"getProperties"))if(call(candidate,"getName").equals(name))property=candidate;
+            if(property==null)throw new IllegalArgumentException(m.group(1)+" has no property "+name);
+            Optional<?> parsed=(Optional<?>)call(property,"getValue",wanted);
+            if(parsed.isEmpty())throw new IllegalArgumentException(m.group(1)+" property "+name+" cannot be "+wanted);
+            state=call(state,"setValue",property,parsed.get());
+        }
+        return state;
+    }
+    /** Air, or something a placed block may replace (grass, flowers); never a fluid or an unloaded block. */
+    private boolean replaceable(CodaBlockPos p)throws Exception{
+        Object s=state(p);if(s==null)return false;
+        if(!(Boolean)call(call(s,"getFluidState"),"isEmpty"))return false;
+        return (Boolean)call(s,"isAir")||(Boolean)call(s,"canBeReplaced");
+    }
+    private boolean inside(CodaBlockPos p)throws Exception{
+        Object at=pos(p);
+        return (Boolean)call(level,"isInWorldBounds",at)&&(Boolean)call(call(level,"getWorldBorder"),"isWithinBounds",at);
+    }
+    private boolean clear(Object state,CodaBlockPos p)throws Exception{
+        return (Boolean)call(level,"isUnobstructed",state,pos(p),call(type("net.minecraft.world.phys.shapes.CollisionContext"),"empty"));
+    }
+    /** The second half of a door or bed placed from {@code first}, or null for single blocks. Second halves are refused. */
+    private Object[] secondHalf(Object first,CodaBlockPos at)throws Exception{
+        Object block=call(first,"getBlock");
+        if(type("net.minecraft.world.level.block.DoorBlock").isInstance(block)){
+            Object half=type("net.minecraft.world.level.block.DoorBlock").getField("HALF").get(null);
+            Object upper=type("net.minecraft.world.level.block.state.properties.DoubleBlockHalf").getField("UPPER").get(null);
+            if(call(first,"getValue",half)==upper)throw new IllegalArgumentException("Place a door by its lower half");
+            return new Object[]{new CodaBlockPos(at.x(),at.y()+1,at.z()),call(first,"setValue",half,upper)};
+        }
+        // Snapshot 3 beds share AbstractBedBlock, which owns PART, FACING and the head-placing setPlacedBy.
+        if(type("net.minecraft.world.level.block.AbstractBedBlock").isInstance(block)){
+            Class<?> bed=type("net.minecraft.world.level.block.AbstractBedBlock");
+            Object part=bed.getField("PART").get(null),head=type("net.minecraft.world.level.block.state.properties.BedPart").getField("HEAD").get(null);
+            if(call(first,"getValue",part)==head)throw new IllegalArgumentException("Place a bed by its foot");
+            Object facing=call(first,"getValue",bed.getField("FACING").get(null));
+            int dx=((Number)call(facing,"getStepX")).intValue(),dz=((Number)call(facing,"getStepZ")).intValue();
+            return new Object[]{new CodaBlockPos(at.x()+dx,at.y(),at.z()+dz),call(first,"setValue",part,head)};
+        }
+        return null;
+    }
+    @Override public boolean place(UUID id,CodaBlockPos target,String blockState,CodaBlockPos supplies)throws Exception{
+        requireActive.run();Objects.requireNonNull(target);
+        Object placed=blockState(blockState),block=call(placed,"getBlock");
+        String itemId=key("ITEM",call(block,"asItem"));
+        if(itemId.equals("minecraft:air"))throw new IllegalArgumentException("No item places "+blockState);
+        Object[] second=secondHalf(placed,target);
+        Object e=entity(id);if(e==null||!(Boolean)call(e,"isAlive")||!near(e,target,6))return false;
+        if(!inside(target)||!replaceable(target)||!(Boolean)call(placed,"canSurvive",level,pos(target))||!clear(placed,target))return false;
+        CodaBlockPos other=second==null?null:(CodaBlockPos)second[0];
+        if(other!=null&&(!inside(other)||!replaceable(other)||!clear(second[1],other)))return false;
+        // One real item: the settler's own inventory first, then the nearby stockpile.
+        Object container=inventory(e);int slot=find(container,Set.of(itemId));
+        if(slot<0&&supplies!=null&&near(e,supplies,3)){container=storage.chest(supplies);if(container!=null)slot=find(container,Set.of(itemId));}
+        if(container==null||slot<0)return false;
+        Object original=copy(call(container,"getItem",slot)),used=call(original,"copyWithCount",1);
+        Object before=state(target),beforeOther=other==null?null:state(other);
+        consume(container,slot);
+        try{
+            if(!(Boolean)call(level,"setBlock",pos(target),placed,3)){set(container,slot,original);return false;}
+            if(other!=null){
+                call(block,"setPlacedBy",level,pos(target),placed,e,used); // vanilla adds the door's upper half or the bed's head
+                if(state(other)==null||call(state(other),"getBlock")!=block)throw new IllegalStateException("Minecraft did not complete the second half");
+            }
+            return true;
+        }catch(Exception ex){
+            try{
+                call(level,"setBlock",pos(target),before,3);
+                if(other!=null)call(level,"setBlock",pos(other),beforeOther,3);
+                set(container,slot,original);
+            }catch(Exception rollback){ex.addSuppressed(rollback);}
+            throw ex;
+        }
+    }
+    private static final Set<String> PATHABLE=Set.of("minecraft:grass_block","minecraft:dirt","minecraft:coarse_dirt",
+            "minecraft:podzol","minecraft:mycelium","minecraft:rooted_dirt");
+    @Override public boolean shapePath(UUID id,CodaBlockPos target)throws Exception{
+        requireActive.run();Objects.requireNonNull(target);
+        Object e=entity(id);if(e==null||!(Boolean)call(e,"isAlive")||!near(e,target,6))return false;
+        Object held=call(e,"getMainHandItem");
+        // Shovels by registry ID: Snapshot item classes change, the vanilla IDs do not.
+        if(count(held)==0||!MinecraftSingleplayerWorld.itemId(held).endsWith("_shovel"))return false;
+        Object s=state(target);var above=block(new CodaBlockPos(target.x(),target.y()+1,target.z()));
+        if(s==null||above.isEmpty()||!above.get().air()||!PATHABLE.contains(key("BLOCK",call(s,"getBlock"))))return false;
+        Object path=call(value("BLOCK","minecraft:dirt_path"),"defaultBlockState");
+        Object hand=type("net.minecraft.world.entity.EquipmentSlot").getField("MAINHAND").get(null),originalTool=copy(held);
+        if(!(Boolean)call(level,"setBlock",pos(target),path,11))return false;
+        try{call(held,"hurtAndBreak",1,e,hand);return true;}
+        catch(Exception ex){
+            try{call(level,"setBlock",pos(target),s,11);call(e,"setItemSlot",hand,originalTool);}catch(Exception rollback){ex.addSuppressed(rollback);}
+            throw ex;
+        }
+    }
     @Override public void announce(String message)throws Exception{
         if(message==null||message.length()>512)throw new IllegalArgumentException("Invalid settlement notice");
         Object text=call(type("net.minecraft.network.chat.Component"),"literal","[Frontier] "+message);

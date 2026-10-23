@@ -48,5 +48,27 @@ public interface CodaLivingWorld {
                     Set<String> tools) throws Exception;
     /** Consume a real seed/sapling from actor inventory or nearby supplies; native survival checks apply. */
     boolean plant(UUID id, CodaBlockPos target, String itemId, CodaBlockPos supplies) throws Exception;
+    /**
+     * Place one block from one real item: the settler's own inventory first, otherwise the
+     * chest or barrel at {@code supplies} if the settler is within 3 blocks of it.
+     * {@code blockState} is a block ID with optional properties, for example
+     * {@code minecraft:oak_door[facing=south,half=lower,hinge=left]}; unnamed properties keep their defaults.
+     * Two-part blocks are given as their first half (a door's lower half, a bed's foot); Minecraft's own
+     * placement logic then adds the other half, and one item is used for both.
+     * Returns false, changing nothing, unless the settler is loaded, alive and within 6 blocks; every
+     * position is loaded, inside the world and replaceable (air or a replaceable plant, never a fluid);
+     * the block can survive there; and no entity is in the way.
+     * Invalid states, blocks without an item, and second halves are programming errors and throw.
+     */
+    default boolean place(UUID id, CodaBlockPos target, String blockState, CodaBlockPos supplies) throws Exception {
+        throw new UnsupportedOperationException("Settler block placement requires H.O.W.L. 0.0.46");
+    }
+    /**
+     * Turn grass or dirt into a dirt path, as a player does with a shovel, using the shovel in the
+     * settler's main hand (it loses durability as usual). Requires air above and the settler within 6 blocks.
+     */
+    default boolean shapePath(UUID id, CodaBlockPos target) throws Exception {
+        throw new UnsupportedOperationException("Settler path shaping requires H.O.W.L. 0.0.46");
+    }
     void announce(String message) throws Exception;
 }
