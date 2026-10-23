@@ -262,7 +262,16 @@ public final class LivingWorldNativeSmoke {
                 finished=true;System.out.println("PASS: "+checks+" running Snapshot 3 living-world checks");call(server,"halt",false);
             }
             if(tick>120)throw new AssertionError("Native scenario timed out");
-        }catch(Throwable failure){failure.printStackTrace();System.exit(1);}finally{scope=false;}
+        }catch(Throwable failure){
+            failure.printStackTrace();
+            // Also as a GitHub annotation, so the failing check is readable without the full log.
+            StringBuilder where=new StringBuilder(String.valueOf(failure));
+            for(Throwable t=failure.getCause();t!=null;t=t.getCause())where.append(" | caused by ").append(t);
+            StackTraceElement[] trace=failure.getStackTrace();
+            for(int i=0;i<Math.min(6,trace.length);i++)where.append(" | at ").append(trace[i]);
+            System.out.println("::error title=Living-world native check failed::"+where.toString().replace("%","%25").replace("\n"," ").replace("\r",""));
+            System.exit(1);
+        }finally{scope=false;}
     }
     public static void finish(){System.exit(finished?0:1);}
 }
