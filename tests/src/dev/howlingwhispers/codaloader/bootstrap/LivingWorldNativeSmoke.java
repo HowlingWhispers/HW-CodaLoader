@@ -89,6 +89,48 @@ public final class LivingWorldNativeSmoke {
         check(call(call(call(CodaSettlerAvatarLifecycle.inventory(loaded),"getItem",0),"get",customName),"getString").equals("Frontier saved log"),"Inventory save/reload preserves native ItemStack components");
         check(call(call(loaded,"getProfile"),"name").equals(call(call(e,"getProfile"),"name")),"Native avatar save/reload preserves skin profile");
     }
+    /** L6 (0.0.46): settlers place real blocks from real items, and shape paths with a real shovel. */
+    static void placement(Object level,CodaLivingWorld world,CodaLivingWorld.Actor actor,Object chest)throws Exception{
+        int ax=(int)Math.floor(actor.x());
+        call(chest,"setItem",3,item("minecraft:oak_planks",2));call(chest,"setItem",4,item("minecraft:oak_door",1));
+        call(chest,"setItem",5,item("minecraft:red_bed",1));call(chest,"setItem",6,item("minecraft:stone_shovel",1));
+        CodaBlockPos plank=new CodaBlockPos(ax-1,80,2);
+        check(world.place(id,plank,"minecraft:oak_planks",stock),"Settler places a plank from the stockpile");
+        check(world.block(plank).orElseThrow().id().equals("minecraft:oak_planks"),"The placed block is real");
+        check(((Number)call(call(chest,"getItem",3),"getCount")).intValue()==1,"Exactly one plank was used");
+        check(!world.place(id,plank,"minecraft:oak_planks",stock),"An occupied spot is refused");
+        check(((Number)call(call(chest,"getItem",3),"getCount")).intValue()==1,"A refused placement uses nothing");
+        check(!world.place(id,new CodaBlockPos(ax-1,80,3),"minecraft:cobblestone",stock),"Without the item, nothing is placed");
+        check(world.block(new CodaBlockPos(ax-1,80,3)).orElseThrow().air(),"...and the spot stays empty");
+        CodaBlockPos door=new CodaBlockPos(ax+1,80,2);
+        check(world.place(id,door,"minecraft:oak_door[facing=south,half=lower,hinge=left]",stock),"A door is placed by its lower half");
+        var upper=world.block(new CodaBlockPos(ax+1,81,2)).orElseThrow();
+        check(upper.id().equals("minecraft:oak_door")&&"upper".equals(upper.properties().get("half"))&&"south".equals(upper.properties().get("facing")),"Minecraft adds the matching upper half");
+        check((Boolean)call(call(chest,"getItem",4),"isEmpty"),"The whole door used one item");
+        try{world.place(id,new CodaBlockPos(ax+2,81,2),"minecraft:oak_door[half=upper]",stock);throw new AssertionError("Upper half accepted");}
+        catch(IllegalArgumentException expected){checks++;}
+        try{world.place(id,new CodaBlockPos(ax+2,80,2),"minecraft:oak_planks[nonsense=1]",stock);throw new AssertionError("Unknown property accepted");}
+        catch(IllegalArgumentException expected){checks++;}
+        CodaBlockPos foot=new CodaBlockPos(ax-2,80,-2);
+        check(world.place(id,foot,"minecraft:red_bed[part=foot,facing=east]",stock),"A bed is placed by its foot");
+        var head=world.block(new CodaBlockPos(ax-1,80,-2)).orElseThrow();
+        check(head.id().equals("minecraft:red_bed")&&"head".equals(head.properties().get("part")),"Minecraft adds the bed's head in front of the foot");
+        check((Boolean)call(call(chest,"getItem",5),"isEmpty"),"The whole bed used one item");
+        check(!world.place(id,new CodaBlockPos(ax,80,-3),"minecraft:oak_planks",new CodaBlockPos(ax,80,-3)),"No supplies in reach and none carried: refused");
+        CodaBlockPos far=new CodaBlockPos(ax+8,80,0);
+        call(chest,"setItem",3,item("minecraft:oak_planks",2));
+        check(!world.place(id,far,"minecraft:oak_planks",stock)&&world.block(far).orElseThrow().air(),"Blocks more than 6 blocks away are refused");
+        CodaBlockPos ground=new CodaBlockPos(ax+2,79,3);
+        check(!world.shapePath(id,ground),"No path without a shovel in hand");
+        check(world.equip(id,stock,Set.of("minecraft:stone_shovel")),"Shovel issued from the stockpile");
+        Object hand=Class.forName("net.minecraft.world.entity.EquipmentSlot").getField("MAINHAND").get(null);
+        Object shovel=call(call(level,"getEntity",id),"getItemBySlot",hand);int wear=((Number)call(shovel,"getDamageValue")).intValue();
+        check(world.shapePath(id,ground),"Settler shapes a dirt path with the shovel");
+        check(world.block(ground).orElseThrow().id().equals("minecraft:dirt_path"),"The path is a real dirt path");
+        check(((Number)call(call(call(level,"getEntity",id),"getItemBySlot",hand),"getDamageValue")).intValue()==wear+1,"The shovel wore by one use");
+        check(!world.shapePath(id,ground),"A path cannot be shaped twice");
+        check(world.equip(id,stock,Set.of()),"The shovel goes back to the stockpile");
+    }
     public record TargetSource(Object server,Object level,Object player){
         public Object getServer(){return server;}
         public Object getLevel(){return level;}
@@ -176,6 +218,7 @@ public final class LivingWorldNativeSmoke {
                 check(world.deliver(id,stock)==1&&world.carried(id)==0,"Real harvested log delivered to chest");
                 check(world.equip(id,stock,Set.of()),"Changing to a bare-hand job returns the old tool through a native equipment container");
                 check((Boolean)call(call(call(level,"getEntity",id),"getMainHandItem"),"isEmpty"),"Issued tool is not duplicated in the worker's hand");
+                placement(level,world,actor,chest);
                 Object bed=block("minecraft:red_bed"),state=call(bed,"defaultBlockState");
                 Object part=Class.forName("net.minecraft.world.level.block.BedBlock").getField("PART").get(null);
                 Object head=Class.forName("net.minecraft.world.level.block.state.properties.BedPart").getField("HEAD").get(null);
