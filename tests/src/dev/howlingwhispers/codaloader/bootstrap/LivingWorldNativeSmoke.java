@@ -162,7 +162,9 @@ public final class LivingWorldNativeSmoke {
         check(doors==3&&planks==2,"The game's recipe made 3 doors from 6 planks ("+doors+" doors, "+planks+" planks)");
         put(level,table,"minecraft:air");
         check(world.craft(id,table,stock,"minecraft:oak_planks",1)==0,"No crafting table there: nothing is crafted");
-        check(world.deliver(id,stock)>0&&world.carried(id)==0,"Crafted items go to the stockpile like any other");
+        // deliver moves one stack per call, as hauling always has: doors and planks take two.
+        int delivered=0;for(int n;world.carried(id)>0&&(n=world.deliver(id,stock))>0;)delivered+=n;
+        check(delivered==5&&world.carried(id)==0,"Crafted items go to the stockpile like any other (delivered "+delivered+", still carried "+world.carried(id)+")");
         for(var e:setAside.entrySet())if(((Boolean)call(call(chest,"getItem",e.getKey()),"isEmpty")))call(chest,"setItem",e.getKey(),e.getValue());
     }
     public record TargetSource(Object server,Object level,Object player){
