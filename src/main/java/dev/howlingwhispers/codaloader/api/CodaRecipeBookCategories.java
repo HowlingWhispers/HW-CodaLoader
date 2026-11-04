@@ -21,7 +21,8 @@ public final class CodaRecipeBookCategories {
             Objects.requireNonNull(title);
             Objects.requireNonNull(icon);
             itemIds = List.copyOf(itemIds);
-            if (!valid(modId) || !valid(id) || !valid(icon) || title.isBlank()
+            // A mod ID is a namespace only; category IDs and items are namespaced resources.
+            if (!modId.matches("[a-z0-9_.-]+") || !valid(id) || !valid(icon) || title.isBlank()
                     || itemIds.isEmpty() || itemIds.stream().anyMatch(s -> !valid(s))) {
                 throw new IllegalArgumentException("Invalid recipe-book category");
             }
